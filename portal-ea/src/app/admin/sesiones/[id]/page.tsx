@@ -24,6 +24,9 @@ export default function SessionDetailPage() {
   const [deletingSession, setDeletingSession] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [sessionStats, setSessionStats] = useState({ totalCompleted: 0, avgTimeMinutes: 0 })
+  const [analysisText, setAnalysisText] = useState<string | null>(null)
+  const [generatingAnalysis, setGeneratingAnalysis] = useState(false)
+  const [analysisError, setAnalysisError] = useState('')
 
   useEffect(() => {
     checkAuthAndLoad()
@@ -69,6 +72,17 @@ export default function SessionDetailPage() {
         avgTime = Math.round(totalMinutes / withTime.length)
       }
       setSessionStats({ totalCompleted: completed.length, avgTimeMinutes: avgTime })
+    }
+
+    // Cargar análisis existente si hay
+    const { data: existingAnalysis } = await supabase
+      .from('session_analyses')
+      .select('analysis_text')
+      .eq('session_id', sessionId)
+      .single()
+
+    if (existingAnalysis) {
+      setAnalysisText(existingAnalysis.analysis_text)
     }
 
     setLoading(false)
@@ -272,6 +286,76 @@ export default function SessionDetailPage() {
     setExporting(false)
   }
 
+  async function generateAnalysis() {
+    setGeneratingAnalysis(true)
+    setAnalysisError('')
+
+    // Primero obtener los datos consolidados
+    const completedRespondents = respondents.filter(r => r.completed)
+    if (completedRespondents.length === 0) {
+      setAnalysisError('No hay encuestados completados para analizar.')
+      setGeneratingAnalysis(false)
+      return
+    }
+
+    const ids = completedRespondents.map(r => r.id)
+    const { data: allResponses } = await supabase
+      .from('responses')
+      .select('value, questions(dimensions(name, display_order))')
+      .in('respondent_id', ids)
+
+    if (!allResponses || allResponses.length === 0) {
+      setAnalysisError('No hay respuestas disponibles.')
+      setGeneratingAnalysis(false)
+      return
+    }
+
+    // Calcular promedios por dimensión
+    const dimScores: Record<string, { name: string; total: number; count: number; order: number }> = {}
+    allResponses.forEach((r: any) => {
+      const dimName = r.questions.dimensions.name
+      const dimOrder = r.questions.dimensions.display_order
+      if (!dimScores[dimName]) dimScores[dimName] = { name: dimName, total: 0, count: 0, order: dimOrder }
+      dimScores[dimName].total += r.value
+      dimScores[dimName].count += 1
+    })
+
+    const dimensionScores = Object.values(dimScores)
+      .sort((a, b) => a.order - b.order)
+      .map(d => ({
+        dimension: d.name,
+        value: Math.round((d.total / d.count) * 10) / 10,
+      }))
+
+    // Llamar al API
+    try {
+      const res = await fetch('/api/analysis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          sessionName: session?.name,
+          dimensionScores,
+          totalRespondents: completedRespondents.length,
+        }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json()
+        setAnalysisError(err.error || 'Error al generar el análisis.')
+        setGeneratingAnalysis(false)
+        return
+      }
+
+      const data = await res.json()
+      setAnalysisText(data.analysis)
+    } catch {
+      setAnalysisError('Error de conexión. Intenta de nuevo.')
+    }
+
+    setGeneratingAnalysis(false)
+  }
+
   async function loadConsolidated() {
     setViewMode('consolidated')
     setSelectedRespondent(null)
@@ -463,6 +547,48 @@ export default function SessionDetailPage() {
             <div className="bg-white rounded-xl shadow-sm border p-12 text-center text-gray-500">
               <p>Selecciona un encuestado o usa la vista consolidada.</p>
             </div>
+          )}
+        </div>
+      </div>
+
+      {/* Sección de Análisis IA */}
+      <div className="mt-8">
+        <div className="bg-white rounded-xl shadow-sm border p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-gray-900">🤖 Análisis IA</h2>
+            <button
+              onClick={generateAnalysis}
+              disabled={generatingAnalysis || respondents.filter(r => r.completed).length === 0}
+              className="px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors disabled:opacity-50"
+            >
+              {generatingAnalysis ? 'Generando análisis...' : analysisText ? '🔄 Regenerar Análisis' : '✨ Generar Análisis'}
+            </button>
+          </div>
+
+          {analysisError && (
+            <p className="text-red-600 text-sm mb-4">{analysisError}</p>
+          )}
+
+          {generatingAnalysis && (
+            <div className="flex items-center gap-3 py-8 justify-center">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+              <p className="text-gray-500">Analizando resultados con IA...</p>
+            </div>
+          )}
+
+          {!generatingAnalysis && analysisText && (
+            <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap">
+              {analysisText}
+            </div>
+          )}
+
+          {!generatingAnalysis && !analysisText && !analysisError && (
+            <p className="text-gray-400 text-sm text-center py-4">
+              Genera un análisis interpretativo de los resultados consolidados usando inteligencia artificial.
+              {respondents.filter(r => r.completed).length === 0 && (
+                <span className="block mt-1 text-yellow-600">Se requiere al menos un encuestado completado.</span>
+              )}
+            </p>
           )}
         </div>
       </div>

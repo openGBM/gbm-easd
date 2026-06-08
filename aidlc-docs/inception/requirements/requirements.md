@@ -60,6 +60,15 @@
 - Solo usuarios autorizados acceden al panel admin
 - Protección de rutas admin en el frontend
 
+### RF-08: Análisis IA de Resultados
+- Análisis interpretativo generado por IA (Google Gemini 2.0 Flash, free tier)
+- Activado manualmente por el admin desde el detalle de sesión
+- Requiere al menos un encuestado completado
+- Genera análisis ejecutivo en español: resumen general, fortalezas, áreas de oportunidad, recomendaciones y hoja de ruta
+- El análisis se guarda en BD para no regenerar cada vez
+- Admin puede regenerar el análisis si lo desea
+- Solo accesible para administradores autenticados
+
 ---
 
 ## Requerimientos No Funcionales

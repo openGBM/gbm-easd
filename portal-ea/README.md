@@ -14,7 +14,8 @@ Permite a los encuestados evaluar la eficacia de su grupo de EA en múltiples di
 | UI | React 19 + Tailwind CSS 4 |
 | Visualización | Recharts (radar chart) |
 | QR | qrcode.react |
-| Exportación | SheetJS (xlsx) |
+| Exportación | ExcelJS |
+| IA/Análisis | Google Gemini 2.0 Flash (free tier) |
 | Backend/DB | Supabase (PostgreSQL + Auth + RLS) |
 | Auth | Supabase Auth (email/password) |
 
@@ -75,6 +76,7 @@ dimensions (1) ──── (N) questions (1) ───────────�
 | `questions` | Preguntas por dimensión (id, dimension_id, text, display_order) |
 | `respondents` | Encuestados (id, session_id, name, email, completed, completed_at, created_at) |
 | `responses` | Respuestas (id, respondent_id, question_id, value 1-5, created_at) |
+| `session_analyses` | Análisis IA por sesión (id, session_id, analysis_text, generated_at, generated_by) |
 
 ---
 
@@ -103,6 +105,7 @@ dimensions (1) ──── (N) questions (1) ───────────�
 - Detalle de sesión con dashboard específico (respuestas y tiempo promedio de la sesión)
 - Vista de resultados por encuestado individual
 - Vista consolidada (promedio de todos los encuestados completados)
+- Análisis IA (Gemini): interpretación ejecutiva de resultados bajo demanda
 - Exportar respuestas a Excel (.xlsx) con 2 hojas: Resumen y Detalle
 - Eliminar encuestados y sus respuestas
 
@@ -141,6 +144,8 @@ Crear archivo `.env.local` en la raíz de `portal-ea/`:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<tu-anon-key>
+ADMIN_EMAILS=admin@gbm.net
+GEMINI_API_KEY=<tu-api-key-de-google-ai-studio>
 ```
 
 ### Comandos
@@ -176,6 +181,14 @@ La aplicación estará disponible en [http://localhost:3000](http://localhost:30
 | `/admin/login` | Público | Login de administrador |
 | `/admin` | Protegido | Dashboard de sesiones |
 | `/admin/sesiones/[id]` | Protegido | Detalle de sesión |
+
+---
+
+## API Routes
+
+| Ruta | Método | Descripción |
+|------|--------|-------------|
+| `/api/analysis` | POST | Genera análisis IA con Gemini (solo admin) |
 
 ---
 

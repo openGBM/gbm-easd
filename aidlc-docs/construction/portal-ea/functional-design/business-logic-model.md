@@ -102,6 +102,13 @@
         * "Detalle": todas las respuestas individuales (nombre, correo, dimensión, pregunta, valor)
       - Descarga automática del archivo al navegador
       - Solo accesible para administradores autenticados (protegido por AdminLayout)
+   f. Generar análisis IA (Gemini):
+      - Solo disponible si hay encuestados completados
+      - Admin hace click en "Generar Análisis" → envía datos consolidados a Gemini 2.0 Flash
+      - Gemini genera análisis ejecutivo en español: resumen, fortalezas, áreas de oportunidad, recomendaciones, hoja de ruta
+      - El análisis se guarda en tabla session_analyses (un análisis por sesión, upsert)
+      - Admin puede regenerar el análisis en cualquier momento
+      - Si el análisis ya existe, se carga automáticamente al abrir el detalle
 ```
 
 ---
