@@ -65,15 +65,29 @@ export default function AdminDashboard() {
 
   async function loadSessions(flagEnabled?: boolean) {
     const useMulti = flagEnabled !== undefined ? flagEnabled : multiInstrumentEnabled
-    // Query adaptativa: si multi-instrumento está habilitado, incluir JOIN
-    const selectQuery = useMulti
-      ? '*, respondents(count), instrument_versions(version_tag, instruments(name))'
-      : '*, respondents(count)'
 
-    const { data } = await supabase
-      .from('sessions')
-      .select(selectQuery)
-      .order('created_at', { ascending: false })
+    let data: any[] | null = null
+
+    // Intentar con JOIN si multi-instrumento está habilitado
+    if (useMulti) {
+      const result = await supabase
+        .from('sessions')
+        .select('*, respondents(count), instrument_versions(version_tag, instruments(name))')
+        .order('created_at', { ascending: false })
+      
+      if (!result.error) {
+        data = result.data
+      }
+    }
+
+    // Fallback: query simple sin JOIN
+    if (!data) {
+      const result = await supabase
+        .from('sessions')
+        .select('*, respondents(count)')
+        .order('created_at', { ascending: false })
+      data = result.data
+    }
 
     if (data) {
       const formatted = data.map((s: any) => ({
