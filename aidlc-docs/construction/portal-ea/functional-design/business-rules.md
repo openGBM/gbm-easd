@@ -66,3 +66,7 @@
 | BR-28 | Admin puede eliminar un encuestado y todas sus respuestas | Eliminar responses primero, luego respondent (cascade) |
 | BR-29 | Lista de admins autorizados por email | Verificar email contra lista en AdminLayout |
 | BR-30 | Si email duplicado y ya completó, mostrar mensaje informativo | "Ya respondiste esta encuesta" |
+| BR-33 | Dashboard global muestra sesiones habilitadas | Contar sessions con is_active = true |
+| BR-34 | Dashboard global muestra total de respuestas recolectadas | Contar respondents con completed = true |
+| BR-35 | Dashboard global muestra tiempo promedio de respuesta | Promedio de (completed_at - created_at) de respondents completados, en minutos |
+| BR-36 | Al completar encuesta se registra completed_at | UPDATE respondents SET completed_at = now() junto con completed = true |

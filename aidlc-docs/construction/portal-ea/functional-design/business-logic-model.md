@@ -57,9 +57,13 @@
 5. AdminLayout verifica email contra lista de admins autorizados
    └─ Si no autorizado → "Acceso Denegado"
 6. Dashboard muestra:
-   a. Lista de sesiones (nombre, estado, fecha, # encuestados)
-   b. Formulario "Crear sesión" (nombre obligatorio)
-   c. QR code por cada sesión con URL completa
+   a. Mini dashboard con métricas globales:
+      - Total de sesiones habilitadas (is_active = true)
+      - Total de respuestas recolectadas (encuestados completados)
+      - Tiempo promedio de respuesta en minutos (completed_at - created_at)
+   b. Lista de sesiones (nombre, estado, fecha, # encuestados)
+   c. Formulario "Crear sesión" (nombre obligatorio)
+   d. QR code por cada sesión con URL completa
 7. Admin puede:
    a. Crear sesión → ingresa nombre → se genera con is_active = true
    b. Deshabilitar sesión → toggle is_active = false
