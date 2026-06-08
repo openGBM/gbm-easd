@@ -100,7 +100,7 @@ dimensions (1) ──── (N) questions (1) ───────────�
 - Habilitar/deshabilitar sesiones
 - Eliminar sesiones con confirmación (cascade)
 - Código QR generado para cada sesión
-- Detalle de sesión con lista de encuestados
+- Detalle de sesión con dashboard específico (respuestas y tiempo promedio de la sesión)
 - Vista de resultados por encuestado individual
 - Vista consolidada (promedio de todos los encuestados completados)
 - Exportar respuestas a Excel (.xlsx) con 2 hojas: Resumen y Detalle

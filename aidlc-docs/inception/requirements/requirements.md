@@ -44,12 +44,16 @@
 - Cada sesión tiene un enlace único
 
 ### RF-06: Panel de Administración
+- Dashboard global con métricas: sesiones habilitadas, respuestas totales, tiempo promedio
 - Dashboard con lista de sesiones (activas/inactivas) con conteo de encuestados
+- Vista detallada de sesión con dashboard específico (respuestas y tiempo promedio de esa sesión)
 - Vista detallada de sesión con lista de encuestados (nombre, email, estado, fecha)
 - Vista de resultados por encuestado individual (radar + tabla)
 - Vista consolidada: promedio de todos los encuestados completados en una sesión
+- Exportar respuestas a Excel (.xlsx) con hojas de resumen y detalle
+- Capacidad de eliminar sesiones completas (cascade) con confirmación
 - Capacidad de eliminar encuestados y sus respuestas
-- Acceso protegido por autenticación (verificación de email autorizado)
+- Acceso protegido por autenticación (verificación de email autorizado vía variable de entorno)
 
 ### RF-07: Autenticación de Admin
 - Login con email y password via Supabase Auth
@@ -97,7 +101,7 @@
 - **sessions**: id, name, is_active, created_at
 - **dimensions**: id, name, description, display_order, color
 - **questions**: id, dimension_id, text, display_order
-- **respondents**: id, session_id, name, email, completed, created_at
+- **respondents**: id, session_id, name, email, completed, completed_at, created_at
 - **responses**: id, respondent_id, question_id, value (1-5), created_at
 
 ---

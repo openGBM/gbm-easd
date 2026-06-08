@@ -23,6 +23,7 @@ export default function SessionDetailPage() {
   const [viewMode, setViewMode] = useState<'individual' | 'consolidated'>('individual')
   const [deletingSession, setDeletingSession] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [sessionStats, setSessionStats] = useState({ totalCompleted: 0, avgTimeMinutes: 0 })
 
   useEffect(() => {
     checkAuthAndLoad()
@@ -52,7 +53,24 @@ export default function SessionDetailPage() {
       .eq('session_id', sessionId)
       .order('created_at', { ascending: false })
 
-    if (respondentData) setRespondents(respondentData)
+    if (respondentData) {
+      setRespondents(respondentData)
+
+      // Calcular stats de la sesión
+      const completed = respondentData.filter(r => r.completed)
+      const withTime = completed.filter(r => r.completed_at)
+      let avgTime = 0
+      if (withTime.length > 0) {
+        const totalMinutes = withTime.reduce((sum, r) => {
+          const start = new Date(r.created_at).getTime()
+          const end = new Date(r.completed_at!).getTime()
+          return sum + (end - start) / 1000 / 60
+        }, 0)
+        avgTime = Math.round(totalMinutes / withTime.length)
+      }
+      setSessionStats({ totalCompleted: completed.length, avgTimeMinutes: avgTime })
+    }
+
     setLoading(false)
   }
 
@@ -337,6 +355,20 @@ export default function SessionDetailPage() {
         >
           {exporting ? 'Exportando...' : '📥 Exportar Excel'}
         </button>
+      </div>
+
+      {/* Dashboard de la sesión */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <div className="bg-white rounded-xl shadow-sm border p-5">
+          <p className="text-sm text-gray-500 mb-1">Respuestas Recolectadas</p>
+          <p className="text-3xl font-bold text-green-600">{sessionStats.totalCompleted}</p>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border p-5">
+          <p className="text-sm text-gray-500 mb-1">Tiempo Promedio de Respuesta</p>
+          <p className="text-3xl font-bold text-purple-600">
+            {sessionStats.avgTimeMinutes > 0 ? `${sessionStats.avgTimeMinutes} min` : '—'}
+          </p>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">

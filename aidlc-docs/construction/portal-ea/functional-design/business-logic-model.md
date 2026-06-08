@@ -79,6 +79,9 @@
 2. Sistema carga:
    a. Info de la sesión (nombre, estado, fecha)
    b. Lista de encuestados (nombre, email, completado, fecha)
+   c. Dashboard de la sesión:
+      - Total de respuestas recolectadas (encuestados completados de esta sesión)
+      - Tiempo promedio de respuesta en minutos (completed_at - created_at de esta sesión)
 3. Admin puede:
    a. Ver resultados individuales:
       - Click en encuestado → calcula promedio por dimensión → muestra radar chart + tabla
