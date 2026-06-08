@@ -561,7 +561,7 @@ export default function SessionDetailPage() {
               </div>
               <div className="bg-white rounded-xl shadow-sm border p-6">
                 <h2 className="text-lg font-bold mb-4 text-center">Resumen</h2>
-                <ResultsTable data={chartData} />
+                <ResultsTable data={chartData} mode="average" />
               </div>
             </div>
           ) : (
