@@ -14,6 +14,7 @@ export default function AdminDashboard() {
   const [newSessionName, setNewSessionName] = useState('')
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
+  const [deleting, setDeleting] = useState<string | null>(null)
 
   useEffect(() => {
     checkAuth()
@@ -66,6 +67,35 @@ export default function AdminDashboard() {
       .update({ is_active: !isActive })
       .eq('id', id)
 
+    await loadSessions()
+  }
+
+  async function deleteSession(id: string, name: string) {
+    const confirmed = confirm(
+      `¿Eliminar la sesión "${name}" y todos sus encuestados y respuestas?\n\nEsta acción no se puede deshacer.`
+    )
+    if (!confirmed) return
+
+    setDeleting(id)
+
+    // Obtener respondents de la sesión para eliminar sus respuestas
+    const { data: respondents } = await supabase
+      .from('respondents')
+      .select('id')
+      .eq('session_id', id)
+
+    if (respondents && respondents.length > 0) {
+      const respondentIds = respondents.map(r => r.id)
+      // Eliminar respuestas de todos los encuestados
+      await supabase.from('responses').delete().in('respondent_id', respondentIds)
+      // Eliminar encuestados
+      await supabase.from('respondents').delete().eq('session_id', id)
+    }
+
+    // Eliminar la sesión
+    await supabase.from('sessions').delete().eq('id', id)
+
+    setDeleting(null)
     await loadSessions()
   }
 
@@ -156,6 +186,13 @@ export default function AdminDashboard() {
                     >
                       Ver Detalle
                     </Link>
+                    <button
+                      onClick={() => deleteSession(session.id, session.name)}
+                      disabled={deleting === session.id}
+                      className="px-4 py-1.5 rounded-lg text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
+                    >
+                      {deleting === session.id ? 'Eliminando...' : 'Eliminar'}
+                    </button>
                   </div>
                 </div>
                 {/* QR Code */}

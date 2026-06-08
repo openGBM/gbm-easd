@@ -1,0 +1,21 @@
+# Configuración de Supabase para Portal EA
+# Ref: https://supabase.com/docs/guides/cli/config
+
+[project]
+id = "portal-ea"
+name = "Portal de Autodiagnóstico EA"
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+port = 54323
+
+[auth]
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://localhost:3000"]
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false
