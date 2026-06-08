@@ -1,7 +1,9 @@
-# Portal de Autodiagnóstico — Arquitectura Empresarial (GBM)
+# Portal de Evaluaciones de Autodiagnóstico — GBM
 
-Portal web de autodiagnóstico de madurez de Arquitectura Empresarial para clientes GBM.  
-Permite a los encuestados evaluar la eficacia de su grupo de EA en múltiples dimensiones mediante una escala de acuerdo (1–5), visualizar resultados con gráfico de radar, y a los administradores gestionar sesiones de evaluación.
+Portal web multi-instrumento para evaluaciones de autodiagnóstico organizacional.  
+Permite aplicar distintos instrumentos de evaluación, gestionar sesiones con participantes, visualizar resultados con gráficos de radar, y generar análisis interpretativos con inteligencia artificial.
+
+![Portal de Evaluaciones GBM](../docs/portal-inicio.png)
 
 ---
 
