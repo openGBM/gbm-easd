@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Session, Respondent } from '@/types/database'
 import RadarChart from '@/components/RadarChart'
 import ResultsTable from '@/components/ResultsTable'
+import InstrumentBadge from '@/components/InstrumentBadge'
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import * as ExcelJS from 'exceljs'
@@ -28,6 +29,7 @@ export default function SessionDetailPage() {
   const [analysisText, setAnalysisText] = useState<string | null>(null)
   const [generatingAnalysis, setGeneratingAnalysis] = useState(false)
   const [analysisError, setAnalysisError] = useState('')
+  const [instrumentInfo, setInstrumentInfo] = useState<{ name: string; versionTag: string } | null>(null)
 
   useEffect(() => {
     checkAuthAndLoad()
@@ -45,11 +47,20 @@ export default function SessionDetailPage() {
   async function loadSession() {
     const { data: sessionData } = await supabase
       .from('sessions')
-      .select('*')
+      .select('*, instrument_versions(version_tag, instruments(name))')
       .eq('id', sessionId)
       .single()
 
-    if (sessionData) setSession(sessionData)
+    if (sessionData) {
+      setSession(sessionData)
+      // Cargar info del instrumento si existe
+      if (sessionData.instrument_versions) {
+        setInstrumentInfo({
+          name: (sessionData.instrument_versions as any).instruments.name,
+          versionTag: (sessionData.instrument_versions as any).version_tag,
+        })
+      }
+    }
 
     const { data: respondentData } = await supabase
       .from('respondents')
@@ -429,6 +440,12 @@ export default function SessionDetailPage() {
         }`}>
           {session.is_active ? 'Activa' : 'Inactiva'}
         </span>
+        {instrumentInfo && (
+          <InstrumentBadge
+            instrumentName={instrumentInfo.name}
+            versionTag={instrumentInfo.versionTag}
+          />
+        )}
         <button
           onClick={deleteSession}
           disabled={deletingSession}
