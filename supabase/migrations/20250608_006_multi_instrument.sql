@@ -131,20 +131,23 @@ WHERE instrument_version_id IS NULL;
 -- POLICIES ADICIONALES PARA dimensions Y questions (INSERT/UPDATE/DELETE admin)
 -- ============================================================
 
-CREATE POLICY IF NOT EXISTS "dimensions_insert_admin" ON dimensions
-  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
-
-CREATE POLICY IF NOT EXISTS "dimensions_update_admin" ON dimensions
-  FOR UPDATE USING (auth.role() = 'authenticated');
-
-CREATE POLICY IF NOT EXISTS "dimensions_delete_admin" ON dimensions
-  FOR DELETE USING (auth.role() = 'authenticated');
-
-CREATE POLICY IF NOT EXISTS "questions_insert_admin" ON questions
-  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
-
-CREATE POLICY IF NOT EXISTS "questions_update_admin" ON questions
-  FOR UPDATE USING (auth.role() = 'authenticated');
-
-CREATE POLICY IF NOT EXISTS "questions_delete_admin" ON questions
-  FOR DELETE USING (auth.role() = 'authenticated');
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'dimensions_insert_admin' AND tablename = 'dimensions') THEN
+    CREATE POLICY "dimensions_insert_admin" ON dimensions FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'dimensions_update_admin' AND tablename = 'dimensions') THEN
+    CREATE POLICY "dimensions_update_admin" ON dimensions FOR UPDATE USING (auth.role() = 'authenticated');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'dimensions_delete_admin' AND tablename = 'dimensions') THEN
+    CREATE POLICY "dimensions_delete_admin" ON dimensions FOR DELETE USING (auth.role() = 'authenticated');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'questions_insert_admin' AND tablename = 'questions') THEN
+    CREATE POLICY "questions_insert_admin" ON questions FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'questions_update_admin' AND tablename = 'questions') THEN
+    CREATE POLICY "questions_update_admin" ON questions FOR UPDATE USING (auth.role() = 'authenticated');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'questions_delete_admin' AND tablename = 'questions') THEN
+    CREATE POLICY "questions_delete_admin" ON questions FOR DELETE USING (auth.role() = 'authenticated');
+  END IF;
+END $$;
