@@ -6,12 +6,12 @@ import Link from 'next/link'
 
 interface AdminNavProps {
   userEmail: string
+  multiInstrument?: boolean
 }
 
-export default function AdminNav({ userEmail }: AdminNavProps) {
+export default function AdminNav({ userEmail, multiInstrument: multiInstrumentEnabled = false }: AdminNavProps) {
   const router = useRouter()
   const supabase = createClient()
-  const multiInstrumentEnabled = process.env.NEXT_PUBLIC_MULTI_INSTRUMENT === 'true'
 
   async function handleLogout() {
     await supabase.auth.signOut()

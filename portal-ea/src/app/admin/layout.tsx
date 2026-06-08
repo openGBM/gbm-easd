@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { multiInstrument } from '@/flags'
 import AdminNav from './AdminNav'
 
 export default async function AdminLayout({
@@ -30,9 +31,12 @@ export default async function AdminLayout({
     )
   }
 
+  // Evaluar feature flag multi-instrumento
+  const isMultiInstrument = await multiInstrument()
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <AdminNav userEmail={user.email || ''} />
+      <AdminNav userEmail={user.email || ''} multiInstrument={isMultiInstrument} />
       <main className="max-w-7xl mx-auto px-4 py-8">
         {children}
       </main>
