@@ -60,6 +60,17 @@
 - Solo usuarios autorizados acceden al panel admin
 - Protección de rutas admin en el frontend
 
+### RF-08: Análisis IA de Resultados
+- Análisis interpretativo generado por IA con estrategia de fallback (Gemini 2.0 Flash → Groq Llama 3.3 70B)
+- Activado manualmente por el admin desde el detalle de sesión
+- Requiere al menos un encuestado completado
+- Genera análisis ejecutivo en español: resumen general, fortalezas, áreas de oportunidad, recomendaciones y hoja de ruta
+- El análisis se renderiza con formato markdown (negritas, listas, encabezados)
+- El análisis se guarda en BD para no regenerar cada vez
+- Admin puede regenerar el análisis si lo desea
+- Admin puede copiar el análisis al portapapeles
+- Solo accesible para administradores autenticados
+
 ---
 
 ## Requerimientos No Funcionales

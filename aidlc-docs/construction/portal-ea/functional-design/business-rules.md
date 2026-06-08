@@ -75,3 +75,11 @@
 | BR-39 | Excel genera 2 hojas: Resumen y Detalle | Resumen con promedios por dimensión, Detalle con respuestas individuales |
 | BR-40 | Dashboard de sesión muestra total de respuestas de esa sesión | Contar respondents con completed = true y session_id = sesión actual |
 | BR-41 | Dashboard de sesión muestra tiempo promedio de respuesta de esa sesión | Promedio de (completed_at - created_at) de respondents completados de esa sesión, en minutos |
+| BR-42 | Análisis IA se genera bajo demanda del admin | Botón "Generar Análisis" visible solo con encuestados completados |
+| BR-43 | Análisis IA se almacena en BD (un análisis por sesión) | Tabla session_analyses con upsert por session_id |
+| BR-44 | Análisis IA se puede regenerar | Botón "Regenerar Análisis" sobrescribe el análisis anterior |
+| BR-45 | Análisis IA solo accesible para admins autenticados | Route Handler verifica auth + email en allowedAdmins |
+| BR-46 | Análisis IA requiere GEMINI_API_KEY o GROQ_API_KEY configurada | Retorna error 500 si ninguna está configurada |
+| BR-47 | Análisis IA usa fallback: Gemini → Groq | Si Gemini falla (429/quota), intenta con Groq (Llama 3.3 70B) |
+| BR-48 | Análisis IA se renderiza con formato markdown | Usa react-markdown para mostrar negritas, listas, encabezados |
+| BR-49 | Admin puede copiar análisis al portapapeles | Botón "Copiar" usa navigator.clipboard.writeText() |
