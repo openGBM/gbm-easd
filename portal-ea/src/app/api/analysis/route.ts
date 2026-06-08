@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import Groq from 'groq-sdk'
 
 export async function POST(request: NextRequest) {
   // Verificar autenticación
@@ -17,10 +18,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
   }
 
-  // Verificar API key configurada
-  const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) {
-    return NextResponse.json({ error: 'GEMINI_API_KEY no configurada' }, { status: 500 })
+  // Verificar que al menos una API key esté configurada
+  const geminiKey = process.env.GEMINI_API_KEY
+  const groqKey = process.env.GROQ_API_KEY
+
+  if (!geminiKey && !groqKey) {
+    return NextResponse.json({ error: 'No hay API keys configuradas (GEMINI_API_KEY o GROQ_API_KEY)' }, { status: 500 })
   }
 
   try {
@@ -60,13 +63,23 @@ Genera un análisis ejecutivo en español que incluya:
 
 El tono debe ser profesional pero accesible, orientado a líderes de negocio y TI.`
 
-    // Llamar a Gemini
-    const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+    let analysisText = ''
 
-    const result = await model.generateContent(prompt)
-    const response = result.response
-    const analysisText = response.text()
+    // Intentar con Gemini primero, fallback a Groq
+    if (geminiKey) {
+      analysisText = await tryGemini(geminiKey, prompt)
+    }
+
+    if (!analysisText && groqKey) {
+      analysisText = await tryGroq(groqKey, prompt)
+    }
+
+    if (!analysisText) {
+      return NextResponse.json(
+        { error: 'No se pudo generar el análisis. Ambos proveedores fallaron. Intenta de nuevo en unos minutos.' },
+        { status: 503 }
+      )
+    }
 
     // Guardar el análisis en la base de datos
     const { error: saveError } = await supabase
@@ -80,7 +93,6 @@ El tono debe ser profesional pero accesible, orientado a líderes de negocio y T
       }, { onConflict: 'session_id' })
 
     if (saveError) {
-      // Si la tabla no existe aún, devolver solo el análisis sin guardar
       console.error('Error guardando análisis:', saveError)
     }
 
@@ -91,5 +103,51 @@ El tono debe ser profesional pero accesible, orientado a líderes de negocio y T
       { error: 'Error al generar el análisis. Intenta de nuevo.' },
       { status: 500 }
     )
+  }
+}
+
+async function tryGemini(apiKey: string, prompt: string): Promise<string> {
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey)
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+
+    let attempts = 0
+    while (attempts < 2) {
+      try {
+        const result = await model.generateContent(prompt)
+        return result.response.text()
+      } catch (err: any) {
+        attempts++
+        if (err?.status === 429 && attempts < 2) {
+          await new Promise(resolve => setTimeout(resolve, 3000))
+          continue
+        }
+        throw err
+      }
+    }
+    return ''
+  } catch (error) {
+    console.error('Gemini falló, intentando fallback:', error)
+    return ''
+  }
+}
+
+async function tryGroq(apiKey: string, prompt: string): Promise<string> {
+  try {
+    const groq = new Groq({ apiKey })
+    const completion = await groq.chat.completions.create({
+      messages: [
+        { role: 'system', content: 'Eres un consultor experto en Arquitectura Empresarial. Responde siempre en español.' },
+        { role: 'user', content: prompt },
+      ],
+      model: 'llama-3.3-70b-versatile',
+      temperature: 0.7,
+      max_tokens: 3000,
+    })
+
+    return completion.choices[0]?.message?.content || ''
+  } catch (error) {
+    console.error('Groq falló:', error)
+    return ''
   }
 }

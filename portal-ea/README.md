@@ -15,7 +15,7 @@ Permite a los encuestados evaluar la eficacia de su grupo de EA en múltiples di
 | Visualización | Recharts (radar chart) |
 | QR | qrcode.react |
 | Exportación | ExcelJS |
-| IA/Análisis | Google Gemini 2.0 Flash (free tier) |
+| IA/Análisis | Google Gemini 2.0 Flash + Groq Llama 3.3 70B (fallback) |
 | Backend/DB | Supabase (PostgreSQL + Auth + RLS) |
 | Auth | Supabase Auth (email/password) |
 
@@ -105,7 +105,7 @@ dimensions (1) ──── (N) questions (1) ───────────�
 - Detalle de sesión con dashboard específico (respuestas y tiempo promedio de la sesión)
 - Vista de resultados por encuestado individual
 - Vista consolidada (promedio de todos los encuestados completados)
-- Análisis IA (Gemini): interpretación ejecutiva de resultados bajo demanda
+- Análisis IA (Gemini/Groq): interpretación ejecutiva de resultados bajo demanda, con formato markdown y opción de copiar
 - Exportar respuestas a Excel (.xlsx) con 2 hojas: Resumen y Detalle
 - Eliminar encuestados y sus respuestas
 
@@ -146,7 +146,10 @@ NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<tu-anon-key>
 ADMIN_EMAILS=admin@gbm.net
 GEMINI_API_KEY=<tu-api-key-de-google-ai-studio>
+GROQ_API_KEY=<tu-api-key-de-groq>
 ```
+
+> **Nota:** Se requiere al menos una de las dos keys de IA (GEMINI o GROQ). El sistema intenta Gemini primero y usa Groq como fallback.
 
 ### Comandos
 

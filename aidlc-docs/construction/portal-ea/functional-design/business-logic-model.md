@@ -102,12 +102,15 @@
         * "Detalle": todas las respuestas individuales (nombre, correo, dimensión, pregunta, valor)
       - Descarga automática del archivo al navegador
       - Solo accesible para administradores autenticados (protegido por AdminLayout)
-   f. Generar análisis IA (Gemini):
+   f. Generar análisis IA (Gemini / Groq fallback):
       - Solo disponible si hay encuestados completados
-      - Admin hace click en "Generar Análisis" → envía datos consolidados a Gemini 2.0 Flash
-      - Gemini genera análisis ejecutivo en español: resumen, fortalezas, áreas de oportunidad, recomendaciones, hoja de ruta
+      - Admin hace click en "Generar Análisis" → envía datos consolidados al API
+      - Estrategia de proveedores: intenta Gemini 2.0 Flash primero, si falla (429/quota) usa Groq (Llama 3.3 70B) como fallback
+      - Genera análisis ejecutivo en español: resumen, fortalezas, áreas de oportunidad, recomendaciones, hoja de ruta
+      - El análisis se renderiza con formato markdown (negritas, listas, encabezados)
       - El análisis se guarda en tabla session_analyses (un análisis por sesión, upsert)
       - Admin puede regenerar el análisis en cualquier momento
+      - Admin puede copiar el análisis al portapapeles (botón "Copiar")
       - Si el análisis ya existe, se carga automáticamente al abrir el detalle
 ```
 

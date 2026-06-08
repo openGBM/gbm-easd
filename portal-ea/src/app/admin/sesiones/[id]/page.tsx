@@ -7,6 +7,7 @@ import { Session, Respondent } from '@/types/database'
 import RadarChart from '@/components/RadarChart'
 import ResultsTable from '@/components/ResultsTable'
 import Link from 'next/link'
+import ReactMarkdown from 'react-markdown'
 import * as ExcelJS from 'exceljs'
 
 export default function SessionDetailPage() {
@@ -556,13 +557,26 @@ export default function SessionDetailPage() {
         <div className="bg-white rounded-xl shadow-sm border p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold text-gray-900">🤖 Análisis IA</h2>
-            <button
-              onClick={generateAnalysis}
-              disabled={generatingAnalysis || respondents.filter(r => r.completed).length === 0}
-              className="px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors disabled:opacity-50"
-            >
-              {generatingAnalysis ? 'Generando análisis...' : analysisText ? '🔄 Regenerar Análisis' : '✨ Generar Análisis'}
-            </button>
+            <div className="flex gap-2">
+              {analysisText && (
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(analysisText!)
+                    alert('Análisis copiado al portapapeles')
+                  }}
+                  className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                >
+                  📋 Copiar
+                </button>
+              )}
+              <button
+                onClick={generateAnalysis}
+                disabled={generatingAnalysis || respondents.filter(r => r.completed).length === 0}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors disabled:opacity-50"
+              >
+                {generatingAnalysis ? 'Generando análisis...' : analysisText ? '🔄 Regenerar Análisis' : '✨ Generar Análisis'}
+              </button>
+            </div>
           </div>
 
           {analysisError && (
@@ -577,8 +591,8 @@ export default function SessionDetailPage() {
           )}
 
           {!generatingAnalysis && analysisText && (
-            <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap">
-              {analysisText}
+            <div className="max-w-none text-gray-700 [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mt-6 [&_h1]:mb-3 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mt-5 [&_h2]:mb-2 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-2 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-3 [&_li]:mb-1 [&_strong]:font-bold">
+              <ReactMarkdown>{analysisText}</ReactMarkdown>
             </div>
           )}
 
