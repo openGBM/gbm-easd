@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Session, Respondent } from '@/types/database'
 import RadarChart from '@/components/RadarChart'
@@ -10,6 +10,7 @@ import Link from 'next/link'
 
 export default function SessionDetailPage() {
   const params = useParams()
+  const router = useRouter()
   const sessionId = params.id as string
   const supabase = createClient()
 
@@ -21,8 +22,17 @@ export default function SessionDetailPage() {
   const [viewMode, setViewMode] = useState<'individual' | 'consolidated'>('individual')
 
   useEffect(() => {
-    loadSession()
+    checkAuthAndLoad()
   }, [sessionId])
+
+  async function checkAuthAndLoad() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      router.push('/admin/login')
+      return
+    }
+    loadSession()
+  }
 
   async function loadSession() {
     const { data: sessionData } = await supabase
