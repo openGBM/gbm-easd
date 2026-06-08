@@ -94,10 +94,10 @@ gbm-easd/
 ## Roadmap
 
 - [x] Definición de producto y requerimientos
-- [ ] Migración de base de datos (modelo completo)
-- [ ] Frontend de encuesta (encuestado)
-- [ ] Panel de administración
-- [ ] Gráfico de radar con Recharts
+- [x] Migración de base de datos (modelo completo)
+- [x] Frontend de encuesta (encuestado)
+- [x] Panel de administración
+- [x] Gráfico de radar con Recharts
 - [ ] Despliegue en AWS (Fase 2)
 
 ## Licencia
