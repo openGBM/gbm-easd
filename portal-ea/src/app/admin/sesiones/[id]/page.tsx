@@ -20,6 +20,7 @@ export default function SessionDetailPage() {
   const [chartData, setChartData] = useState<{ dimension: string; value: number }[]>([])
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'individual' | 'consolidated'>('individual')
+  const [deletingSession, setDeletingSession] = useState(false)
 
   useEffect(() => {
     checkAuthAndLoad()
@@ -104,6 +105,28 @@ export default function SessionDetailPage() {
     await loadSession()
   }
 
+  async function deleteSession() {
+    if (!session) return
+    const confirmed = confirm(
+      `¿Eliminar la sesión "${session.name}" y todos sus encuestados y respuestas?\n\nEsta acción no se puede deshacer.`
+    )
+    if (!confirmed) return
+
+    setDeletingSession(true)
+
+    // Eliminar respuestas de todos los encuestados
+    if (respondents.length > 0) {
+      const respondentIds = respondents.map(r => r.id)
+      await supabase.from('responses').delete().in('respondent_id', respondentIds)
+      await supabase.from('respondents').delete().eq('session_id', sessionId)
+    }
+
+    // Eliminar la sesión
+    await supabase.from('sessions').delete().eq('id', sessionId)
+
+    router.push('/admin')
+  }
+
   async function loadConsolidated() {
     setViewMode('consolidated')
     setSelectedRespondent(null)
@@ -173,6 +196,13 @@ export default function SessionDetailPage() {
         }`}>
           {session.is_active ? 'Activa' : 'Inactiva'}
         </span>
+        <button
+          onClick={deleteSession}
+          disabled={deletingSession}
+          className="ml-auto px-4 py-1.5 rounded-lg text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
+        >
+          {deletingSession ? 'Eliminando...' : 'Eliminar Sesión'}
+        </button>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
