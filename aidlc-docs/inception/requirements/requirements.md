@@ -193,12 +193,12 @@
 
 ## Fuera de Alcance
 
-| Feature | Razón | Fase |
-|---------|-------|------|
-| Escalas configurables por instrumento | Complejidad adicional | Phase 3 |
-| Comparación entre versiones de un instrumento | Nice-to-have | Phase 3 |
-| Exportación PDF de resultados | Nice-to-have | Phase 3 |
-| Multi-idioma | No prioritario | Phase 3 |
+| Feature | Razón | Fase | Notas |
+|---------|-------|------|-------|
+| Escalas configurables por instrumento | Complejidad adicional, 8+ puntos de código afectados | Phase 3 | Agregar `scale_max` a instruments (default 5), etiquetas personalizadas, rango dinámico en wizard, recálculo de niveles de madurez. Preparar columna en migración sin activar. |
+| Comparación entre versiones de un instrumento | Nice-to-have | Phase 3 | Diff visual entre bancos de preguntas |
+| Exportación PDF de resultados | Nice-to-have | Phase 3 | |
+| Multi-idioma | No prioritario | Phase 3 | |
 
 ---
 

@@ -308,3 +308,13 @@ ELSE:
 | 9 | InstrumentEditorPage (crear nueva versión) | Media |
 | 10 | Modificar carga de encuesta: dimensiones por versión | Media |
 | 11 | Tests con flag ON y flag OFF | Alta |
+
+---
+
+## Roadmap Futuro (Phase 3)
+
+| Feature | Impacto | Preparación recomendada |
+|---------|---------|------------------------|
+| Escalas configurables por instrumento | 8+ puntos del código (wizard, radar, madurez, IA, export) | Agregar columna `scale_max` (default 5) en tabla `instruments` en la migración actual sin usarla. Cuando se active: parametrizar `AGREEMENT_SCALE`, `getMaturityLevel`, prompt IA, RadarChart eje Y |
+| Etiquetas de escala personalizadas | Tabla nueva `instrument_scale_labels` | Crear tabla vacía en migración futura. Fallback a etiquetas actuales si no se definen |
+| Diff visual entre versiones | UI de comparación | Almacenar snapshot JSON del banco al crear versión |
