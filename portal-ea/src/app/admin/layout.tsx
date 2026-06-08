@@ -10,14 +10,14 @@ export default async function AdminLayout({
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Si no hay usuario autenticado, renderizar sin nav (para login page)
-  // El middleware se encarga de redirigir rutas protegidas a /admin/login
+  // Si no hay usuario autenticado, renderizar sin nav
+  // La página de login se renderiza normalmente aquí
+  // Las páginas protegidas (dashboard, sesiones) redirigen client-side
   if (!user) {
     return <>{children}</>
   }
 
   // Verificar que el usuario tiene rol de admin
-  // Solo el email admin@gbm.net tiene acceso al panel
   const allowedAdmins = ['admin@gbm.net']
   if (!allowedAdmins.includes(user.email || '')) {
     return (

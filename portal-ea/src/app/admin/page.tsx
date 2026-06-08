@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Session } from '@/types/database'
 import QRCodeDisplay from '@/components/QRCodeDisplay'
 import Link from 'next/link'
 
 export default function AdminDashboard() {
+  const router = useRouter()
   const supabase = createClient()
   const [sessions, setSessions] = useState<(Session & { respondent_count: number })[]>([])
   const [newSessionName, setNewSessionName] = useState('')
@@ -14,8 +16,17 @@ export default function AdminDashboard() {
   const [creating, setCreating] = useState(false)
 
   useEffect(() => {
-    loadSessions()
+    checkAuth()
   }, [])
+
+  async function checkAuth() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      router.push('/admin/login')
+      return
+    }
+    loadSessions()
+  }
 
   async function loadSessions() {
     const { data } = await supabase
