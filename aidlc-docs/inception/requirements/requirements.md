@@ -83,10 +83,12 @@
 
 ### RF-10: Versionamiento de Instrumentos
 - Cada instrumento tiene un banco de dimensiones y preguntas versionado
-- Cada modificación al banco genera una nueva versión automáticamente
+- Si la versión actual NO tiene respuestas asociadas, se edita directamente (sin crear nueva versión)
+- Si la versión actual YA tiene respuestas, se crea una nueva versión automáticamente al guardar cambios
 - Una versión se marca como "actual" (is_current)
 - Las sesiones se asocian a la versión específica con la que fueron creadas
 - Los resultados de una sesión siempre se interpretan contra su versión asociada
+- Versiones con respuestas son inmutables
 
 ### RF-11: Gestión de Dimensiones y Preguntas por Instrumento
 - El admin puede crear/editar dimensiones para un instrumento

@@ -193,11 +193,12 @@ sessions (1) ──── (N) respondents (1) ──── (N) responses
 - **Operaciones**:
   - `getVersions(instrumentId)` — historial de versiones
   - `getCurrentVersion(instrumentId)` — versión activa
-  - `createVersion(instrumentId, dimensions, questions, notes)` — crear nueva versión
-    - Marca versiones anteriores como `is_current = false`
-    - Crea dimensiones y preguntas asociadas a la nueva versión
-    - Marca la nueva como `is_current = true`
-- **Tablas**: `instrument_versions`, `dimensions`, `questions`
+  - `hasResponses(versionId)` — verificar si la versión tiene sesiones con respondents completados
+  - `saveBank(instrumentId, dimensions, questions, notes)` — guardar banco de preguntas
+    - Si la versión current NO tiene respuestas: editar dimensiones/preguntas in-place
+    - Si la versión current SÍ tiene respuestas: crear nueva versión, duplicar banco y aplicar cambios
+    - Marcar nueva versión como `is_current = true`
+- **Tablas**: `instrument_versions`, `dimensions`, `questions`, `sessions`, `respondents`
 
 ---
 
