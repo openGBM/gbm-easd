@@ -1,12 +1,12 @@
-# Documento de Requerimientos — Portal de Autodiagnóstico EA
+# Documento de Requerimientos — Portal de Gestión de Evaluaciones de Autodiagnóstico
 
 ## Análisis de Intención
 
-- **Solicitud del usuario**: Construir un portal web de autodiagnóstico de madurez de arquitectura empresarial para clientes GBM
-- **Tipo de proyecto**: Nuevo producto (Greenfield)
-- **Estimación de alcance**: Múltiples componentes (frontend, backend, base de datos)
-- **Complejidad**: Moderada — CRUD con visualización y gestión de sesiones
-- **Deadline**: 9 de junio de 2026 (2 días)
+- **Solicitud del usuario**: Evolucionar el portal de autodiagnóstico EA a un portal multi-instrumento de evaluaciones
+- **Tipo de proyecto**: Evolución de producto existente (Brownfield)
+- **Estimación de alcance**: Múltiples componentes (frontend, backend, base de datos, feature flags)
+- **Complejidad**: Alta — versionamiento de instrumentos, feature flags, retrocompatibilidad
+- **Fase actual**: v1.x operativa, planificación de v2.x
 
 ---
 
@@ -73,6 +73,42 @@
 
 ---
 
+## Requerimientos Funcionales — v2.x (Multi-Instrumento)
+
+### RF-09: Catálogo de Instrumentos
+- El admin puede ver un catálogo de instrumentos disponibles
+- Cada instrumento tiene nombre, descripción y estado (activo/inactivo)
+- El instrumento "Autodiagnóstico de Arquitectura Empresarial" es el instrumento seed por defecto
+- Tarjeta adicional en dashboard global mostrando cantidad de instrumentos disponibles
+
+### RF-10: Versionamiento de Instrumentos
+- Cada instrumento tiene un banco de dimensiones y preguntas versionado
+- Cada modificación al banco genera una nueva versión automáticamente
+- Una versión se marca como "actual" (is_current)
+- Las sesiones se asocian a la versión específica con la que fueron creadas
+- Los resultados de una sesión siempre se interpretan contra su versión asociada
+
+### RF-11: Gestión de Dimensiones y Preguntas por Instrumento
+- El admin puede crear/editar dimensiones para un instrumento
+- El admin puede crear/editar preguntas dentro de cada dimensión
+- Al guardar cambios se crea una nueva versión del instrumento
+- El historial de versiones es consultable
+
+### RF-12: Sesiones Asociadas a Instrumento
+- Al crear una sesión, el admin selecciona qué instrumento aplicar
+- La sesión queda ligada al instrumento y su versión actual al momento de creación
+- En el listado de sesiones se muestra un indicador del tipo de instrumento y versión aplicada
+- Cada sesión aplica un único instrumento
+
+### RF-13: Feature Flag Multi-Instrumento
+- La funcionalidad multi-instrumento se gestiona con Vercel Flags (@flags-sdk/vercel)
+- Flag `multi-instrument` (boolean): off = comportamiento v1.x, on = multi-instrumento
+- Gestionable desde Vercel Dashboard sin redeploy
+- Override local vía Vercel Toolbar o variable de entorno
+- Retrocompatible: con flag off, todo funciona como v1.x
+
+---
+
 ## Requerimientos No Funcionales
 
 ### RNF-01: Seguridad de Datos
@@ -98,44 +134,69 @@
 
 | Capa | Tecnología |
 |------|------------|
-| Frontend | React + Next.js (TypeScript) |
+| Frontend | React + Next.js 16 (TypeScript) |
 | Visualización | Recharts (radar chart) |
+| Exportación | ExcelJS |
+| IA/Análisis | Google Gemini 2.0 Flash + Groq Llama 3.3 70B (fallback) |
 | Backend/DB | Supabase (PostgreSQL + Auth + RLS) |
-| Despliegue MVP | Supabase local (producción futura: AWS) |
+| Feature Flags | Vercel Flags (@flags-sdk/vercel) |
+| Despliegue | Vercel (frontend), Supabase Cloud (BD) |
 | Lenguaje | TypeScript |
 
 ---
 
-## Modelo de Datos (Preliminar)
+## Modelo de Datos
 
-### Tablas principales:
+### Tablas v1.x (actuales):
 - **sessions**: id, name, is_active, created_at
 - **dimensions**: id, name, description, display_order, color
 - **questions**: id, dimension_id, text, display_order
 - **respondents**: id, session_id, name, email, completed, completed_at, created_at
 - **responses**: id, respondent_id, question_id, value (1-5), created_at
+- **session_analyses**: id, session_id, analysis_text, generated_at, generated_by, total_respondents
+
+### Tablas v2.x (nuevas — bajo feature flag):
+- **instruments**: id, name, description, is_active, created_at
+- **instrument_versions**: id, instrument_id, version_number, is_current, created_at
+- **sessions**: agrega instrument_version_id (FK → instrument_versions, nullable para retrocompatibilidad)
+- **dimensions**: agrega instrument_version_id (FK → instrument_versions, nullable para v1.x)
 
 ---
 
-## Alcance MVP — IN
+## Alcance v1.x — Completado ✅
 
 | Feature | Usuario |
 |---------|---------|
 | Registro de encuestado (nombre, correo) | Encuestado |
-| Encuesta de madurez EA (8-10 dimensiones, escala 1-5) | Encuestado |
+| Encuesta de madurez EA (8 dimensiones, escala 1-5) | Encuestado |
 | Gráfico de radar con resultados | Encuestado |
 | Tabla resumen de valores por sesión | Encuestado |
-| Gestión de sesiones (crear/habilitar/deshabilitar) | Admin |
-| Panel de administración | Admin |
+| Gestión de sesiones (crear/habilitar/deshabilitar/eliminar) | Admin |
+| Panel de administración con dashboards | Admin |
 | Código QR del enlace de encuesta | Admin/Encuestado |
+| Exportar respuestas a Excel | Admin |
+| Análisis IA de resultados (Gemini/Groq) | Admin |
 
-## Alcance MVP — OUT
+## Alcance v2.x — Planificado (bajo feature flag)
+
+| Feature | Usuario |
+|---------|---------|
+| Catálogo de instrumentos | Admin |
+| Versionamiento de banco de preguntas | Admin |
+| Gestión de dimensiones/preguntas por instrumento | Admin |
+| Sesiones asociadas a instrumento + versión | Admin |
+| Indicador de instrumento/versión en listado | Admin |
+| Tarjeta de instrumentos en dashboard | Admin |
+| Feature flag multi-instrument (Vercel Flags) | Sistema |
+
+## Fuera de Alcance
 
 | Feature | Razón | Fase |
 |---------|-------|------|
-| Despliegue en AWS | Restricciones de tiempo | Phase 2 |
-| Comparación histórica entre sesiones | No es core MVP | Phase 2 |
-| Exportación PDF de resultados | Nice-to-have | Phase 2 |
+| Escalas configurables por instrumento | Complejidad adicional | Phase 3 |
+| Comparación entre versiones de un instrumento | Nice-to-have | Phase 3 |
+| Exportación PDF de resultados | Nice-to-have | Phase 3 |
+| Multi-idioma | No prioritario | Phase 3 |
 
 ---
 
@@ -143,5 +204,7 @@
 
 | Riesgo | Impacto | Mitigación |
 |--------|---------|------------|
-| Deadline extremo (2 días) | Alto | Priorizar features mínimas, usar Supabase para acelerar |
-| Dimensiones del PDF no claras | Medio | Definir 8-10 dimensiones genéricas si PDF no es legible |
+| Feature flag mal configurado rompe funcionalidad v1.x | Alto | Tests exhaustivos con flag on/off, fallback a comportamiento v1.x |
+| Migración de datos existentes a modelo multi-instrumento | Medio | Columnas nullable, instrumento seed automático, migración idempotente |
+| Complejidad del versionamiento de instrumentos | Medio | Versionamiento simple (incremental), sin edición de versiones publicadas |
+| Cuota de APIs de IA (Gemini/Groq) | Bajo | Fallback entre proveedores, retry con backoff |
