@@ -3,19 +3,26 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Session } from '@/types/database'
+import { Session, InstrumentWithVersion, SessionWithInstrument } from '@/types/database'
+import { isMultiInstrumentEnabled } from '@/flags'
 import QRCodeDisplay from '@/components/QRCodeDisplay'
+import InstrumentBadge from '@/components/InstrumentBadge'
+import InstrumentSelector from '@/components/InstrumentSelector'
 import Link from 'next/link'
 
 export default function AdminDashboard() {
   const router = useRouter()
   const supabase = createClient()
-  const [sessions, setSessions] = useState<(Session & { respondent_count: number })[]>([])
+  const [sessions, setSessions] = useState<(SessionWithInstrument & { respondent_count: number })[]>([])
   const [newSessionName, setNewSessionName] = useState('')
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
-  const [stats, setStats] = useState({ activeSessions: 0, totalResponses: 0, avgTimeMinutes: 0 })
+  const [stats, setStats] = useState({ activeSessions: 0, totalResponses: 0, avgTimeMinutes: 0, totalInstruments: 0 })
+  // Multi-instrumento
+  const [multiInstrumentEnabled, setMultiInstrumentEnabled] = useState(false)
+  const [instruments, setInstruments] = useState<InstrumentWithVersion[]>([])
+  const [selectedInstrumentId, setSelectedInstrumentId] = useState('')
 
   useEffect(() => {
     checkAuth()
@@ -27,17 +34,63 @@ export default function AdminDashboard() {
       router.push('/admin/login')
       return
     }
-    loadSessions()
+    // Feature flag multi-instrumento
+    const flagEnabled = isMultiInstrumentEnabled()
+    setMultiInstrumentEnabled(flagEnabled)
+
+    if (flagEnabled) {
+      await loadInstruments()
+    }
+    loadSessions(flagEnabled)
   }
 
-  async function loadSessions() {
+  async function loadInstruments() {
     const { data } = await supabase
-      .from('sessions')
-      .select('*, respondents(count)')
-      .order('created_at', { ascending: false })
+      .from('instruments')
+      .select('*, instrument_versions(*)')
+      .eq('is_active', true)
+      .order('name')
 
     if (data) {
-      const formatted = data.map(s => ({
+      const formatted: InstrumentWithVersion[] = data.map(inst => ({
+        ...inst,
+        current_version: inst.instrument_versions?.find((v: any) => v.is_current) || undefined,
+      }))
+      setInstruments(formatted)
+      if (formatted.length > 0 && !selectedInstrumentId) {
+        setSelectedInstrumentId(formatted[0].id)
+      }
+    }
+  }
+
+  async function loadSessions(flagEnabled?: boolean) {
+    const useMulti = flagEnabled !== undefined ? flagEnabled : multiInstrumentEnabled
+
+    let data: any[] | null = null
+
+    // Intentar con JOIN si multi-instrumento está habilitado
+    if (useMulti) {
+      const result = await supabase
+        .from('sessions')
+        .select('*, respondents(count), instrument_versions(version_tag, instruments(name))')
+        .order('created_at', { ascending: false })
+      
+      if (!result.error) {
+        data = result.data
+      }
+    }
+
+    // Fallback: query simple sin JOIN
+    if (!data) {
+      const result = await supabase
+        .from('sessions')
+        .select('*, respondents(count)')
+        .order('created_at', { ascending: false })
+      data = result.data
+    }
+
+    if (data) {
+      const formatted = data.map((s: any) => ({
         ...s,
         respondent_count: s.respondents?.[0]?.count || 0,
       }))
@@ -78,10 +131,17 @@ export default function AdminDashboard() {
       avgTimeMinutes = Math.round(totalMinutes / completedRespondents.length)
     }
 
+    // Total instrumentos activos
+    const { count: totalInstruments } = await supabase
+      .from('instruments')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_active', true)
+
     setStats({
       activeSessions: activeSessions || 0,
       totalResponses: totalResponses || 0,
       avgTimeMinutes,
+      totalInstruments: totalInstruments || 0,
     })
   }
 
@@ -90,9 +150,24 @@ export default function AdminDashboard() {
     if (!newSessionName.trim()) return
 
     setCreating(true)
+
+    // Si multi-instrumento está habilitado, asociar la versión current del instrumento seleccionado
+    let instrumentVersionId: string | null = null
+    if (multiInstrumentEnabled && selectedInstrumentId) {
+      const selectedInst = instruments.find(i => i.id === selectedInstrumentId)
+      if (selectedInst?.current_version) {
+        instrumentVersionId = selectedInst.current_version.id
+      }
+    }
+
+    const insertData: any = { name: newSessionName.trim() }
+    if (instrumentVersionId) {
+      insertData.instrument_version_id = instrumentVersionId
+    }
+
     const { error } = await supabase
       .from('sessions')
-      .insert({ name: newSessionName.trim() })
+      .insert(insertData)
 
     if (!error) {
       setNewSessionName('')
@@ -162,7 +237,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Dashboard de métricas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div className={`grid grid-cols-1 ${multiInstrumentEnabled ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-4 mb-8`}>
         <div className="bg-white rounded-xl shadow-sm border p-5">
           <p className="text-sm text-gray-500 mb-1">Sesiones Habilitadas</p>
           <p className="text-3xl font-bold text-blue-600">{stats.activeSessions}</p>
@@ -177,27 +252,42 @@ export default function AdminDashboard() {
             {stats.avgTimeMinutes > 0 ? `${stats.avgTimeMinutes} min` : '—'}
           </p>
         </div>
+        {multiInstrumentEnabled && (
+          <div className="bg-white rounded-xl shadow-sm border p-5">
+            <p className="text-sm text-gray-500 mb-1">Instrumentos</p>
+            <p className="text-3xl font-bold text-indigo-600">{stats.totalInstruments}</p>
+          </div>
+        )}
       </div>
 
       {/* Crear nueva sesión */}
       <div className="bg-white rounded-xl shadow-sm border p-6 mb-8">
         <h2 className="text-lg font-medium mb-4">Crear Nueva Sesión</h2>
-        <form onSubmit={createSession} className="flex gap-4">
-          <input
-            type="text"
-            value={newSessionName}
-            onChange={e => setNewSessionName(e.target.value)}
-            placeholder="Nombre de la sesión (ej: Evaluación Banco XYZ)"
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            required
-          />
-          <button
-            type="submit"
-            disabled={creating}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 whitespace-nowrap"
-          >
-            {creating ? 'Creando...' : '+ Crear Sesión'}
-          </button>
+        <form onSubmit={createSession} className="space-y-4">
+          {multiInstrumentEnabled && instruments.length > 0 && (
+            <InstrumentSelector
+              instruments={instruments}
+              selectedId={selectedInstrumentId}
+              onChange={setSelectedInstrumentId}
+            />
+          )}
+          <div className="flex gap-4">
+            <input
+              type="text"
+              value={newSessionName}
+              onChange={e => setNewSessionName(e.target.value)}
+              placeholder="Nombre de la sesión (ej: Evaluación Banco XYZ)"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            />
+            <button
+              type="submit"
+              disabled={creating}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 whitespace-nowrap"
+            >
+              {creating ? 'Creando...' : '+ Crear Sesión'}
+            </button>
+          </div>
         </form>
       </div>
 
@@ -222,6 +312,12 @@ export default function AdminDashboard() {
                     }`}>
                       {session.is_active ? 'Activa' : 'Inactiva'}
                     </span>
+                    {multiInstrumentEnabled && session.instrument_versions && (
+                      <InstrumentBadge
+                        instrumentName={session.instrument_versions.instruments.name}
+                        versionTag={session.instrument_versions.version_tag}
+                      />
+                    )}
                   </div>
                   <p className="text-sm text-gray-500 mb-4">
                     Creada: {new Date(session.created_at).toLocaleDateString('es-MX')} — 

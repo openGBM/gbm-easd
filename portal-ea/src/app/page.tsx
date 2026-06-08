@@ -8,14 +8,14 @@ export default function HomePage() {
           className="h-16 mx-auto mb-8"
         />
         <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          Portal de Autodiagnóstico
+          Portal de Evaluaciones
         </h1>
         <h2 className="text-xl text-gray-600 mb-8">
-          Arquitectura Empresarial
+          Autodiagnóstico Organizacional
         </h2>
         <p className="text-gray-500 mb-8">
-          Evalúa rápidamente la madurez y eficacia de tu arquitectura empresarial
-          mediante una herramienta de autodiagnóstico guiada.
+          Aplica instrumentos de evaluación para medir la madurez de tu organización
+          en distintas dimensiones mediante herramientas de autodiagnóstico guiadas.
         </p>
         <div className="space-y-4">
           <a
@@ -26,7 +26,7 @@ export default function HomePage() {
           </a>
         </div>
         <p className="text-xs text-gray-400 mt-12">
-          GBM — Evaluación de Madurez EA
+          GBM — Portal de Evaluaciones de Autodiagnóstico
         </p>
       </div>
     </div>

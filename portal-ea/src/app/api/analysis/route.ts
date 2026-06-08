@@ -33,31 +33,68 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 })
     }
 
-    // Construir el prompt con contexto de EA
+    // Cargar contexto del instrumento asociado a la sesión
+    let expertisePrompt = 'Eres un consultor experto. Analiza los resultados de esta evaluación.'
+    let scaleDescription = 'escala 1-5, donde 1 = Totalmente en desacuerdo y 5 = Totalmente de acuerdo'
+
+    const { data: sessionData } = await supabase
+      .from('sessions')
+      .select('instrument_version_id')
+      .eq('id', sessionId)
+      .single()
+
+    if (sessionData?.instrument_version_id) {
+      const { data: versionData } = await supabase
+        .from('instrument_versions')
+        .select('scale_labels, instruments(name, ai_expertise_prompt)')
+        .eq('id', sessionData.instrument_version_id)
+        .single()
+
+      if (versionData) {
+        const inst = (versionData as any).instruments
+        if (inst?.ai_expertise_prompt) {
+          // Sanitizar: limitar longitud y eliminar intentos de override del prompt
+          let sanitized = inst.ai_expertise_prompt.slice(0, 500)
+          // Remover patrones comunes de prompt injection
+          sanitized = sanitized
+            .replace(/ignore.*previous.*instructions/gi, '')
+            .replace(/forget.*everything/gi, '')
+            .replace(/you are now/gi, '')
+            .replace(/new instructions:/gi, '')
+          expertisePrompt = sanitized.trim() || expertisePrompt
+        }
+        if (versionData.scale_labels && Array.isArray(versionData.scale_labels)) {
+          const labels = (versionData.scale_labels as any[])
+            .sort((a: any, b: any) => a.value - b.value)
+            .map((s: any) => `${s.value} = ${s.label}`)
+            .join(', ')
+          scaleDescription = `escala 1-5, donde ${labels}`
+        }
+      }
+    }
+
+    // Construir el prompt dinámico
     const scoresText = dimensionScores
       .map((d: { dimension: string; value: number }) => `- ${d.dimension}: ${d.value}/5.0`)
       .join('\n')
 
-    const prompt = `Eres un consultor experto en Arquitectura Empresarial (EA). Analiza los siguientes resultados de una evaluación de madurez EA realizada a ${totalRespondents} participante(s) de la sesión "${sessionName}".
+    const prompt = `${expertisePrompt}
 
-Los resultados consolidados (promedio en escala 1-5, donde 1 = Totalmente en desacuerdo y 5 = Totalmente de acuerdo) son:
+Analiza los siguientes resultados de una evaluación realizada a ${totalRespondents} participante(s) de la sesión "${sessionName}".
+
+Los resultados consolidados (promedio en ${scaleDescription}) son:
 
 ${scoresText}
 
-Escala de madurez por dimensión (suma de 6 preguntas, máx 30):
-- 6-13 puntos: Naciente
-- 14-23 puntos: Base  
-- 24-30 puntos: Clase Mundial
-
 Genera un análisis ejecutivo en español que incluya:
 
-1. **Resumen General**: Una evaluación global del estado de madurez de la arquitectura empresarial.
+1. **Resumen General**: Una evaluación global del estado actual según los resultados.
 
 2. **Fortalezas Identificadas**: Las dimensiones con mejor desempeño y qué implica para la organización.
 
 3. **Áreas de Oportunidad**: Las dimensiones con menor desempeño y los riesgos asociados.
 
-4. **Recomendaciones Prioritarias**: 3-5 acciones concretas y prácticas para mejorar la madurez EA, priorizadas por impacto.
+4. **Recomendaciones Prioritarias**: 3-5 acciones concretas y prácticas para mejorar, priorizadas por impacto.
 
 5. **Hoja de Ruta Sugerida**: Una secuencia lógica de mejora a corto (1-3 meses), mediano (3-6 meses) y largo plazo (6-12 meses).
 

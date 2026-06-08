@@ -89,6 +89,7 @@ export default async function ResultadosPage({ params }: Props) {
     .map(d => ({
       dimension: d.name,
       value: d.total,
+      questionCount: d.count,
     }))
 
   return (
@@ -118,7 +119,7 @@ export default async function ResultadosPage({ params }: Props) {
           {/* Tabla de Resultados (suma por dimensión) */}
           <div className="bg-white rounded-xl shadow-sm border p-6">
             <h2 className="text-lg font-bold mb-4 text-center">Resumen por Dimensión</h2>
-            <p className="text-xs text-gray-400 text-center mb-2">Suma de respuestas (6 preguntas × escala 1-5 = máx 30)</p>
+            <p className="text-xs text-gray-400 text-center mb-2">Suma de respuestas por dimensión (escala 1-5)</p>
             <ResultsTable data={tableData} />
           </div>
         </div>
