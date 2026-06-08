@@ -123,3 +123,25 @@ VALUES (
 UPDATE dimensions
 SET instrument_version_id = 'b0000000-0000-0000-0000-000000000001'
 WHERE instrument_version_id IS NULL;
+
+-- ============================================================
+-- POLICIES ADICIONALES PARA dimensions Y questions (INSERT/UPDATE/DELETE admin)
+-- ============================================================
+
+CREATE POLICY IF NOT EXISTS "dimensions_insert_admin" ON dimensions
+  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+CREATE POLICY IF NOT EXISTS "dimensions_update_admin" ON dimensions
+  FOR UPDATE USING (auth.role() = 'authenticated');
+
+CREATE POLICY IF NOT EXISTS "dimensions_delete_admin" ON dimensions
+  FOR DELETE USING (auth.role() = 'authenticated');
+
+CREATE POLICY IF NOT EXISTS "questions_insert_admin" ON questions
+  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+CREATE POLICY IF NOT EXISTS "questions_update_admin" ON questions
+  FOR UPDATE USING (auth.role() = 'authenticated');
+
+CREATE POLICY IF NOT EXISTS "questions_delete_admin" ON questions
+  FOR DELETE USING (auth.role() = 'authenticated');

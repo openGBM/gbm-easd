@@ -361,8 +361,11 @@ export default function InstrumentDetailPage() {
       }
 
       // Insertar dimensiones y preguntas
+      let insertedDims = 0
+      let insertedQuestions = 0
+
       for (const dim of dimsArray) {
-        const { data: newDim } = await supabase
+        const { data: newDim, error: dimError } = await supabase
           .from('dimensions')
           .insert({
             name: dim.name,
@@ -374,17 +377,32 @@ export default function InstrumentDetailPage() {
           .select('id')
           .single()
 
+        if (dimError) {
+          console.error('Error insertando dimensión:', dim.name, dimError)
+          continue
+        }
+
         if (newDim) {
+          insertedDims++
           const questionsToInsert = dim.questions.map(q => ({
             dimension_id: newDim.id,
             text: q.text,
             display_order: q.order,
           }))
-          await supabase.from('questions').insert(questionsToInsert)
+          const { error: qError } = await supabase.from('questions').insert(questionsToInsert)
+          if (qError) {
+            console.error('Error insertando preguntas:', qError)
+          } else {
+            insertedQuestions += dim.questions.length
+          }
         }
       }
 
-      alert(`Importación exitosa: ${dimsArray.length} dimensiones, ${dimsArray.reduce((sum, d) => sum + d.questions.length, 0)} preguntas.`)
+      if (insertedDims === 0) {
+        alert('Error: No se pudieron insertar las dimensiones. Verifica permisos de la base de datos.')
+      } else {
+        alert(`Importación exitosa: ${insertedDims} dimensiones, ${insertedQuestions} preguntas.`)
+      }
       await loadInstrument()
     } catch (err) {
       console.error('Error importando:', err)
