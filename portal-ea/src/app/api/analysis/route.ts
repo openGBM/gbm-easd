@@ -53,7 +53,15 @@ export async function POST(request: NextRequest) {
       if (versionData) {
         const inst = (versionData as any).instruments
         if (inst?.ai_expertise_prompt) {
-          expertisePrompt = inst.ai_expertise_prompt
+          // Sanitizar: limitar longitud y eliminar intentos de override del prompt
+          let sanitized = inst.ai_expertise_prompt.slice(0, 500)
+          // Remover patrones comunes de prompt injection
+          sanitized = sanitized
+            .replace(/ignore.*previous.*instructions/gi, '')
+            .replace(/forget.*everything/gi, '')
+            .replace(/you are now/gi, '')
+            .replace(/new instructions:/gi, '')
+          expertisePrompt = sanitized.trim() || expertisePrompt
         }
         if (versionData.scale_labels && Array.isArray(versionData.scale_labels)) {
           const labels = (versionData.scale_labels as any[])

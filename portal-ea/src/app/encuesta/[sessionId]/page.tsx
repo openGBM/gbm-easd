@@ -54,17 +54,28 @@ export default async function EncuestaPage({ params }: Props) {
 
   // Cargar dimensiones con sus preguntas
   // Si la sesión tiene instrument_version_id, cargar dimensiones de esa versión
-  // Si no (v1.x), cargar dimensiones donde instrument_version_id es el seed o NULL
-  let dimensionsQuery = supabase
-    .from('dimensions')
-    .select('*, questions(*)')
-    .order('display_order', { ascending: true })
+  // Si no (v1.x), cargar todas las dimensiones disponibles
+  let dimensions: any[] | null = null
 
   if (session.instrument_version_id) {
-    dimensionsQuery = dimensionsQuery.eq('instrument_version_id', session.instrument_version_id)
+    const { data } = await supabase
+      .from('dimensions')
+      .select('*, questions(*)')
+      .eq('instrument_version_id', session.instrument_version_id)
+      .order('display_order', { ascending: true })
+    dimensions = data
   }
 
-  const { data: dimensions } = await dimensionsQuery
+  // Fallback: si no se encontraron dimensiones con la versión, cargar sin filtro
+  if (!dimensions || dimensions.length === 0) {
+    const { data } = await supabase
+      .from('dimensions')
+      .select('*, questions(*)')
+      .order('display_order', { ascending: true })
+    dimensions = data
+  }
+
+  const { data: dimensionsResult } = { data: dimensions }
 
   // Cargar scale_labels si la sesión tiene versión de instrumento
   let scaleLabels = null
@@ -81,7 +92,7 @@ export default async function EncuestaPage({ params }: Props) {
   }
 
   // Ordenar preguntas dentro de cada dimensión
-  const sortedDimensions: DimensionWithQuestions[] = (dimensions || []).map(dim => ({
+  const sortedDimensions: DimensionWithQuestions[] = (dimensionsResult || []).map(dim => ({
     ...dim,
     questions: (dim.questions || []).sort(
       (a: { display_order: number }, b: { display_order: number }) => a.display_order - b.display_order

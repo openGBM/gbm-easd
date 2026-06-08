@@ -237,7 +237,17 @@ export default function SurveyForm({ sessionId, dimensions, scaleLabels }: Surve
   }
 
   // === WIZARD ===
+  if (dimensions.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-red-600 font-medium">No se encontraron dimensiones para esta evaluación.</p>
+        <p className="text-gray-500 text-sm mt-2">El instrumento puede no tener preguntas configuradas.</p>
+      </div>
+    )
+  }
+
   const currentDim = dimensions[currentDimension]
+  if (!currentDim) return null
   const isLastStep = currentDimension === totalDimensions - 1
   const dimColor = currentDim.color || '#2563EB'
 
