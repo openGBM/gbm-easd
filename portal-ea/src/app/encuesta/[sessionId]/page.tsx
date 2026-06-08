@@ -53,10 +53,18 @@ export default async function EncuestaPage({ params }: Props) {
   }
 
   // Cargar dimensiones con sus preguntas
-  const { data: dimensions } = await supabase
+  // Si la sesión tiene instrument_version_id, cargar dimensiones de esa versión
+  // Si no (v1.x), cargar dimensiones donde instrument_version_id es el seed o NULL
+  let dimensionsQuery = supabase
     .from('dimensions')
     .select('*, questions(*)')
     .order('display_order', { ascending: true })
+
+  if (session.instrument_version_id) {
+    dimensionsQuery = dimensionsQuery.eq('instrument_version_id', session.instrument_version_id)
+  }
+
+  const { data: dimensions } = await dimensionsQuery
 
   // Ordenar preguntas dentro de cada dimensión
   const sortedDimensions: DimensionWithQuestions[] = (dimensions || []).map(dim => ({

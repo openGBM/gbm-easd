@@ -2,7 +2,39 @@ export interface Session {
   id: string
   name: string
   is_active: boolean
+  instrument_version_id: string | null
   created_at: string
+}
+
+export interface Instrument {
+  id: string
+  name: string
+  description: string | null
+  is_active: boolean
+  created_at: string
+}
+
+export interface InstrumentVersion {
+  id: string
+  instrument_id: string
+  version_number: number
+  version_tag: string
+  is_current: boolean
+  notes: string | null
+  created_at: string
+}
+
+export interface InstrumentWithVersion extends Instrument {
+  current_version?: InstrumentVersion
+}
+
+export interface SessionWithInstrument extends Session {
+  instrument_versions?: {
+    version_tag: string
+    instruments: {
+      name: string
+    }
+  } | null
 }
 
 export interface Dimension {
@@ -11,6 +43,7 @@ export interface Dimension {
   description: string | null
   display_order: number
   color: string | null
+  instrument_version_id: string | null
 }
 
 export interface Question {
