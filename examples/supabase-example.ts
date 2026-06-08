@@ -10,7 +10,7 @@ import type { Database } from "../supabase/types";
 
 // These values come from your .env.local file
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 // Create a typed Supabase client
 const supabase = createClient<Database>(supabaseUrl, supabaseKey);

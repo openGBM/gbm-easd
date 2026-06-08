@@ -18,7 +18,7 @@ export default async function AdminLayout({
   }
 
   // Verificar que el usuario tiene rol de admin
-  const allowedAdmins = ['admin@gbm.net']
+  const allowedAdmins = (process.env.ADMIN_EMAILS || 'admin@gbm.net').split(',').map(e => e.trim())
   if (!allowedAdmins.includes(user.email || '')) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">

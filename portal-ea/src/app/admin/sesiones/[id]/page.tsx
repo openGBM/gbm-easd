@@ -7,7 +7,7 @@ import { Session, Respondent } from '@/types/database'
 import RadarChart from '@/components/RadarChart'
 import ResultsTable from '@/components/ResultsTable'
 import Link from 'next/link'
-import * as XLSX from 'xlsx'
+import * as ExcelJS from 'exceljs'
 
 export default function SessionDetailPage() {
   const params = useParams()
@@ -219,16 +219,37 @@ export default function SessionDetailPage() {
       })
     }
 
-    // Generar archivo Excel con 2 hojas
-    const wb = XLSX.utils.book_new()
-    const wsResumen = XLSX.utils.json_to_sheet(rows)
-    const wsDetalle = XLSX.utils.json_to_sheet(detailRows)
-    XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen')
-    XLSX.utils.book_append_sheet(wb, wsDetalle, 'Detalle')
+    // Generar archivo Excel con 2 hojas usando ExcelJS
+    const wb = new ExcelJS.Workbook()
 
-    // Descargar
-    const fileName = `${session?.name || 'sesion'}_resultados.xlsx`.replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ_\- ]/g, '')
-    XLSX.writeFile(wb, fileName)
+    // Hoja Resumen
+    const wsResumen = wb.addWorksheet('Resumen')
+    if (rows.length > 0) {
+      wsResumen.columns = Object.keys(rows[0]).map(key => ({ header: key, key, width: 20 }))
+      rows.forEach(row => wsResumen.addRow(row))
+      // Estilo del encabezado
+      wsResumen.getRow(1).font = { bold: true }
+    }
+
+    // Hoja Detalle
+    const wsDetalle = wb.addWorksheet('Detalle')
+    if (detailRows.length > 0) {
+      wsDetalle.columns = Object.keys(detailRows[0]).map(key => ({ header: key, key, width: 25 }))
+      detailRows.forEach(row => wsDetalle.addRow(row))
+      wsDetalle.getRow(1).font = { bold: true }
+    }
+
+    // Descargar como archivo
+    const buffer = await wb.xlsx.writeBuffer()
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${session?.name || 'sesion'}_resultados.xlsx`.replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ_\- ]/g, '')
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
 
     setExporting(false)
   }
