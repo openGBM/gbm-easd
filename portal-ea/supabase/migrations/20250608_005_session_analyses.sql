@@ -19,6 +19,10 @@ CREATE INDEX IF NOT EXISTS idx_session_analyses_session_id ON session_analyses(s
 -- RLS
 ALTER TABLE session_analyses ENABLE ROW LEVEL SECURITY;
 
+-- Permisos de tabla
+GRANT ALL ON session_analyses TO authenticated;
+GRANT SELECT ON session_analyses TO anon;
+
 -- Solo admins autenticados pueden leer y escribir análisis
 CREATE POLICY "session_analyses_select_admin" ON session_analyses
   FOR SELECT USING (auth.role() = 'authenticated');
