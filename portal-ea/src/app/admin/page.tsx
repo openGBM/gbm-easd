@@ -41,7 +41,7 @@ export default function AdminDashboard() {
     if (flagEnabled) {
       await loadInstruments()
     }
-    loadSessions()
+    loadSessions(flagEnabled)
   }
 
   async function loadInstruments() {
@@ -63,14 +63,20 @@ export default function AdminDashboard() {
     }
   }
 
-  async function loadSessions() {
+  async function loadSessions(flagEnabled?: boolean) {
+    const useMulti = flagEnabled !== undefined ? flagEnabled : multiInstrumentEnabled
+    // Query adaptativa: si multi-instrumento está habilitado, incluir JOIN
+    const selectQuery = useMulti
+      ? '*, respondents(count), instrument_versions(version_tag, instruments(name))'
+      : '*, respondents(count)'
+
     const { data } = await supabase
       .from('sessions')
-      .select('*, respondents(count), instrument_versions(version_tag, instruments(name))')
+      .select(selectQuery)
       .order('created_at', { ascending: false })
 
     if (data) {
-      const formatted = data.map(s => ({
+      const formatted = data.map((s: any) => ({
         ...s,
         respondent_count: s.respondents?.[0]?.count || 0,
       }))
