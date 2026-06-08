@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Supabase Migration Reminder",
+  "description": "After agent stops, reminds to generate a migration file if schema changes were made during the session.",
+  "version": "1",
+  "when": {
+    "type": "agentStop"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "If any SQL schema changes (CREATE TABLE, ALTER TABLE, CREATE INDEX, etc.) were executed during this session via Supabase MCP or migration files, remind the user to run 'npx supabase db diff --local' to review changes and 'npx supabase db pull [migration_name] --local --yes' to generate a migration file. If no schema changes were made, do nothing."
+  }
+}
