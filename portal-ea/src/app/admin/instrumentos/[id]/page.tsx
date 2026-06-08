@@ -20,6 +20,8 @@ export default function InstrumentDetailPage() {
   const [loading, setLoading] = useState(true)
   const [importing, setImporting] = useState(false)
   const [hasResponses, setHasResponses] = useState(false)
+  const [editingPrompt, setEditingPrompt] = useState(false)
+  const [promptValue, setPromptValue] = useState('')
 
   useEffect(() => {
     checkAuthAndLoad()
@@ -442,7 +444,67 @@ export default function InstrumentDetailPage() {
       </div>
 
       {instrument.description && (
-        <p className="text-gray-600 mb-6">{instrument.description}</p>
+        <p className="text-gray-600 mb-4">{instrument.description}</p>
+      )}
+
+      {instrument.ai_expertise_prompt && !editingPrompt && (
+        <div className="mb-6 p-4 bg-indigo-50 border border-indigo-100 rounded-lg">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-xs font-medium text-indigo-600">🤖 Expertise IA</p>
+            <button
+              onClick={() => { setEditingPrompt(true); setPromptValue(instrument.ai_expertise_prompt || '') }}
+              className="text-xs text-indigo-600 hover:text-indigo-800"
+            >
+              Editar
+            </button>
+          </div>
+          <p className="text-sm text-indigo-900">{instrument.ai_expertise_prompt}</p>
+        </div>
+      )}
+
+      {!instrument.ai_expertise_prompt && !editingPrompt && (
+        <div className="mb-6">
+          <button
+            onClick={() => setEditingPrompt(true)}
+            className="text-sm text-indigo-600 hover:text-indigo-800"
+          >
+            + Agregar expertise IA para análisis
+          </button>
+        </div>
+      )}
+
+      {editingPrompt && (
+        <div className="mb-6 p-4 bg-indigo-50 border border-indigo-100 rounded-lg">
+          <p className="text-xs font-medium text-indigo-600 mb-2">🤖 Expertise IA</p>
+          <textarea
+            value={promptValue}
+            onChange={e => setPromptValue(e.target.value)}
+            rows={3}
+            placeholder="Ej: Eres un consultor experto en transformación digital y adopción de IA..."
+            className="w-full px-3 py-2 border border-indigo-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          />
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={async () => {
+                await supabase
+                  .from('instruments')
+                  .update({ ai_expertise_prompt: promptValue.trim() || null })
+                  .eq('id', instrumentId)
+                setEditingPrompt(false)
+                await loadInstrument()
+              }}
+              className="px-3 py-1 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+            >
+              Guardar
+            </button>
+            <button
+              onClick={() => setEditingPrompt(false)}
+              className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Acciones: Exportar / Importar */}
