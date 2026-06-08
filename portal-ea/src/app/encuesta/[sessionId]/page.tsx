@@ -77,17 +77,21 @@ export default async function EncuestaPage({ params }: Props) {
 
   const { data: dimensionsResult } = { data: dimensions }
 
-  // Cargar scale_labels si la sesión tiene versión de instrumento
+  // Cargar scale_labels y nombre del instrumento si la sesión tiene versión
   let scaleLabels = null
+  let instrumentName = 'Evaluación'
   if (session.instrument_version_id) {
     const { data: versionData } = await supabase
       .from('instrument_versions')
-      .select('scale_labels')
+      .select('scale_labels, instruments(name)')
       .eq('id', session.instrument_version_id)
       .single()
 
     if (versionData?.scale_labels) {
       scaleLabels = versionData.scale_labels
+    }
+    if ((versionData as any)?.instruments?.name) {
+      instrumentName = (versionData as any).instruments.name
     }
   }
 
@@ -105,7 +109,7 @@ export default async function EncuestaPage({ params }: Props) {
         <div className="text-center mb-8">
           <img src="/logo-gbm.png" alt="GBM" className="h-10 mx-auto mb-4" />
           <h1 className="text-3xl font-bold text-gray-900">
-            Evaluación de Madurez EA
+            {instrumentName}
           </h1>
           <p className="text-gray-600 mt-2">Sesión: {session.name}</p>
           <p className="text-sm text-gray-400 mt-1">
