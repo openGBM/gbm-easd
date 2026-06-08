@@ -125,10 +125,10 @@ GRANT ALL ON sessions TO authenticated;
 GRANT SELECT ON sessions TO anon;
 
 GRANT SELECT ON dimensions TO anon;
-GRANT SELECT ON dimensions TO authenticated;
+GRANT ALL ON dimensions TO authenticated;
 
 GRANT SELECT ON questions TO anon;
-GRANT SELECT ON questions TO authenticated;
+GRANT ALL ON questions TO authenticated;
 
 GRANT ALL ON respondents TO authenticated;
 GRANT SELECT, INSERT, UPDATE ON respondents TO anon;
