@@ -185,9 +185,11 @@ export default function InstrumentDetailPage() {
       const wb = new ExcelJS.Workbook()
       await wb.xlsx.load(buffer)
 
-      const ws = wb.getWorksheet('Banco de Preguntas') || wb.getWorksheet(1)
+      const ws = wb.getWorksheet('Banco de Preguntas')
+        || wb.worksheets.find(s => s.name.toLowerCase().includes('banco'))
+        || wb.getWorksheet(1)
       if (!ws) {
-        alert('No se encontró la hoja "Banco de Preguntas" en el archivo.')
+        alert('No se encontró una hoja con el banco de preguntas en el archivo.')
         setImporting(false)
         return
       }
@@ -295,9 +297,10 @@ export default function InstrumentDetailPage() {
         })
       })
 
-      // Parsear hoja de Escala (opcional)
+      // Parsear hoja de Escala (opcional — busca por nombre flexible)
       let scaleLabels: { value: number; label: string; description?: string }[] | null = null
       const wsScale = wb.getWorksheet('Escala')
+        || wb.worksheets.find(ws => ws.name.toLowerCase().includes('escala'))
       if (wsScale) {
         scaleLabels = []
         wsScale.eachRow((row, rowNumber) => {
