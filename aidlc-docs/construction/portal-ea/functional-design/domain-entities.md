@@ -35,12 +35,14 @@ dimensions (1) ──── (N) questions (1) ───────────�
 | name | text | NOT NULL | Nombre del encuestado |
 | email | text | NOT NULL | Correo del encuestado |
 | completed | boolean | DEFAULT false | Si completó todas las dimensiones |
+| completed_at | timestamptz | DEFAULT NULL | Fecha/hora en que completó la evaluación |
 | created_at | timestamptz | DEFAULT now() | Fecha de registro |
 
 **Reglas de negocio**:
 - Un encuestado se registra una sola vez por sesión (validar email único por sesión)
 - Solo puede registrarse si la sesión está activa
 - Se marca como `completed` al enviar todas las respuestas
+- `completed_at` se establece al momento de enviar (permite calcular tiempo de respuesta)
 
 ---
 

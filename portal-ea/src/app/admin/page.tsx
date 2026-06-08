@@ -15,6 +15,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [stats, setStats] = useState({ activeSessions: 0, totalResponses: 0, avgTimeMinutes: 0 })
 
   useEffect(() => {
     checkAuth()
@@ -42,7 +43,46 @@ export default function AdminDashboard() {
       }))
       setSessions(formatted)
     }
+
+    await loadStats()
     setLoading(false)
+  }
+
+  async function loadStats() {
+    // Total sesiones habilitadas
+    const { count: activeSessions } = await supabase
+      .from('sessions')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_active', true)
+
+    // Total respuestas completadas (encuestados que terminaron)
+    const { count: totalResponses } = await supabase
+      .from('respondents')
+      .select('*', { count: 'exact', head: true })
+      .eq('completed', true)
+
+    // Tiempo promedio de respuesta (completed_at - created_at)
+    const { data: completedRespondents } = await supabase
+      .from('respondents')
+      .select('created_at, completed_at')
+      .eq('completed', true)
+      .not('completed_at', 'is', null)
+
+    let avgTimeMinutes = 0
+    if (completedRespondents && completedRespondents.length > 0) {
+      const totalMinutes = completedRespondents.reduce((sum, r) => {
+        const start = new Date(r.created_at).getTime()
+        const end = new Date(r.completed_at!).getTime()
+        return sum + (end - start) / 1000 / 60
+      }, 0)
+      avgTimeMinutes = Math.round(totalMinutes / completedRespondents.length)
+    }
+
+    setStats({
+      activeSessions: activeSessions || 0,
+      totalResponses: totalResponses || 0,
+      avgTimeMinutes,
+    })
   }
 
   async function createSession(e: React.FormEvent) {
@@ -119,6 +159,24 @@ export default function AdminDashboard() {
     <div>
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Sesiones de Evaluación</h1>
+      </div>
+
+      {/* Dashboard de métricas */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="bg-white rounded-xl shadow-sm border p-5">
+          <p className="text-sm text-gray-500 mb-1">Sesiones Habilitadas</p>
+          <p className="text-3xl font-bold text-blue-600">{stats.activeSessions}</p>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border p-5">
+          <p className="text-sm text-gray-500 mb-1">Respuestas Recolectadas</p>
+          <p className="text-3xl font-bold text-green-600">{stats.totalResponses}</p>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border p-5">
+          <p className="text-sm text-gray-500 mb-1">Tiempo Promedio de Respuesta</p>
+          <p className="text-3xl font-bold text-purple-600">
+            {stats.avgTimeMinutes > 0 ? `${stats.avgTimeMinutes} min` : '—'}
+          </p>
+        </div>
       </div>
 
       {/* Crear nueva sesión */}

@@ -151,7 +151,7 @@ export default function SurveyForm({ sessionId, dimensions }: SurveyFormProps) {
 
     await supabase
       .from('respondents')
-      .update({ completed: true })
+      .update({ completed: true, completed_at: new Date().toISOString() })
       .eq('id', respondentId!)
 
     router.push(`/resultados/${respondentId}`)

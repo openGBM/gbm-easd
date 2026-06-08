@@ -30,6 +30,7 @@ export interface Respondent {
   name: string
   email: string
   completed: boolean
+  completed_at: string | null
   created_at: string
 }
 
