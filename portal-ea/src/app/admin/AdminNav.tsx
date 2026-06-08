@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { isMultiInstrumentEnabled } from '@/flags'
 import Link from 'next/link'
 
 interface AdminNavProps {
@@ -9,9 +10,10 @@ interface AdminNavProps {
   multiInstrument?: boolean
 }
 
-export default function AdminNav({ userEmail, multiInstrument: multiInstrumentEnabled = false }: AdminNavProps) {
+export default function AdminNav({ userEmail, multiInstrument }: AdminNavProps) {
   const router = useRouter()
   const supabase = createClient()
+  const multiInstrumentEnabled = multiInstrument ?? isMultiInstrumentEnabled()
 
   async function handleLogout() {
     await supabase.auth.signOut()

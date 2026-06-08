@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Session, InstrumentWithVersion, SessionWithInstrument } from '@/types/database'
+import { isMultiInstrumentEnabled } from '@/flags'
 import QRCodeDisplay from '@/components/QRCodeDisplay'
 import InstrumentBadge from '@/components/InstrumentBadge'
 import InstrumentSelector from '@/components/InstrumentSelector'
@@ -33,8 +34,8 @@ export default function AdminDashboard() {
       router.push('/admin/login')
       return
     }
-    // Cargar feature flag desde env (en producción se usa Vercel Flags)
-    const flagEnabled = process.env.NEXT_PUBLIC_MULTI_INSTRUMENT === 'true'
+    // Feature flag multi-instrumento
+    const flagEnabled = isMultiInstrumentEnabled()
     setMultiInstrumentEnabled(flagEnabled)
 
     if (flagEnabled) {
