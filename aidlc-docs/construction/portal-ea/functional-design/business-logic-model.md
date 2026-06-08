@@ -92,6 +92,13 @@
       - Confirmación obligatoria con nombre de sesión visible
       - Elimina responses de todos los encuestados → respondents → sesión (cascade)
       - Redirige a /admin después de eliminar
+   e. Exportar respuestas a Excel:
+      - Solo disponible si hay encuestados completados
+      - Genera archivo .xlsx con 2 hojas:
+        * "Resumen": una fila por encuestado, promedio por dimensión + promedio general
+        * "Detalle": todas las respuestas individuales (nombre, correo, dimensión, pregunta, valor)
+      - Descarga automática del archivo al navegador
+      - Solo accesible para administradores autenticados (protegido por AdminLayout)
 ```
 
 ---

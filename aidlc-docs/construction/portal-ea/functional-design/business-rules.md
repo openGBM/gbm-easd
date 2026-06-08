@@ -70,3 +70,6 @@
 | BR-34 | Dashboard global muestra total de respuestas recolectadas | Contar respondents con completed = true |
 | BR-35 | Dashboard global muestra tiempo promedio de respuesta | Promedio de (completed_at - created_at) de respondents completados, en minutos |
 | BR-36 | Al completar encuesta se registra completed_at | UPDATE respondents SET completed_at = now() junto con completed = true |
+| BR-37 | Exportar a Excel solo disponible para admin autenticados | Protegido por AdminLayout + verificación auth en la página |
+| BR-38 | Exportar a Excel requiere al menos un encuestado completado | Botón deshabilitado si no hay encuestados con completed = true |
+| BR-39 | Excel genera 2 hojas: Resumen y Detalle | Resumen con promedios por dimensión, Detalle con respuestas individuales |

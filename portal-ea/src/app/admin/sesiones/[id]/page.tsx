@@ -7,6 +7,7 @@ import { Session, Respondent } from '@/types/database'
 import RadarChart from '@/components/RadarChart'
 import ResultsTable from '@/components/ResultsTable'
 import Link from 'next/link'
+import * as XLSX from 'xlsx'
 
 export default function SessionDetailPage() {
   const params = useParams()
@@ -21,6 +22,7 @@ export default function SessionDetailPage() {
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'individual' | 'consolidated'>('individual')
   const [deletingSession, setDeletingSession] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
   useEffect(() => {
     checkAuthAndLoad()
@@ -127,6 +129,110 @@ export default function SessionDetailPage() {
     router.push('/admin')
   }
 
+  async function exportToExcel() {
+    setExporting(true)
+
+    // Obtener encuestados completados
+    const completedRespondents = respondents.filter(r => r.completed)
+    if (completedRespondents.length === 0) {
+      alert('No hay encuestados completados para exportar.')
+      setExporting(false)
+      return
+    }
+
+    const ids = completedRespondents.map(r => r.id)
+
+    // Obtener todas las respuestas con dimensiones y preguntas
+    const { data: allResponses } = await supabase
+      .from('responses')
+      .select('value, respondent_id, questions(text, display_order, dimensions(name, display_order))')
+      .in('respondent_id', ids)
+
+    if (!allResponses || allResponses.length === 0) {
+      alert('No hay respuestas para exportar.')
+      setExporting(false)
+      return
+    }
+
+    // Obtener dimensiones ordenadas para las columnas
+    const { data: dimensions } = await supabase
+      .from('dimensions')
+      .select('name, display_order')
+      .order('display_order')
+
+    // Construir filas: una fila por encuestado con sus respuestas agrupadas por dimensión
+    const rows: Record<string, any>[] = []
+
+    for (const respondent of completedRespondents) {
+      const respondentResponses = allResponses.filter((r: any) => r.respondent_id === respondent.id)
+      const row: Record<string, any> = {
+        'Nombre': respondent.name,
+        'Correo': respondent.email,
+        'Fecha': new Date(respondent.created_at).toLocaleDateString('es-MX'),
+      }
+
+      // Calcular promedio por dimensión
+      const dimScores: Record<string, { total: number; count: number }> = {}
+      respondentResponses.forEach((r: any) => {
+        const dimName = r.questions.dimensions.name
+        if (!dimScores[dimName]) dimScores[dimName] = { total: 0, count: 0 }
+        dimScores[dimName].total += r.value
+        dimScores[dimName].count += 1
+      })
+
+      // Agregar promedio por dimensión como columna
+      if (dimensions) {
+        dimensions.forEach(dim => {
+          const score = dimScores[dim.name]
+          row[dim.name] = score ? Math.round((score.total / score.count) * 10) / 10 : 0
+        })
+      }
+
+      // Total general
+      const totalValues = respondentResponses.map((r: any) => r.value)
+      row['Promedio General'] = totalValues.length > 0
+        ? Math.round((totalValues.reduce((a: number, b: number) => a + b, 0) / totalValues.length) * 10) / 10
+        : 0
+
+      rows.push(row)
+    }
+
+    // Crear hoja de detalle (todas las respuestas individuales)
+    const detailRows: Record<string, any>[] = []
+    for (const respondent of completedRespondents) {
+      const respondentResponses = allResponses
+        .filter((r: any) => r.respondent_id === respondent.id)
+        .sort((a: any, b: any) => {
+          const dimDiff = a.questions.dimensions.display_order - b.questions.dimensions.display_order
+          if (dimDiff !== 0) return dimDiff
+          return a.questions.display_order - b.questions.display_order
+        })
+
+      respondentResponses.forEach((r: any) => {
+        detailRows.push({
+          'Nombre': respondent.name,
+          'Correo': respondent.email,
+          'Dimensión': r.questions.dimensions.name,
+          'Pregunta': r.questions.text,
+          'Valor': r.value,
+        })
+      })
+    }
+
+    // Generar archivo Excel con 2 hojas
+    const wb = XLSX.utils.book_new()
+    const wsResumen = XLSX.utils.json_to_sheet(rows)
+    const wsDetalle = XLSX.utils.json_to_sheet(detailRows)
+    XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen')
+    XLSX.utils.book_append_sheet(wb, wsDetalle, 'Detalle')
+
+    // Descargar
+    const fileName = `${session?.name || 'sesion'}_resultados.xlsx`.replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ_\- ]/g, '')
+    XLSX.writeFile(wb, fileName)
+
+    setExporting(false)
+  }
+
   async function loadConsolidated() {
     setViewMode('consolidated')
     setSelectedRespondent(null)
@@ -202,6 +308,13 @@ export default function SessionDetailPage() {
           className="ml-auto px-4 py-1.5 rounded-lg text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
         >
           {deletingSession ? 'Eliminando...' : 'Eliminar Sesión'}
+        </button>
+        <button
+          onClick={exportToExcel}
+          disabled={exporting || respondents.filter(r => r.completed).length === 0}
+          className="px-4 py-1.5 rounded-lg text-sm font-medium bg-green-50 text-green-600 hover:bg-green-100 transition-colors disabled:opacity-50"
+        >
+          {exporting ? 'Exportando...' : '📥 Exportar Excel'}
         </button>
       </div>
 

@@ -14,6 +14,7 @@ Permite a los encuestados evaluar la eficacia de su grupo de EA en múltiples di
 | UI | React 19 + Tailwind CSS 4 |
 | Visualización | Recharts (radar chart) |
 | QR | qrcode.react |
+| Exportación | SheetJS (xlsx) |
 | Backend/DB | Supabase (PostgreSQL + Auth + RLS) |
 | Auth | Supabase Auth (email/password) |
 
@@ -43,9 +44,7 @@ portal-ea/
 │   ├── lib/
 │   │   └── supabase/
 │   │       ├── client.ts                    # Cliente Supabase (browser)
-│   │       ├── server.ts                    # Cliente Supabase (server)
-│   │       └── middleware.ts                # Auth middleware helper
-│   ├── middleware.ts                        # Next.js middleware (protege /admin/*)
+│   │       └── server.ts                    # Cliente Supabase (server)
 │   └── types/
 │       └── database.ts                      # Tipos, escala de acuerdo, niveles de madurez
 ├── public/
@@ -74,7 +73,7 @@ dimensions (1) ──── (N) questions (1) ───────────�
 | `sessions` | Sesiones de evaluación (id, name, is_active, created_at) |
 | `dimensions` | Dimensiones EA con color (id, name, description, display_order, color) |
 | `questions` | Preguntas por dimensión (id, dimension_id, text, display_order) |
-| `respondents` | Encuestados (id, session_id, name, email, completed, created_at) |
+| `respondents` | Encuestados (id, session_id, name, email, completed, completed_at, created_at) |
 | `responses` | Respuestas (id, respondent_id, question_id, value 1-5, created_at) |
 
 ---
@@ -95,20 +94,23 @@ dimensions (1) ──── (N) questions (1) ───────────�
 
 ### Administrador
 - Login con email/password (Supabase Auth)
+- Dashboard con métricas globales (sesiones activas, respuestas totales, tiempo promedio)
 - Dashboard con lista de sesiones (activas/inactivas)
 - Crear nuevas sesiones
 - Habilitar/deshabilitar sesiones
+- Eliminar sesiones con confirmación (cascade)
 - Código QR generado para cada sesión
 - Detalle de sesión con lista de encuestados
 - Vista de resultados por encuestado individual
 - Vista consolidada (promedio de todos los encuestados completados)
+- Exportar respuestas a Excel (.xlsx) con 2 hojas: Resumen y Detalle
 - Eliminar encuestados y sus respuestas
 
 ### Seguridad
-- Middleware Next.js protege rutas `/admin/*`
 - Supabase Auth con verificación de email autorizado
 - RLS (Row Level Security) en PostgreSQL
 - Validación UUID en parámetros de ruta
+- Exportación Excel restringida a administradores autenticados
 
 ---
 
