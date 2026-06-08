@@ -350,6 +350,9 @@ export default function SessionDetailPage() {
 
       const data = await res.json()
       setAnalysisText(data.analysis)
+      if (data.saveWarning) {
+        setAnalysisError(data.saveWarning)
+      }
     } catch {
       setAnalysisError('Error de conexión. Intenta de nuevo.')
     }

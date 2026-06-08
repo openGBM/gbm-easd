@@ -94,9 +94,13 @@ El tono debe ser profesional pero accesible, orientado a líderes de negocio y T
 
     if (saveError) {
       console.error('Error guardando análisis:', saveError)
+      return NextResponse.json({
+        analysis: analysisText,
+        saveWarning: `Análisis generado pero no guardado: ${saveError.message}`
+      })
     }
 
-    return NextResponse.json({ analysis: analysisText })
+    return NextResponse.json({ analysis: analysisText, saved: true })
   } catch (error: any) {
     console.error('Error generando análisis:', error)
     return NextResponse.json(
