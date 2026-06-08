@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS instruments (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name text NOT NULL,
   description text,
+  ai_expertise_prompt text,
   is_active boolean NOT NULL DEFAULT true,
   created_at timestamptz NOT NULL DEFAULT now()
 );
@@ -99,11 +100,12 @@ GRANT SELECT ON instrument_versions TO anon;
 -- ============================================================
 
 -- Instrumento seed: Autodiagnóstico de Arquitectura Empresarial
-INSERT INTO instruments (id, name, description, is_active)
+INSERT INTO instruments (id, name, description, ai_expertise_prompt, is_active)
 VALUES (
   'a0000000-0000-0000-0000-000000000001',
   'Autodiagnóstico de Arquitectura Empresarial',
   'Evaluación de madurez EA basada en EA in a Box 2.0. Evalúa 8 dimensiones con 48 preguntas en escala de acuerdo (1-5).',
+  'Eres un consultor experto en Arquitectura Empresarial (EA). Evalúas la madurez y eficacia de los equipos de EA en organizaciones.',
   true
 ) ON CONFLICT (id) DO NOTHING;
 

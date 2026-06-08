@@ -10,6 +10,7 @@ export interface Instrument {
   id: string
   name: string
   description: string | null
+  ai_expertise_prompt: string | null
   is_active: boolean
   created_at: string
 }

@@ -13,6 +13,7 @@ export default function InstrumentosPage() {
   const [loading, setLoading] = useState(true)
   const [newName, setNewName] = useState('')
   const [newDescription, setNewDescription] = useState('')
+  const [newAiPrompt, setNewAiPrompt] = useState('')
   const [creating, setCreating] = useState(false)
 
   useEffect(() => {
@@ -69,7 +70,11 @@ export default function InstrumentosPage() {
     // Crear instrumento
     const { data: inst, error } = await supabase
       .from('instruments')
-      .insert({ name: newName.trim(), description: newDescription.trim() || null })
+      .insert({
+        name: newName.trim(),
+        description: newDescription.trim() || null,
+        ai_expertise_prompt: newAiPrompt.trim() || null,
+      })
       .select('id')
       .single()
 
@@ -86,6 +91,7 @@ export default function InstrumentosPage() {
 
       setNewName('')
       setNewDescription('')
+      setNewAiPrompt('')
       await loadInstruments()
     }
     setCreating(false)
@@ -135,6 +141,13 @@ export default function InstrumentosPage() {
             onChange={e => setNewDescription(e.target.value)}
             placeholder="Descripción (opcional)"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <textarea
+            value={newAiPrompt}
+            onChange={e => setNewAiPrompt(e.target.value)}
+            placeholder="Expertise de la IA para analizar resultados (ej: Eres un consultor experto en transformación digital...)"
+            rows={2}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
           />
           <button
             type="submit"
