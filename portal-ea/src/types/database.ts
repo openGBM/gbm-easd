@@ -92,18 +92,28 @@ export const AGREEMENT_SCALE = [
   { value: 1, label: 'Totalmente en desacuerdo' },
 ] as const
 
-// Niveles de madurez (8 dimensiones × 6 preguntas × max 5 = 240 max, min = 48)
-// Rangos ajustados para 48 preguntas:
-// Naciente: 48-112, Base: 113-176, Clase Mundial: 177-240
-export function getMaturityLevel(total: number): { level: string; color: string } {
-  if (total <= 112) return { level: 'Naciente', color: '#EF4444' }
-  if (total <= 176) return { level: 'Base', color: '#F59E0B' }
+// Nivel de madurez por dimensión (dinámico según cantidad de preguntas)
+export function getDimensionMaturityLevel(total: number, questionCount: number = 6): { level: string; color: string } {
+  const min = questionCount
+  const max = questionCount * 5
+  const range = max - min
+  const thirdLow = min + Math.floor(range / 3)
+  const thirdHigh = min + Math.floor((range * 2) / 3)
+
+  if (total <= thirdLow) return { level: 'Naciente', color: '#EF4444' }
+  if (total <= thirdHigh) return { level: 'Base', color: '#F59E0B' }
   return { level: 'Clase Mundial', color: '#10B981' }
 }
 
-// Nivel de madurez por dimensión (6 preguntas × max 5 = 30, min = 6)
-export function getDimensionMaturityLevel(total: number): { level: string; color: string } {
-  if (total <= 13) return { level: 'Naciente', color: '#EF4444' }
-  if (total <= 23) return { level: 'Base', color: '#F59E0B' }
+// Nivel de madurez global (dinámico según total de preguntas)
+export function getMaturityLevel(total: number, totalQuestions: number = 48): { level: string; color: string } {
+  const min = totalQuestions
+  const max = totalQuestions * 5
+  const range = max - min
+  const thirdLow = min + Math.floor(range / 3)
+  const thirdHigh = min + Math.floor((range * 2) / 3)
+
+  if (total <= thirdLow) return { level: 'Naciente', color: '#EF4444' }
+  if (total <= thirdHigh) return { level: 'Base', color: '#F59E0B' }
   return { level: 'Clase Mundial', color: '#10B981' }
 }

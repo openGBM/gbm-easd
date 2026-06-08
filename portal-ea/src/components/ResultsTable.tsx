@@ -3,23 +3,26 @@
 import { getDimensionMaturityLevel, getMaturityLevel } from '@/types/database'
 
 interface ResultsTableProps {
-  data: { dimension: string; value: number }[]
+  data: { dimension: string; value: number; questionCount?: number }[]
 }
 
 export default function ResultsTable({ data }: ResultsTableProps) {
+  // Calcular totales dinámicos
   const total = data.reduce((sum, item) => sum + item.value, 0)
-  const { level, color } = getMaturityLevel(total)
+  const totalQuestions = data.reduce((sum, item) => sum + (item.questionCount || 6), 0)
+  const maxTotal = totalQuestions * 5
+  const { level, color } = getMaturityLevel(total, totalQuestions)
 
   return (
     <div>
       {/* Nivel de madurez global */}
       <div className="text-center mb-6 p-4 rounded-lg border" style={{ borderColor: color }}>
-        <p className="text-sm text-gray-500 mb-1">Nivel de Madurez EA Global</p>
+        <p className="text-sm text-gray-500 mb-1">Nivel de Madurez Global</p>
         <p className="text-3xl font-bold" style={{ color }}>
           {level}
         </p>
         <p className="text-gray-600 mt-1">
-          Puntaje total: {total} / {data.length * 30}
+          Puntaje total: {total} / {maxTotal}
         </p>
       </div>
 
@@ -40,14 +43,16 @@ export default function ResultsTable({ data }: ResultsTableProps) {
         </thead>
         <tbody>
           {data.map((item, index) => {
-            const dimLevel = getDimensionMaturityLevel(item.value)
+            const qCount = item.questionCount || 6
+            const maxDim = qCount * 5
+            const dimLevel = getDimensionMaturityLevel(item.value, qCount)
             return (
               <tr key={index} className="hover:bg-gray-50">
                 <td className="px-3 py-2 border-b text-gray-800">
                   {item.dimension}
                 </td>
                 <td className="px-3 py-2 border-b text-center font-bold">
-                  {item.value}/30
+                  {item.value}/{maxDim}
                 </td>
                 <td className="px-3 py-2 border-b text-center">
                   <span
@@ -64,7 +69,7 @@ export default function ResultsTable({ data }: ResultsTableProps) {
         <tfoot>
           <tr className="bg-gray-100 font-bold">
             <td className="px-3 py-2 border-t">Total</td>
-            <td className="px-3 py-2 border-t text-center">{total}/{data.length * 30}</td>
+            <td className="px-3 py-2 border-t text-center">{total}/{maxTotal}</td>
             <td className="px-3 py-2 border-t text-center">
               <span
                 className="text-xs font-medium px-2 py-0.5 rounded-full"
@@ -77,13 +82,13 @@ export default function ResultsTable({ data }: ResultsTableProps) {
         </tfoot>
       </table>
 
-      {/* Leyenda */}
+      {/* Leyenda dinámica */}
       <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-        <p className="text-xs font-medium text-gray-700 mb-1">Clave de Evaluación (por dimensión):</p>
+        <p className="text-xs font-medium text-gray-700 mb-1">Clave de Evaluación:</p>
         <div className="flex gap-3 text-xs">
-          <span className="text-red-500">● 6–13: Naciente</span>
-          <span className="text-yellow-500">● 14–23: Base</span>
-          <span className="text-green-500">● 24–30: Clase Mundial</span>
+          <span className="text-red-500">● Tercio inferior: Naciente</span>
+          <span className="text-yellow-500">● Tercio medio: Base</span>
+          <span className="text-green-500">● Tercio superior: Clase Mundial</span>
         </div>
       </div>
     </div>
