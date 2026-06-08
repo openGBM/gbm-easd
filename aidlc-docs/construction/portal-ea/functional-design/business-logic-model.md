@@ -64,7 +64,8 @@
    a. Crear sesión → ingresa nombre → se genera con is_active = true
    b. Deshabilitar sesión → toggle is_active = false
    c. Habilitar sesión → toggle is_active = true
-   d. Ver detalle → navega a /admin/sesiones/{id}
+   d. Eliminar sesión → confirmación obligatoria → elimina responses, respondents y sesión (cascade)
+   e. Ver detalle → navega a /admin/sesiones/{id}
 ```
 
 ### Flujo 4: Admin Ve Detalle de Sesión
@@ -83,6 +84,10 @@
    c. Eliminar encuestado:
       - Confirmación antes de eliminar
       - Elimina responses primero, luego respondent
+   d. Eliminar sesión completa:
+      - Confirmación obligatoria con nombre de sesión visible
+      - Elimina responses de todos los encuestados → respondents → sesión (cascade)
+      - Redirige a /admin después de eliminar
 ```
 
 ---

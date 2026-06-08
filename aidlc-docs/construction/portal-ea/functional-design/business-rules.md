@@ -6,8 +6,10 @@
 |----|-------|------------|
 | BR-01 | Solo sesiones activas aceptan nuevos encuestados | Verificar `sessions.is_active = true` antes de registrar |
 | BR-02 | Solo sesiones activas aceptan respuestas | Verificar `sessions.is_active = true` antes de guardar |
-| BR-03 | El admin puede crear, activar y desactivar sesiones | Requiere usuario autenticado con rol admin |
+| BR-03 | El admin puede crear, activar, desactivar y eliminar sesiones | Requiere usuario autenticado con rol admin |
 | BR-04 | Cada sesión genera un URL único | Formato: `/encuesta/{session_id}` |
+| BR-31 | Eliminar sesión requiere confirmación explícita del admin | Diálogo confirm() con nombre de sesión visible |
+| BR-32 | Eliminar sesión elimina en cascada: responses → respondents → session | Orden de eliminación para respetar FK constraints |
 
 ## Reglas de Encuestado
 
