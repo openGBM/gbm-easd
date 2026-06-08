@@ -2,6 +2,11 @@ export default function HomePage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="text-center max-w-lg px-6">
+        <img
+          src="/logo-gbm.png"
+          alt="GBM"
+          className="h-16 mx-auto mb-8"
+        />
         <h1 className="text-4xl font-bold text-gray-900 mb-4">
           Portal de Autodiagnóstico
         </h1>

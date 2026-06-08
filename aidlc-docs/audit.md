@@ -47,3 +47,33 @@
 **Context**: Domain entities, business rules, and logic model finalized. Next: Code Generation.
 
 ---
+
+## Documentation Update — README + AIDLC Design Sync
+**Timestamp**: 2026-06-07T22:30:00-06:00
+**User Input**: "actualiza el readme del proyecto con los ultimos cambios y usando ai-dlc actualiza el diseño y los requerimientos"
+**AI Response**: Actualización completa de documentación:
+
+1. **README.md** (portal-ea): Reescrito completamente con:
+   - Stack tecnológico real
+   - Estructura del proyecto actual
+   - Modelo de datos con tabla `questions`
+   - Funcionalidades implementadas (encuestado, admin, seguridad)
+   - Niveles de madurez
+   - Variables de entorno y comandos de ejecución
+   - Tabla de rutas
+
+2. **requirements.md**: Actualizado RF-03 (8 dimensiones × 6 preguntas, wizard, reanudación), RF-04 (promedio + nivel de madurez), RF-06 (vista consolidada, eliminar encuestados), modelo de datos (tabla questions, campo color, campo completed)
+
+3. **application-design.md**: Actualizado estructura de proyecto real (sin capa de servicios, sin SurveyStepper/DimensionStep separados), componentes con tipo de renderizado, operaciones de datos directas con Supabase, modelo de datos con questions/color/completed, seguridad con verificación de email
+
+4. **domain-entities.md**: Agregada entidad Question, actualizada relación responses→questions, campo color en dimensions
+
+5. **business-rules.md**: Actualizadas BR-09 a BR-13 (upsert, reanudación, question_id), agregadas BR-26 a BR-30 (leyenda escala, vista consolidada, eliminar, email check)
+
+6. **business-logic-model.md**: Actualizados los 4 flujos principales con lógica real implementada, validaciones actualizadas, seed data con 8 dimensiones × 6 preguntas
+
+7. **aidlc-state.md**: Marcado Code Generation como completado, actualizado estado del workspace
+
+**Context**: Sincronización de documentación AI-DLC con la implementación real del código.
+
+---

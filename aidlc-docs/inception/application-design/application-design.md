@@ -12,68 +12,76 @@ Aplicación Next.js (App Router) con TypeScript, desplegada localmente sobre Sup
 src/
 ├── app/
 │   ├── layout.tsx                    # Root layout
-│   ├── page.tsx                      # Landing/redirect
+│   ├── page.tsx                      # Landing page
 │   ├── encuesta/
 │   │   └── [sessionId]/
-│   │       └── page.tsx              # SurveyPage
+│   │       └── page.tsx              # SurveyPage (server: valida sesión + carga dimensiones)
 │   ├── resultados/
 │   │   └── [respondentId]/
-│   │       └── page.tsx              # ResultsPage
+│   │       └── page.tsx              # ResultsPage (server: carga respuestas + radar)
 │   └── admin/
-│       ├── layout.tsx                # AdminLayout (protegido)
+│       ├── layout.tsx                # AdminLayout (server: verificación auth + email)
+│       ├── AdminNav.tsx              # Navegación admin (client)
 │       ├── login/
-│       │   └── page.tsx              # LoginPage
-│       ├── page.tsx                  # AdminDashboard
+│       │   └── page.tsx              # LoginPage (client)
+│       ├── page.tsx                  # AdminDashboard (client: CRUD sesiones)
 │       └── sesiones/
 │           └── [id]/
-│               └── page.tsx          # AdminSessionDetail
+│               └── page.tsx          # AdminSessionDetail (client: detalle + consolidado)
 ├── components/
+│   ├── SurveyForm.tsx                # Wizard completo (registro + stepper + envío)
 │   ├── RadarChart.tsx                # Gráfico de radar (Recharts)
-│   ├── QRCodeDisplay.tsx             # Generador de QR
-│   ├── SurveyForm.tsx                # Formulario de encuesta (wizard/stepper)
-│   ├── SurveyStepper.tsx             # Barra de progreso del wizard
-│   ├── DimensionStep.tsx             # Paso individual (dimensión + escala 1-5)
-│   └── ResultsTable.tsx              # Tabla resumen
+│   ├── ResultsTable.tsx              # Tabla resumen con nivel de madurez
+│   └── QRCodeDisplay.tsx             # Generador de QR
 ├── lib/
-│   ├── supabase/
-│   │   ├── client.ts                 # Cliente browser
-│   │   ├── server.ts                 # Cliente server-side
-│   │   └── middleware.ts             # Auth middleware
-│   └── services/
-│       ├── sessions.ts               # SessionService
-│       ├── respondents.ts            # RespondentService
-│       ├── responses.ts              # ResponseService
-│       ├── dimensions.ts             # DimensionService
-│       └── auth.ts                   # AuthService
+│   └── supabase/
+│       ├── client.ts                 # Cliente browser
+│       ├── server.ts                 # Cliente server-side
+│       └── middleware.ts             # Auth middleware helper
+├── middleware.ts                     # Next.js middleware (protege /admin/*)
 └── types/
-    └── database.ts                   # Tipos generados de Supabase
+    └── database.ts                   # Tipos, escala de acuerdo, niveles de madurez
 ```
 
 ---
 
 ## Componentes Principales
 
-| Componente | Tipo | Ruta | Protegido |
-|------------|------|------|-----------|
-| SurveyPage | Página | /encuesta/[sessionId] | No |
-| ResultsPage | Página | /resultados/[respondentId] | No |
-| LoginPage | Página | /admin/login | No |
-| AdminDashboard | Página | /admin | Sí |
-| AdminSessionDetail | Página | /admin/sesiones/[id] | Sí |
-| RadarChart | Componente | — | — |
-| QRCodeDisplay | Componente | — | — |
+| Componente | Tipo | Ruta | Protegido | Renderizado |
+|------------|------|------|-----------|-------------|
+| SurveyPage | Página | /encuesta/[sessionId] | No | Server |
+| ResultsPage | Página | /resultados/[respondentId] | No | Server |
+| LoginPage | Página | /admin/login | No | Client |
+| AdminDashboard | Página | /admin | Sí | Client |
+| AdminSessionDetail | Página | /admin/sesiones/[id] | Sí | Client |
+| SurveyForm | Componente | — | — | Client |
+| RadarChart | Componente | — | — | Client |
+| ResultsTable | Componente | — | — | Client |
+| QRCodeDisplay | Componente | — | — | Client |
+| AdminNav | Componente | — | — | Client |
 
 ---
 
 ## Servicios
 
-| Servicio | Tabla(s) | Operaciones |
-|----------|----------|-------------|
-| SessionService | sessions | CRUD, toggle estado |
-| RespondentService | respondents | Crear, listar por sesión |
-| ResponseService | responses | Crear batch, consultar por respondent |
-| DimensionService | dimensions | Listar todas (read-only) |
-| AuthService | Supabase Auth | signIn, signOut, getSession |
+**Nota**: La implementación final no usa una capa de servicios separada. Las operaciones de datos se realizan directamente con el cliente Supabase desde los componentes y páginas, siguiendo el patrón simple de 2 capas: componente → Supabase.
+
+| Operación | Tabla(s) | Ubicación |
+|-----------|----------|-----------|
+| Validar sesión activa | sessions | EncuestaPage (server) |
+| Cargar dimensiones + preguntas | dimensions, questions | EncuestaPage (server) |
+| Registrar encuestado | respondents | SurveyForm (client) |
+| Reanudar encuesta no completada | respondents, responses | SurveyForm (client) |
+| Enviar respuestas (upsert batch) | responses | SurveyForm (client) |
+| Marcar completado | respondents | SurveyForm (client) |
+| Cargar resultados con joins | responses, questions, dimensions | ResultadosPage (server) |
+| CRUD sesiones | sessions | AdminDashboard (client) |
+| Toggle estado sesión | sessions | AdminDashboard (client) |
+| Listar encuestados por sesión | respondents | AdminSessionDetail (client) |
+| Ver respuestas individuales | responses, questions, dimensions | AdminSessionDetail (client) |
+| Vista consolidada (promedio) | responses, questions, dimensions | AdminSessionDetail (client) |
+| Eliminar encuestado + respuestas | respondents, responses | AdminSessionDetail (client) |
+| Login/Logout | Supabase Auth | LoginPage, AdminNav (client) |
 
 ---
 
@@ -87,15 +95,6 @@ src/
 | is_active | boolean | Default true |
 | created_at | timestamptz | Default now() |
 
-### respondents
-| Columna | Tipo | Notas |
-|---------|------|-------|
-| id | uuid (PK) | gen_random_uuid() |
-| session_id | uuid (FK) | → sessions.id |
-| name | text | Nombre del encuestado |
-| email | text | Correo del encuestado |
-| created_at | timestamptz | Default now() |
-
 ### dimensions
 | Columna | Tipo | Notas |
 |---------|------|-------|
@@ -103,24 +102,55 @@ src/
 | name | text | Nombre de la dimensión |
 | description | text | Descripción breve |
 | display_order | integer | Orden de presentación |
+| color | text | Color hex para UI (ej: #2563EB) |
+
+### questions
+| Columna | Tipo | Notas |
+|---------|------|-------|
+| id | uuid (PK) | gen_random_uuid() |
+| dimension_id | uuid (FK) | → dimensions.id |
+| text | text | Texto de la pregunta |
+| display_order | integer | Orden dentro de la dimensión |
+
+### respondents
+| Columna | Tipo | Notas |
+|---------|------|-------|
+| id | uuid (PK) | gen_random_uuid() |
+| session_id | uuid (FK) | → sessions.id |
+| name | text | Nombre del encuestado |
+| email | text | Correo del encuestado |
+| completed | boolean | Default false — se marca true al enviar todas las respuestas |
+| created_at | timestamptz | Default now() |
+
+**Constraints**: UNIQUE (session_id, email)
 
 ### responses
 | Columna | Tipo | Notas |
 |---------|------|-------|
 | id | uuid (PK) | gen_random_uuid() |
 | respondent_id | uuid (FK) | → respondents.id |
-| dimension_id | uuid (FK) | → dimensions.id |
+| question_id | uuid (FK) | → questions.id |
 | value | integer | 1-5, CHECK constraint |
 | created_at | timestamptz | Default now() |
+
+**Constraints**: UNIQUE (respondent_id, question_id)
 
 ---
 
 ## Seguridad (RLS)
 
 - **sessions**: Lectura pública (para validar si activa), escritura solo admin autenticado
-- **respondents**: Inserción pública (registro), lectura por admin
 - **dimensions**: Lectura pública (necesario para la encuesta)
-- **responses**: Inserción pública (el encuestado responde), lectura por admin + por respondent_id propio
+- **questions**: Lectura pública (necesario para la encuesta)
+- **respondents**: Inserción pública (registro), lectura por admin
+- **responses**: Inserción/upsert pública (el encuestado responde), lectura por admin + por respondent_id propio
+
+## Autenticación
+
+- Login: Supabase Auth con email/password
+- Middleware Next.js protege rutas `/admin/*` (excepto `/admin/login`)
+- AdminLayout verifica que el email del usuario esté en lista de admins autorizados (`admin@gbm.net`)
+- Si usuario no autorizado: muestra "Acceso Denegado"
 
 ---
 

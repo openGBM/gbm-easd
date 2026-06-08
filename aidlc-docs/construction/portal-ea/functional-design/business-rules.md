@@ -23,10 +23,10 @@
 | ID | Regla | Validación |
 |----|-------|------------|
 | BR-09 | Valor entre 1 y 5 | CHECK constraint en DB + validación frontend |
-| BR-10 | Una respuesta por dimensión por encuestado | UNIQUE constraint en (respondent_id, dimension_id) |
-| BR-11 | Debe responder TODAS las dimensiones para completar | Verificar count(responses) = count(dimensions) |
-| BR-12 | Las respuestas se envían en batch (atómico) | Insertar todas en una transacción |
-| BR-13 | No se pueden modificar respuestas después de enviar | No hay endpoint UPDATE para responses |
+| BR-10 | Una respuesta por pregunta por encuestado | UNIQUE constraint en (respondent_id, question_id) |
+| BR-11 | Debe responder TODAS las preguntas de TODAS las dimensiones para completar | Verificar count(responses) = count(questions) |
+| BR-12 | Las respuestas se envían via upsert (permite reanudación) | Upsert con onConflict: respondent_id, question_id |
+| BR-13 | Encuestado puede reanudar si no completó | Cargar respuestas previas y continuar desde donde quedó |
 
 ## Reglas de Visualización
 
@@ -49,8 +49,18 @@
 
 | ID | Regla | Validación |
 |----|-------|------------|
-| BR-21 | Una dimensión por paso | Mostrar solo la dimensión actual |
+| BR-21 | Una dimensión por paso (con todas sus preguntas) | Mostrar solo la dimensión actual con sus 6 preguntas |
 | BR-22 | Navegación adelante/atrás permitida | Botones Anterior/Siguiente |
-| BR-23 | Debe seleccionar un valor antes de avanzar | Validar value != null para avanzar |
-| BR-24 | Barra de progreso visible | Mostrar paso actual / total |
-| BR-25 | Último paso muestra botón "Enviar" en lugar de "Siguiente" | Condición: currentStep === totalSteps |
+| BR-23 | Debe responder todas las preguntas de la dimensión antes de avanzar | Validar que todas las preguntas tengan respuesta |
+| BR-24 | Barra de progreso visible con color de la dimensión | Mostrar paso actual / total + porcentaje |
+| BR-25 | Último paso muestra botón "Enviar Evaluación" en lugar de "Siguiente" | Condición: currentStep === totalSteps |
+| BR-26 | Leyenda de escala visible en cada paso | Mostrar significado de cada valor (1-5) |
+
+## Reglas de Administración Avanzada
+
+| ID | Regla | Validación |
+|----|-------|------------|
+| BR-27 | Vista consolidada muestra promedio de encuestados completados | Filtrar solo respondents con completed = true |
+| BR-28 | Admin puede eliminar un encuestado y todas sus respuestas | Eliminar responses primero, luego respondent (cascade) |
+| BR-29 | Lista de admins autorizados por email | Verificar email contra lista en AdminLayout |
+| BR-30 | Si email duplicado y ya completó, mostrar mensaje informativo | "Ya respondiste esta encuesta" |

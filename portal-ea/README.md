@@ -1,36 +1,186 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Portal de Autodiagnóstico — Arquitectura Empresarial (GBM)
 
-## Getting Started
+Portal web de autodiagnóstico de madurez de Arquitectura Empresarial para clientes GBM.  
+Permite a los encuestados evaluar la eficacia de su grupo de EA en múltiples dimensiones mediante una escala de acuerdo (1–5), visualizar resultados con gráfico de radar, y a los administradores gestionar sesiones de evaluación.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Stack Tecnológico
+
+| Capa | Tecnología |
+|------|------------|
+| Framework | Next.js 16 (App Router) |
+| Lenguaje | TypeScript |
+| UI | React 19 + Tailwind CSS 4 |
+| Visualización | Recharts (radar chart) |
+| QR | qrcode.react |
+| Backend/DB | Supabase (PostgreSQL + Auth + RLS) |
+| Auth | Supabase Auth (email/password) |
+
+---
+
+## Estructura del Proyecto
+
+```
+portal-ea/
+├── src/
+│   ├── app/
+│   │   ├── page.tsx                         # Landing page
+│   │   ├── layout.tsx                       # Root layout
+│   │   ├── encuesta/[sessionId]/page.tsx    # Encuesta pública (wizard)
+│   │   ├── resultados/[respondentId]/page.tsx # Resultados del encuestado
+│   │   └── admin/
+│   │       ├── layout.tsx                   # Layout protegido (auth)
+│   │       ├── login/page.tsx               # Login admin
+│   │       ├── page.tsx                     # Dashboard sesiones
+│   │       ├── AdminNav.tsx                 # Navegación admin
+│   │       └── sesiones/[id]/page.tsx       # Detalle de sesión
+│   ├── components/
+│   │   ├── SurveyForm.tsx                   # Wizard de encuesta (registro + stepper)
+│   │   ├── RadarChart.tsx                   # Gráfico de radar (Recharts)
+│   │   ├── ResultsTable.tsx                 # Tabla resumen con nivel de madurez
+│   │   └── QRCodeDisplay.tsx                # Generador de código QR
+│   ├── lib/
+│   │   └── supabase/
+│   │       ├── client.ts                    # Cliente Supabase (browser)
+│   │       ├── server.ts                    # Cliente Supabase (server)
+│   │       └── middleware.ts                # Auth middleware helper
+│   ├── middleware.ts                        # Next.js middleware (protege /admin/*)
+│   └── types/
+│       └── database.ts                      # Tipos, escala de acuerdo, niveles de madurez
+├── public/
+│   └── logo-gbm.png                        # Logo GBM
+├── package.json
+├── tsconfig.json
+├── next.config.ts
+├── postcss.config.mjs
+└── eslint.config.mjs
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Modelo de Datos
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+sessions (1) ──── (N) respondents (1) ──── (N) responses
+                                                    │
+dimensions (1) ──── (N) questions (1) ──────────── (N)
+```
 
-## Learn More
+### Tablas
 
-To learn more about Next.js, take a look at the following resources:
+| Tabla | Descripción |
+|-------|-------------|
+| `sessions` | Sesiones de evaluación (id, name, is_active, created_at) |
+| `dimensions` | Dimensiones EA con color (id, name, description, display_order, color) |
+| `questions` | Preguntas por dimensión (id, dimension_id, text, display_order) |
+| `respondents` | Encuestados (id, session_id, name, email, completed, created_at) |
+| `responses` | Respuestas (id, respondent_id, question_id, value 1-5, created_at) |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Funcionalidades Implementadas
 
-## Deploy on Vercel
+### Encuestado
+- Acceso público por enlace `/encuesta/{sessionId}` (sin login)
+- Registro con nombre y correo electrónico
+- Encuesta tipo wizard/stepper: una dimensión por paso
+- Escala de acuerdo (1–5): Totalmente en desacuerdo → Totalmente de acuerdo
+- Barra de progreso con color por dimensión
+- Navegación adelante/atrás entre dimensiones
+- Validación de respuestas completas antes de avanzar
+- Reanudación si el encuestado ya se registró pero no completó
+- Gráfico de radar con resultados al finalizar
+- Tabla resumen con nivel de madurez por dimensión (Naciente / Base / Clase Mundial)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Administrador
+- Login con email/password (Supabase Auth)
+- Dashboard con lista de sesiones (activas/inactivas)
+- Crear nuevas sesiones
+- Habilitar/deshabilitar sesiones
+- Código QR generado para cada sesión
+- Detalle de sesión con lista de encuestados
+- Vista de resultados por encuestado individual
+- Vista consolidada (promedio de todos los encuestados completados)
+- Eliminar encuestados y sus respuestas
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Seguridad
+- Middleware Next.js protege rutas `/admin/*`
+- Supabase Auth con verificación de email autorizado
+- RLS (Row Level Security) en PostgreSQL
+- Validación UUID en parámetros de ruta
+
+---
+
+## Niveles de Madurez
+
+| Rango (por dimensión) | Nivel | Color |
+|------------------------|-------|-------|
+| 6–13 puntos | Naciente | 🔴 Rojo |
+| 14–23 puntos | Base | 🟡 Amarillo |
+| 24–30 puntos | Clase Mundial | 🟢 Verde |
+
+Cada dimensión tiene 6 preguntas × escala 1–5 = máximo 30 puntos por dimensión.  
+El nivel global se calcula sobre la suma total (8 dimensiones × 30 = 240 máximo).
+
+---
+
+## Ejecución Local
+
+### Prerrequisitos
+- Node.js 18+
+- Supabase CLI (para base de datos local)
+- Proyecto Supabase configurado con tablas y seed data
+
+### Variables de entorno
+
+Crear archivo `.env.local` en la raíz de `portal-ea/`:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<tu-anon-key>
+```
+
+### Comandos
+
+```bash
+# Instalar dependencias
+npm install
+
+# Ejecutar en modo desarrollo
+npm run dev
+
+# Build de producción
+npm run build
+
+# Ejecutar build
+npm start
+
+# Lint
+npm run lint
+```
+
+La aplicación estará disponible en [http://localhost:3000](http://localhost:3000).
+
+---
+
+## Rutas de la Aplicación
+
+| Ruta | Acceso | Descripción |
+|------|--------|-------------|
+| `/` | Público | Landing page con enlace a admin |
+| `/encuesta/[sessionId]` | Público | Encuesta (si sesión activa) |
+| `/resultados/[respondentId]` | Público | Resultados del encuestado |
+| `/admin/login` | Público | Login de administrador |
+| `/admin` | Protegido | Dashboard de sesiones |
+| `/admin/sesiones/[id]` | Protegido | Detalle de sesión |
+
+---
+
+## Futuras Mejoras (Fuera de Alcance MVP)
+
+- Despliegue en AWS (producción)
+- Comparación histórica entre sesiones
+- Exportación PDF de resultados
+- Multi-idioma
+- Notificaciones por correo al completar encuesta

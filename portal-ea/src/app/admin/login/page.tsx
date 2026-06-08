@@ -35,6 +35,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md">
+        <img src="/logo-gbm.png" alt="GBM" className="h-10 mx-auto mb-4" />
         <h1 className="text-2xl font-bold text-center mb-2">Panel de Administración</h1>
         <p className="text-gray-500 text-center mb-6">Ingresa tus credenciales</p>
 

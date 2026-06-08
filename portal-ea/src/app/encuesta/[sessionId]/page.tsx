@@ -1,6 +1,6 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import SurveyForm from '@/components/SurveyForm'
-import { Dimension } from '@/types/database'
+import { DimensionWithQuestions } from '@/types/database'
 
 interface Props {
   params: Promise<{ sessionId: string }>
@@ -39,25 +39,37 @@ export default async function EncuestaPage({ params }: Props) {
     )
   }
 
-  // Cargar dimensiones
+  // Cargar dimensiones con sus preguntas
   const { data: dimensions } = await supabase
     .from('dimensions')
-    .select('*')
+    .select('*, questions(*)')
     .order('display_order', { ascending: true })
+
+  // Ordenar preguntas dentro de cada dimensión
+  const sortedDimensions: DimensionWithQuestions[] = (dimensions || []).map(dim => ({
+    ...dim,
+    questions: (dim.questions || []).sort(
+      (a: { display_order: number }, b: { display_order: number }) => a.display_order - b.display_order
+    ),
+  }))
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
+          <img src="/logo-gbm.png" alt="GBM" className="h-10 mx-auto mb-4" />
           <h1 className="text-3xl font-bold text-gray-900">
             Evaluación de Madurez EA
           </h1>
           <p className="text-gray-600 mt-2">Sesión: {session.name}</p>
+          <p className="text-sm text-gray-400 mt-1">
+            Selecciona el valor (1–5) que mejor refleje tu grado de acuerdo con cada afirmación
+          </p>
         </div>
 
         <SurveyForm
           sessionId={sessionId}
-          dimensions={(dimensions as Dimension[]) || []}
+          dimensions={sortedDimensions}
         />
       </div>
     </div>

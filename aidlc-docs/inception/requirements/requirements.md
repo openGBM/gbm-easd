@@ -23,15 +23,19 @@
 - Solo se puede responder si la sesión está habilitada
 
 ### RF-03: Encuesta de Madurez EA
-- Presentar 8-10 dimensiones de evaluación (del PDF EA in a Box)
-- Cada dimensión se evalúa en escala 1-5
+- Presentar 8 dimensiones de evaluación (del PDF EA in a Box)
+- Cada dimensión contiene 6 preguntas específicas
+- Cada pregunta se evalúa en escala 1-5 (escala de acuerdo)
 - El encuestado selecciona el valor que refleje su grado de acuerdo con la eficacia de EA en cada dimensión
+- Presentación tipo wizard/stepper: una dimensión por paso con barra de progreso
 - Las respuestas se guardan en base de datos
+- Si el encuestado se registró pero no completó, puede reanudar la encuesta
 
 ### RF-04: Visualización de Resultados
-- Al finalizar, mostrar un gráfico de radar con los valores por dimensión
-- Mostrar una tabla resumen con los valores numéricos de la sesión
-- Los resultados son visibles inmediatamente al completar la encuesta
+- Al finalizar, mostrar un gráfico de radar con el promedio por dimensión (escala 1-5)
+- Mostrar una tabla resumen con suma por dimensión y nivel de madurez (Naciente/Base/Clase Mundial)
+- Mostrar nivel de madurez global (suma total de todas las dimensiones)
+- Los resultados son visibles inmediatamente al completar la encuesta (redirect automático)
 
 ### RF-05: Gestión de Sesiones (Admin)
 - El admin puede crear nuevas sesiones
@@ -40,10 +44,12 @@
 - Cada sesión tiene un enlace único
 
 ### RF-06: Panel de Administración
-- Dashboard con lista de sesiones (activas/inactivas)
-- Vista de encuestados por sesión
-- Vista de respuestas por encuestado
-- Acceso protegido por autenticación
+- Dashboard con lista de sesiones (activas/inactivas) con conteo de encuestados
+- Vista detallada de sesión con lista de encuestados (nombre, email, estado, fecha)
+- Vista de resultados por encuestado individual (radar + tabla)
+- Vista consolidada: promedio de todos los encuestados completados en una sesión
+- Capacidad de eliminar encuestados y sus respuestas
+- Acceso protegido por autenticación (verificación de email autorizado)
 
 ### RF-07: Autenticación de Admin
 - Login con email y password via Supabase Auth
@@ -88,10 +94,11 @@
 ## Modelo de Datos (Preliminar)
 
 ### Tablas principales:
-- **sessions**: id, name, is_active, created_at, qr_url
-- **respondents**: id, session_id, name, email, created_at
-- **responses**: id, respondent_id, dimension_id, value (1-5), created_at
-- **dimensions**: id, name, description, order
+- **sessions**: id, name, is_active, created_at
+- **dimensions**: id, name, description, display_order, color
+- **questions**: id, dimension_id, text, display_order
+- **respondents**: id, session_id, name, email, completed, created_at
+- **responses**: id, respondent_id, question_id, value (1-5), created_at
 
 ---
 

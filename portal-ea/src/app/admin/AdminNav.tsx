@@ -22,8 +22,9 @@ export default function AdminNav({ userEmail }: AdminNavProps) {
     <nav className="bg-white shadow-sm border-b">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <Link href="/admin" className="text-lg font-bold text-gray-900">
-            Panel Admin — EA
+          <Link href="/admin" className="flex items-center gap-3">
+            <img src="/logo-gbm.png" alt="GBM" className="h-8" />
+            <span className="text-lg font-bold text-gray-900">Panel Admin — EA</span>
           </Link>
         </div>
         <div className="flex items-center gap-4">

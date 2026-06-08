@@ -3,35 +3,39 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Dimension, AGREEMENT_SCALE } from '@/types/database'
+import { DimensionWithQuestions, AGREEMENT_SCALE } from '@/types/database'
 
 interface SurveyFormProps {
   sessionId: string
-  dimensions: Dimension[]
+  dimensions: DimensionWithQuestions[]
 }
 
 export default function SurveyForm({ sessionId, dimensions }: SurveyFormProps) {
   const router = useRouter()
   const supabase = createClient()
 
-  // Estado del formulario
   const [step, setStep] = useState<'register' | 'survey' | 'submitting'>('register')
   const [currentDimension, setCurrentDimension] = useState(0)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  // responses: { questionId: value }
   const [responses, setResponses] = useState<Record<string, number>>({})
   const [error, setError] = useState('')
   const [respondentId, setRespondentId] = useState<string | null>(null)
 
   const totalDimensions = dimensions.length
 
-  // Registro del encuestado
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault()
     setError('')
 
     if (!name.trim() || !email.trim()) {
       setError('Nombre y correo son obligatorios')
+      return
+    }
+
+    if (name.trim().length < 2 || name.trim().length > 100) {
+      setError('El nombre debe tener entre 2 y 100 caracteres')
       return
     }
 
@@ -49,6 +53,39 @@ export default function SurveyForm({ sessionId, dimensions }: SurveyFormProps) {
 
     if (dbError) {
       if (dbError.code === '23505') {
+        // Email ya registrado — verificar si completó o no
+        const { data: existing } = await supabase
+          .from('respondents')
+          .select('id, completed')
+          .eq('session_id', sessionId)
+          .eq('email', email.trim())
+          .single()
+
+        if (existing?.completed) {
+          setError('Ya respondiste esta encuesta. Tu evaluación fue registrada exitosamente.')
+          return
+        }
+
+        if (existing) {
+          // No completó — cargar respuestas previas y permitir continuar
+          setRespondentId(existing.id)
+
+          // Cargar respuestas existentes
+          const { data: prevResponses } = await supabase
+            .from('responses')
+            .select('question_id, value')
+            .eq('respondent_id', existing.id)
+
+          if (prevResponses && prevResponses.length > 0) {
+            const prevMap: Record<string, number> = {}
+            prevResponses.forEach(r => { prevMap[r.question_id] = r.value })
+            setResponses(prevMap)
+          }
+
+          setStep('survey')
+          return
+        }
+
         setError('Ya existe un registro con este correo para esta sesión')
       } else {
         setError('Error al registrar. Intenta de nuevo.')
@@ -60,17 +97,18 @@ export default function SurveyForm({ sessionId, dimensions }: SurveyFormProps) {
     setStep('survey')
   }
 
-  // Seleccionar valor para dimensión actual
-  function selectValue(value: number) {
-    const dimensionId = dimensions[currentDimension].id
-    setResponses(prev => ({ ...prev, [dimensionId]: value }))
+  function selectValue(questionId: string, value: number) {
+    setResponses(prev => ({ ...prev, [questionId]: value }))
   }
 
-  // Navegar al siguiente paso
-  function nextStep() {
-    const dimensionId = dimensions[currentDimension].id
-    if (!responses[dimensionId]) {
-      setError('Selecciona un valor antes de continuar')
+  function allQuestionsAnswered(dimensionIndex: number): boolean {
+    const dim = dimensions[dimensionIndex]
+    return dim.questions.every(q => responses[q.id] !== undefined)
+  }
+
+  function nextDimension() {
+    if (!allQuestionsAnswered(currentDimension)) {
+      setError('Responde todas las preguntas antes de continuar')
       return
     }
     setError('')
@@ -79,34 +117,31 @@ export default function SurveyForm({ sessionId, dimensions }: SurveyFormProps) {
     }
   }
 
-  // Navegar al paso anterior
-  function prevStep() {
+  function prevDimension() {
     setError('')
     if (currentDimension > 0) {
       setCurrentDimension(prev => prev - 1)
     }
   }
 
-  // Enviar todas las respuestas
   async function handleSubmit() {
-    const dimensionId = dimensions[currentDimension].id
-    if (!responses[dimensionId]) {
-      setError('Selecciona un valor antes de enviar')
+    if (!allQuestionsAnswered(currentDimension)) {
+      setError('Responde todas las preguntas antes de enviar')
       return
     }
 
     setStep('submitting')
     setError('')
 
-    const responsesArray = Object.entries(responses).map(([dimension_id, value]) => ({
+    const responsesArray = Object.entries(responses).map(([question_id, value]) => ({
       respondent_id: respondentId!,
-      dimension_id,
+      question_id,
       value,
     }))
 
     const { error: insertError } = await supabase
       .from('responses')
-      .insert(responsesArray)
+      .upsert(responsesArray, { onConflict: 'respondent_id,question_id' })
 
     if (insertError) {
       setError('Error al guardar respuestas. Intenta de nuevo.')
@@ -114,7 +149,6 @@ export default function SurveyForm({ sessionId, dimensions }: SurveyFormProps) {
       return
     }
 
-    // Marcar como completado
     await supabase
       .from('respondents')
       .update({ completed: true })
@@ -123,13 +157,13 @@ export default function SurveyForm({ sessionId, dimensions }: SurveyFormProps) {
     router.push(`/resultados/${respondentId}`)
   }
 
-  // Paso de registro
+  // === REGISTRO ===
   if (step === 'register') {
     return (
       <div className="max-w-md mx-auto">
         <h2 className="text-2xl font-bold mb-6 text-center">Registro</h2>
         <p className="text-gray-600 mb-6 text-center">
-          Ingresa tus datos para comenzar la evaluación
+          Ingresa tus datos para comenzar la evaluación de madurez
         </p>
         <form onSubmit={handleRegister} className="space-y-4">
           <div>
@@ -172,7 +206,7 @@ export default function SurveyForm({ sessionId, dimensions }: SurveyFormProps) {
     )
   }
 
-  // Enviando...
+  // === ENVIANDO ===
   if (step === 'submitting') {
     return (
       <div className="text-center py-12">
@@ -182,58 +216,82 @@ export default function SurveyForm({ sessionId, dimensions }: SurveyFormProps) {
     )
   }
 
-  // Wizard de encuesta
+  // === WIZARD ===
   const currentDim = dimensions[currentDimension]
-  const currentValue = responses[currentDim.id] || 0
   const isLastStep = currentDimension === totalDimensions - 1
+  const dimColor = currentDim.color || '#2563EB'
 
   return (
-    <div className="max-w-lg mx-auto">
+    <div className="max-w-3xl mx-auto">
       {/* Barra de progreso */}
-      <div className="mb-8">
+      <div className="mb-6">
         <div className="flex justify-between text-sm text-gray-500 mb-2">
           <span>Dimensión {currentDimension + 1} de {totalDimensions}</span>
           <span>{Math.round(((currentDimension + 1) / totalDimensions) * 100)}%</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
-            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-            style={{ width: `${((currentDimension + 1) / totalDimensions) * 100}%` }}
+            className="h-2 rounded-full transition-all duration-300"
+            style={{ width: `${((currentDimension + 1) / totalDimensions) * 100}%`, backgroundColor: dimColor }}
           />
         </div>
       </div>
 
       {/* Dimensión actual */}
-      <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
-        <h3 className="text-xl font-bold mb-2">{currentDim.name}</h3>
+      <div className="bg-white rounded-xl shadow-sm border-l-4 p-6 mb-6" style={{ borderLeftColor: dimColor }}>
+        <h3 className="text-xl font-bold mb-1" style={{ color: dimColor }}>
+          {currentDimension + 1}. {currentDim.name}
+        </h3>
         {currentDim.description && (
-          <p className="text-gray-600 mb-6">{currentDim.description}</p>
+          <p className="text-gray-500 text-sm mb-6">{currentDim.description}</p>
         )}
 
-        {/* Escala de acuerdo */}
-        <div className="space-y-3">
+        {/* Leyenda de escala */}
+        <div className="flex flex-wrap gap-2 mb-6 p-3 bg-gray-50 rounded-lg text-xs text-gray-600">
           {AGREEMENT_SCALE.map(({ value, label }) => (
-            <button
-              key={value}
-              onClick={() => selectValue(value)}
-              className={`w-full text-left px-4 py-3 rounded-lg border transition-all ${
-                currentValue === value
-                  ? 'border-blue-600 bg-blue-50 text-blue-700 font-medium'
-                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              <span className="font-mono mr-3">{value}</span>
-              {label}
-            </button>
+            <span key={value} className="whitespace-nowrap">
+              <strong>{value}</strong> = {label}
+            </span>
           ))}
+        </div>
+
+        {/* Preguntas de esta dimensión */}
+        <div className="space-y-6">
+          {currentDim.questions.map((question, idx) => {
+            const selectedValue = responses[question.id]
+            return (
+              <div key={question.id} className="border-b pb-4 last:border-b-0 last:pb-0">
+                <p className="text-sm text-gray-800 mb-3">
+                  <span className="font-medium text-gray-500">{idx + 1}.</span>{' '}
+                  {question.text}
+                </p>
+                <div className="flex gap-2">
+                  {AGREEMENT_SCALE.map(({ value }) => (
+                    <button
+                      key={value}
+                      onClick={() => selectValue(question.id, value)}
+                      className={`w-10 h-10 rounded-lg border text-sm font-bold transition-all ${
+                        selectedValue === value
+                          ? 'text-white'
+                          : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700'
+                      }`}
+                      style={selectedValue === value ? { backgroundColor: dimColor, borderColor: dimColor } : {}}
+                    >
+                      {value}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
         </div>
       </div>
 
       {/* Navegación */}
-      {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
+      {error && <p className="text-red-600 text-sm mb-4 text-center">{error}</p>}
       <div className="flex justify-between">
         <button
-          onClick={prevStep}
+          onClick={prevDimension}
           disabled={currentDimension === 0}
           className="px-6 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
@@ -244,12 +302,13 @@ export default function SurveyForm({ sessionId, dimensions }: SurveyFormProps) {
             onClick={handleSubmit}
             className="px-6 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors font-medium"
           >
-            Enviar ✓
+            Enviar Evaluación ✓
           </button>
         ) : (
           <button
-            onClick={nextStep}
-            className="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors font-medium"
+            onClick={nextDimension}
+            className="px-6 py-2 rounded-lg text-white transition-colors font-medium"
+            style={{ backgroundColor: dimColor }}
           >
             Siguiente →
           </button>

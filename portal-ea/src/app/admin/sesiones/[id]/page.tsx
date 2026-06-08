@@ -18,6 +18,7 @@ export default function SessionDetailPage() {
   const [selectedRespondent, setSelectedRespondent] = useState<string | null>(null)
   const [chartData, setChartData] = useState<{ dimension: string; value: number }[]>([])
   const [loading, setLoading] = useState(true)
+  const [viewMode, setViewMode] = useState<'individual' | 'consolidated'>('individual')
 
   useEffect(() => {
     loadSession()
@@ -47,18 +48,94 @@ export default function SessionDetailPage() {
 
     const { data: responses } = await supabase
       .from('responses')
-      .select('*, dimensions(*)')
+      .select('*, questions(*, dimensions(*))')
       .eq('respondent_id', respondentId)
-      .order('created_at', { ascending: true })
 
-    if (responses) {
-      const formatted = responses
-        .sort((a: any, b: any) => a.dimensions.display_order - b.dimensions.display_order)
-        .map((r: any) => ({
-          dimension: r.dimensions.name,
-          value: r.value,
+    if (responses && responses.length > 0) {
+      // Calcular promedio por dimensión
+      const dimensionScores: Record<string, { name: string; total: number; count: number; order: number }> = {}
+
+      responses.forEach((r: any) => {
+        const dimId = r.questions.dimensions.id
+        const dimName = r.questions.dimensions.name
+        const dimOrder = r.questions.dimensions.display_order
+
+        if (!dimensionScores[dimId]) {
+          dimensionScores[dimId] = { name: dimName, total: 0, count: 0, order: dimOrder }
+        }
+        dimensionScores[dimId].total += r.value
+        dimensionScores[dimId].count += 1
+      })
+
+      const formatted = Object.values(dimensionScores)
+        .sort((a, b) => a.order - b.order)
+        .map(d => ({
+          dimension: d.name,
+          value: Math.round((d.total / d.count) * 10) / 10,
         }))
       setChartData(formatted)
+    } else {
+      setChartData([])
+    }
+  }
+
+  async function deleteRespondent(respondentId: string) {
+    if (!confirm('¿Eliminar este encuestado y todas sus respuestas?')) return
+
+    // Primero eliminar respuestas
+    await supabase.from('responses').delete().eq('respondent_id', respondentId)
+    // Luego eliminar encuestado
+    await supabase.from('respondents').delete().eq('id', respondentId)
+
+    if (selectedRespondent === respondentId) {
+      setSelectedRespondent(null)
+      setChartData([])
+    }
+    await loadSession()
+  }
+
+  async function loadConsolidated() {
+    setViewMode('consolidated')
+    setSelectedRespondent(null)
+
+    // Obtener IDs de encuestados completados
+    const completedRespondents = respondents.filter(r => r.completed)
+    if (completedRespondents.length === 0) {
+      setChartData([])
+      return
+    }
+
+    const ids = completedRespondents.map(r => r.id)
+
+    const { data: allResponses } = await supabase
+      .from('responses')
+      .select('*, questions(*, dimensions(*))')
+      .in('respondent_id', ids)
+
+    if (allResponses && allResponses.length > 0) {
+      const dimensionScores: Record<string, { name: string; total: number; count: number; order: number }> = {}
+
+      allResponses.forEach((r: any) => {
+        const dimId = r.questions.dimensions.id
+        const dimName = r.questions.dimensions.name
+        const dimOrder = r.questions.dimensions.display_order
+
+        if (!dimensionScores[dimId]) {
+          dimensionScores[dimId] = { name: dimName, total: 0, count: 0, order: dimOrder }
+        }
+        dimensionScores[dimId].total += r.value
+        dimensionScores[dimId].count += 1
+      })
+
+      const formatted = Object.values(dimensionScores)
+        .sort((a, b) => a.order - b.order)
+        .map(d => ({
+          dimension: d.name,
+          value: Math.round((d.total / d.count) * 10) / 10,
+        }))
+      setChartData(formatted)
+    } else {
+      setChartData([])
     }
   }
 
@@ -92,46 +169,83 @@ export default function SessionDetailPage() {
         {/* Lista de encuestados */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-xl shadow-sm border p-4">
-            <h2 className="font-bold text-gray-900 mb-4">
-              Encuestados ({respondents.length})
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-bold text-gray-900">
+                Encuestados ({respondents.length})
+              </h2>
+            </div>
+
+            {/* Botón consolidado */}
+            {respondents.filter(r => r.completed).length > 0 && (
+              <button
+                onClick={loadConsolidated}
+                className={`w-full mb-4 p-3 rounded-lg text-sm font-medium transition-colors ${
+                  viewMode === 'consolidated'
+                    ? 'bg-indigo-100 border border-indigo-300 text-indigo-700'
+                    : 'bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                📊 Vista Consolidada ({respondents.filter(r => r.completed).length} respuestas)
+              </button>
+            )}
+
             {respondents.length === 0 ? (
               <p className="text-sm text-gray-500">Aún no hay encuestados.</p>
             ) : (
               <div className="space-y-2">
                 {respondents.map(r => (
-                  <button
+                  <div
                     key={r.id}
-                    onClick={() => viewResponses(r.id)}
-                    className={`w-full text-left p-3 rounded-lg transition-colors ${
+                    className={`p-3 rounded-lg transition-colors ${
                       selectedRespondent === r.id
                         ? 'bg-blue-50 border border-blue-200'
                         : 'hover:bg-gray-50 border border-transparent'
                     }`}
                   >
-                    <p className="font-medium text-sm text-gray-900">{r.name}</p>
-                    <p className="text-xs text-gray-500">{r.email}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className={`text-xs ${r.completed ? 'text-green-600' : 'text-yellow-600'}`}>
-                        {r.completed ? '✓ Completado' : '⏳ Pendiente'}
-                      </span>
-                      <span className="text-xs text-gray-400">
-                        {new Date(r.created_at).toLocaleDateString('es-MX')}
-                      </span>
-                    </div>
-                  </button>
+                    <button
+                      onClick={() => { setViewMode('individual'); viewResponses(r.id) }}
+                      className="w-full text-left"
+                    >
+                      <p className="font-medium text-sm text-gray-900">{r.name}</p>
+                      <p className="text-xs text-gray-500">{r.email}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`text-xs ${r.completed ? 'text-green-600' : 'text-yellow-600'}`}>
+                          {r.completed ? '✓ Completado' : '⏳ Pendiente'}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {new Date(r.created_at).toLocaleDateString('es-MX')}
+                        </span>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => deleteRespondent(r.id)}
+                      className="mt-2 text-xs text-red-500 hover:text-red-700 hover:underline"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
                 ))}
               </div>
             )}
           </div>
         </div>
 
-        {/* Resultados del encuestado seleccionado */}
+        {/* Resultados */}
         <div className="lg:col-span-2">
-          {selectedRespondent && chartData.length > 0 ? (
+          {chartData.length > 0 ? (
             <div className="space-y-6">
               <div className="bg-white rounded-xl shadow-sm border p-6">
-                <h2 className="text-lg font-bold mb-4 text-center">Gráfico de Radar</h2>
+                <h2 className="text-lg font-bold mb-1 text-center">
+                  {viewMode === 'consolidated'
+                    ? 'Resultados Consolidados'
+                    : `Resultados — ${respondents.find(r => r.id === selectedRespondent)?.name || ''}`
+                  }
+                </h2>
+                {viewMode === 'consolidated' && (
+                  <p className="text-sm text-gray-500 text-center mb-4">
+                    Promedio de {respondents.filter(r => r.completed).length} encuestado(s) completado(s)
+                  </p>
+                )}
                 <RadarChart data={chartData} />
               </div>
               <div className="bg-white rounded-xl shadow-sm border p-6">
@@ -141,7 +255,7 @@ export default function SessionDetailPage() {
             </div>
           ) : (
             <div className="bg-white rounded-xl shadow-sm border p-12 text-center text-gray-500">
-              <p>Selecciona un encuestado para ver sus resultados.</p>
+              <p>Selecciona un encuestado o usa la vista consolidada.</p>
             </div>
           )}
         </div>
