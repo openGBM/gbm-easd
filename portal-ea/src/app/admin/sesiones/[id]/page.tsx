@@ -7,6 +7,7 @@ import { Session, Respondent } from '@/types/database'
 import RadarChart from '@/components/RadarChart'
 import ResultsTable from '@/components/ResultsTable'
 import Link from 'next/link'
+import * as ExcelJS from 'exceljs'
 
 export default function SessionDetailPage() {
   const params = useParams()
@@ -21,6 +22,8 @@ export default function SessionDetailPage() {
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'individual' | 'consolidated'>('individual')
   const [deletingSession, setDeletingSession] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [sessionStats, setSessionStats] = useState({ totalCompleted: 0, avgTimeMinutes: 0 })
 
   useEffect(() => {
     checkAuthAndLoad()
@@ -50,7 +53,24 @@ export default function SessionDetailPage() {
       .eq('session_id', sessionId)
       .order('created_at', { ascending: false })
 
-    if (respondentData) setRespondents(respondentData)
+    if (respondentData) {
+      setRespondents(respondentData)
+
+      // Calcular stats de la sesión
+      const completed = respondentData.filter(r => r.completed)
+      const withTime = completed.filter(r => r.completed_at)
+      let avgTime = 0
+      if (withTime.length > 0) {
+        const totalMinutes = withTime.reduce((sum, r) => {
+          const start = new Date(r.created_at).getTime()
+          const end = new Date(r.completed_at!).getTime()
+          return sum + (end - start) / 1000 / 60
+        }, 0)
+        avgTime = Math.round(totalMinutes / withTime.length)
+      }
+      setSessionStats({ totalCompleted: completed.length, avgTimeMinutes: avgTime })
+    }
+
     setLoading(false)
   }
 
@@ -125,6 +145,131 @@ export default function SessionDetailPage() {
     await supabase.from('sessions').delete().eq('id', sessionId)
 
     router.push('/admin')
+  }
+
+  async function exportToExcel() {
+    setExporting(true)
+
+    // Obtener encuestados completados
+    const completedRespondents = respondents.filter(r => r.completed)
+    if (completedRespondents.length === 0) {
+      alert('No hay encuestados completados para exportar.')
+      setExporting(false)
+      return
+    }
+
+    const ids = completedRespondents.map(r => r.id)
+
+    // Obtener todas las respuestas con dimensiones y preguntas
+    const { data: allResponses } = await supabase
+      .from('responses')
+      .select('value, respondent_id, questions(text, display_order, dimensions(name, display_order))')
+      .in('respondent_id', ids)
+
+    if (!allResponses || allResponses.length === 0) {
+      alert('No hay respuestas para exportar.')
+      setExporting(false)
+      return
+    }
+
+    // Obtener dimensiones ordenadas para las columnas
+    const { data: dimensions } = await supabase
+      .from('dimensions')
+      .select('name, display_order')
+      .order('display_order')
+
+    // Construir filas: una fila por encuestado con sus respuestas agrupadas por dimensión
+    const rows: Record<string, any>[] = []
+
+    for (const respondent of completedRespondents) {
+      const respondentResponses = allResponses.filter((r: any) => r.respondent_id === respondent.id)
+      const row: Record<string, any> = {
+        'Nombre': respondent.name,
+        'Correo': respondent.email,
+        'Fecha': new Date(respondent.created_at).toLocaleDateString('es-MX'),
+      }
+
+      // Calcular promedio por dimensión
+      const dimScores: Record<string, { total: number; count: number }> = {}
+      respondentResponses.forEach((r: any) => {
+        const dimName = r.questions.dimensions.name
+        if (!dimScores[dimName]) dimScores[dimName] = { total: 0, count: 0 }
+        dimScores[dimName].total += r.value
+        dimScores[dimName].count += 1
+      })
+
+      // Agregar promedio por dimensión como columna
+      if (dimensions) {
+        dimensions.forEach(dim => {
+          const score = dimScores[dim.name]
+          row[dim.name] = score ? Math.round((score.total / score.count) * 10) / 10 : 0
+        })
+      }
+
+      // Total general
+      const totalValues = respondentResponses.map((r: any) => r.value)
+      row['Promedio General'] = totalValues.length > 0
+        ? Math.round((totalValues.reduce((a: number, b: number) => a + b, 0) / totalValues.length) * 10) / 10
+        : 0
+
+      rows.push(row)
+    }
+
+    // Crear hoja de detalle (todas las respuestas individuales)
+    const detailRows: Record<string, any>[] = []
+    for (const respondent of completedRespondents) {
+      const respondentResponses = allResponses
+        .filter((r: any) => r.respondent_id === respondent.id)
+        .sort((a: any, b: any) => {
+          const dimDiff = a.questions.dimensions.display_order - b.questions.dimensions.display_order
+          if (dimDiff !== 0) return dimDiff
+          return a.questions.display_order - b.questions.display_order
+        })
+
+      respondentResponses.forEach((r: any) => {
+        detailRows.push({
+          'Nombre': respondent.name,
+          'Correo': respondent.email,
+          'Dimensión': r.questions.dimensions.name,
+          'Pregunta': r.questions.text,
+          'Valor': r.value,
+        })
+      })
+    }
+
+    // Generar archivo Excel con 2 hojas usando ExcelJS
+    const wb = new ExcelJS.Workbook()
+
+    // Hoja Resumen
+    const wsResumen = wb.addWorksheet('Resumen')
+    if (rows.length > 0) {
+      wsResumen.columns = Object.keys(rows[0]).map(key => ({ header: key, key, width: 20 }))
+      rows.forEach(row => wsResumen.addRow(row))
+      // Estilo del encabezado
+      wsResumen.getRow(1).font = { bold: true }
+    }
+
+    // Hoja Detalle
+    const wsDetalle = wb.addWorksheet('Detalle')
+    if (detailRows.length > 0) {
+      wsDetalle.columns = Object.keys(detailRows[0]).map(key => ({ header: key, key, width: 25 }))
+      detailRows.forEach(row => wsDetalle.addRow(row))
+      wsDetalle.getRow(1).font = { bold: true }
+    }
+
+    // Descargar como archivo
+    const buffer = await wb.xlsx.writeBuffer()
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${session?.name || 'sesion'}_resultados.xlsx`.replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ_\- ]/g, '')
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+
+    setExporting(false)
   }
 
   async function loadConsolidated() {
@@ -203,6 +348,27 @@ export default function SessionDetailPage() {
         >
           {deletingSession ? 'Eliminando...' : 'Eliminar Sesión'}
         </button>
+        <button
+          onClick={exportToExcel}
+          disabled={exporting || respondents.filter(r => r.completed).length === 0}
+          className="px-4 py-1.5 rounded-lg text-sm font-medium bg-green-50 text-green-600 hover:bg-green-100 transition-colors disabled:opacity-50"
+        >
+          {exporting ? 'Exportando...' : '📥 Exportar Excel'}
+        </button>
+      </div>
+
+      {/* Dashboard de la sesión */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <div className="bg-white rounded-xl shadow-sm border p-5">
+          <p className="text-sm text-gray-500 mb-1">Respuestas Recolectadas</p>
+          <p className="text-3xl font-bold text-green-600">{sessionStats.totalCompleted}</p>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border p-5">
+          <p className="text-sm text-gray-500 mb-1">Tiempo Promedio de Respuesta</p>
+          <p className="text-3xl font-bold text-purple-600">
+            {sessionStats.avgTimeMinutes > 0 ? `${sessionStats.avgTimeMinutes} min` : '—'}
+          </p>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
