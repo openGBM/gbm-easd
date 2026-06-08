@@ -154,6 +154,20 @@ export default function SurveyForm({ sessionId, dimensions }: SurveyFormProps) {
       .update({ completed: true, completed_at: new Date().toISOString() })
       .eq('id', respondentId!)
 
+    // Fallback: si el update anterior falló por columna inexistente, intentar sin completed_at
+    const { data: checkData } = await supabase
+      .from('respondents')
+      .select('completed')
+      .eq('id', respondentId!)
+      .single()
+
+    if (checkData && !checkData.completed) {
+      await supabase
+        .from('respondents')
+        .update({ completed: true })
+        .eq('id', respondentId!)
+    }
+
     router.push(`/resultados/${respondentId}`)
   }
 
