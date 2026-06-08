@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS instrument_versions (
   version_tag text NOT NULL,
   is_current boolean NOT NULL DEFAULT false,
   notes text,
+  scale_labels jsonb DEFAULT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (instrument_id, version_number),
   UNIQUE (instrument_id, version_tag)

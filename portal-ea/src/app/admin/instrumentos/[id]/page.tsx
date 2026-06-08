@@ -108,9 +108,9 @@ export default function InstrumentDetailPage() {
     if (!currentVersion || dimensions.length === 0) return
 
     const wb = new ExcelJS.Workbook()
-    const ws = wb.addWorksheet('Banco de Preguntas')
 
-    // Encabezados
+    // Hoja 1: Banco de Preguntas
+    const ws = wb.addWorksheet('Banco de Preguntas')
     ws.columns = [
       { header: 'Dimensión', key: 'dimension', width: 30 },
       { header: 'Descripción Dimensión', key: 'dimDescription', width: 40 },
@@ -121,7 +121,6 @@ export default function InstrumentDetailPage() {
     ]
     ws.getRow(1).font = { bold: true }
 
-    // Llenar filas
     dimensions.forEach(dim => {
       dim.questions.forEach(q => {
         ws.addRow({
@@ -134,6 +133,30 @@ export default function InstrumentDetailPage() {
         })
       })
     })
+
+    // Hoja 2: Escala
+    const wsScale = wb.addWorksheet('Escala')
+    wsScale.columns = [
+      { header: 'Valor', key: 'value', width: 10 },
+      { header: 'Etiqueta', key: 'label', width: 30 },
+      { header: 'Descripción', key: 'description', width: 60 },
+    ]
+    wsScale.getRow(1).font = { bold: true }
+
+    // Usar scale_labels del instrumento o las default
+    const defaultScale = [
+      { value: 5, label: 'Totalmente de acuerdo', description: '' },
+      { value: 4, label: 'De acuerdo', description: '' },
+      { value: 3, label: 'Depende / Neutral', description: '' },
+      { value: 2, label: 'En desacuerdo', description: '' },
+      { value: 1, label: 'Totalmente en desacuerdo', description: '' },
+    ]
+    const scaleData = (currentVersion.scale_labels as any[]) || defaultScale
+    scaleData
+      .sort((a: any, b: any) => a.value - b.value)
+      .forEach((s: any) => {
+        wsScale.addRow({ value: s.value, label: s.label, description: s.description || '' })
+      })
 
     // Descargar
     const buffer = await wb.xlsx.writeBuffer()
@@ -270,6 +293,23 @@ export default function InstrumentDetailPage() {
         })
       })
 
+      // Parsear hoja de Escala (opcional)
+      let scaleLabels: { value: number; label: string; description?: string }[] | null = null
+      const wsScale = wb.getWorksheet('Escala')
+      if (wsScale) {
+        scaleLabels = []
+        wsScale.eachRow((row, rowNumber) => {
+          if (rowNumber === 1) return
+          const value = Number(row.getCell(1).value) || 0
+          const label = row.getCell(2).value?.toString().trim() || ''
+          const description = row.getCell(3).value?.toString().trim() || ''
+          if (value > 0 && label) {
+            scaleLabels!.push({ value, label, ...(description ? { description } : {}) })
+          }
+        })
+        if (scaleLabels.length === 0) scaleLabels = null
+      }
+
       // Determinar si crear nueva versión o editar la actual
       let targetVersionId = currentVersion.id
 
@@ -293,6 +333,7 @@ export default function InstrumentDetailPage() {
             version_tag: newTag,
             is_current: true,
             notes: `Importado desde Excel (${file.name})`,
+            scale_labels: scaleLabels,
           })
           .select('id')
           .single()
@@ -309,6 +350,13 @@ export default function InstrumentDetailPage() {
         if (dimIds.length > 0) {
           await supabase.from('questions').delete().in('dimension_id', dimIds)
           await supabase.from('dimensions').delete().in('id', dimIds)
+        }
+        // Actualizar scale_labels en la versión actual
+        if (scaleLabels !== undefined) {
+          await supabase
+            .from('instrument_versions')
+            .update({ scale_labels: scaleLabels })
+            .eq('id', currentVersion.id)
         }
       }
 

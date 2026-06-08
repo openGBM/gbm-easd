@@ -66,6 +66,20 @@ export default async function EncuestaPage({ params }: Props) {
 
   const { data: dimensions } = await dimensionsQuery
 
+  // Cargar scale_labels si la sesión tiene versión de instrumento
+  let scaleLabels = null
+  if (session.instrument_version_id) {
+    const { data: versionData } = await supabase
+      .from('instrument_versions')
+      .select('scale_labels')
+      .eq('id', session.instrument_version_id)
+      .single()
+
+    if (versionData?.scale_labels) {
+      scaleLabels = versionData.scale_labels
+    }
+  }
+
   // Ordenar preguntas dentro de cada dimensión
   const sortedDimensions: DimensionWithQuestions[] = (dimensions || []).map(dim => ({
     ...dim,
@@ -84,13 +98,14 @@ export default async function EncuestaPage({ params }: Props) {
           </h1>
           <p className="text-gray-600 mt-2">Sesión: {session.name}</p>
           <p className="text-sm text-gray-400 mt-1">
-            Selecciona el valor (1–5) que mejor refleje tu grado de acuerdo con cada afirmación
+            Selecciona el valor (1–5) que mejor refleje tu valoración para cada afirmación
           </p>
         </div>
 
         <SurveyForm
           sessionId={sessionId}
           dimensions={sortedDimensions}
+          scaleLabels={scaleLabels}
         />
       </div>
     </div>

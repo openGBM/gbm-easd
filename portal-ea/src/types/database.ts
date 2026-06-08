@@ -21,7 +21,14 @@ export interface InstrumentVersion {
   version_tag: string
   is_current: boolean
   notes: string | null
+  scale_labels: ScaleLabel[] | null
   created_at: string
+}
+
+export interface ScaleLabel {
+  value: number
+  label: string
+  description?: string
 }
 
 export interface InstrumentWithVersion extends Instrument {

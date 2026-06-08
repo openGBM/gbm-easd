@@ -3,16 +3,22 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { DimensionWithQuestions, AGREEMENT_SCALE } from '@/types/database'
+import { DimensionWithQuestions, AGREEMENT_SCALE, ScaleLabel } from '@/types/database'
 
 interface SurveyFormProps {
   sessionId: string
   dimensions: DimensionWithQuestions[]
+  scaleLabels?: ScaleLabel[] | null
 }
 
-export default function SurveyForm({ sessionId, dimensions }: SurveyFormProps) {
+export default function SurveyForm({ sessionId, dimensions, scaleLabels }: SurveyFormProps) {
   const router = useRouter()
   const supabase = createClient()
+
+  // Usar etiquetas personalizadas si existen, sino las default
+  const scale = scaleLabels && scaleLabels.length > 0
+    ? scaleLabels.sort((a, b) => b.value - a.value)
+    : AGREEMENT_SCALE
 
   const [step, setStep] = useState<'register' | 'survey' | 'submitting'>('register')
   const [currentDimension, setCurrentDimension] = useState(0)
@@ -262,7 +268,7 @@ export default function SurveyForm({ sessionId, dimensions }: SurveyFormProps) {
 
         {/* Leyenda de escala */}
         <div className="flex flex-wrap gap-2 mb-6 p-3 bg-gray-50 rounded-lg text-xs text-gray-600">
-          {AGREEMENT_SCALE.map(({ value, label }) => (
+          {scale.map(({ value, label }) => (
             <span key={value} className="whitespace-nowrap">
               <strong>{value}</strong> = {label}
             </span>
@@ -280,7 +286,7 @@ export default function SurveyForm({ sessionId, dimensions }: SurveyFormProps) {
                   {question.text}
                 </p>
                 <div className="flex gap-2">
-                  {AGREEMENT_SCALE.map(({ value }) => (
+                  {scale.map(({ value }) => (
                     <button
                       key={value}
                       onClick={() => selectValue(question.id, value)}
