@@ -207,6 +207,69 @@ export default function InstrumentDetailPage() {
         return
       }
 
+      // ===================== VALIDACIÓN DEL EXCEL =====================
+      const errors: string[] = []
+
+      // Validar encabezados mínimos (ya se parseó, pero verificar estructura)
+      if (dimsArray.some(d => !d.name.trim())) {
+        errors.push('Hay dimensiones sin nombre.')
+      }
+
+      // Validar que cada dimensión tenga al menos una pregunta
+      dimsArray.forEach(d => {
+        if (d.questions.length === 0) {
+          errors.push(`La dimensión "${d.name}" no tiene preguntas.`)
+        }
+      })
+
+      // Validar que las preguntas no estén vacías
+      dimsArray.forEach(d => {
+        d.questions.forEach((q, idx) => {
+          if (!q.text.trim()) {
+            errors.push(`Dimensión "${d.name}": la pregunta ${idx + 1} está vacía.`)
+          }
+        })
+      })
+
+      // Validar órdenes duplicados en dimensiones
+      const dimOrders = dimsArray.map(d => d.order).filter(o => o > 0)
+      const duplicateDimOrders = dimOrders.filter((o, i) => dimOrders.indexOf(o) !== i)
+      if (duplicateDimOrders.length > 0) {
+        errors.push(`Órdenes de dimensión duplicados: ${[...new Set(duplicateDimOrders)].join(', ')}`)
+      }
+
+      // Validar órdenes duplicados en preguntas dentro de cada dimensión
+      dimsArray.forEach(d => {
+        const qOrders = d.questions.map(q => q.order).filter(o => o > 0)
+        const duplicateQOrders = qOrders.filter((o, i) => qOrders.indexOf(o) !== i)
+        if (duplicateQOrders.length > 0) {
+          errors.push(`Dimensión "${d.name}": órdenes de pregunta duplicados: ${[...new Set(duplicateQOrders)].join(', ')}`)
+        }
+      })
+
+      // Validar formato de color (si se proporcionó)
+      const colorRegex = /^#[0-9a-fA-F]{6}$/
+      dimsArray.forEach(d => {
+        if (d.color && !colorRegex.test(d.color)) {
+          errors.push(`Dimensión "${d.name}": color "${d.color}" no es un hex válido (formato: #RRGGBB).`)
+        }
+      })
+
+      // Si hay errores, mostrar y abortar
+      if (errors.length > 0) {
+        alert(`Errores de validación:\n\n${errors.join('\n')}`)
+        setImporting(false)
+        return
+      }
+
+      // Auto-asignar órdenes si faltan (orden 0 = no definido)
+      dimsArray.forEach((d, idx) => {
+        if (d.order === 0) d.order = idx + 1
+        d.questions.forEach((q, qIdx) => {
+          if (q.order === 0) q.order = qIdx + 1
+        })
+      })
+
       // Determinar si crear nueva versión o editar la actual
       let targetVersionId = currentVersion.id
 
