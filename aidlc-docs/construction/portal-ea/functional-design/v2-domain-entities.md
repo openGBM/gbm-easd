@@ -37,18 +37,22 @@ sessions (1) ──── (0..1) session_analyses
 |-------|------|---------------|-------------|
 | id | uuid | PK, auto-gen | Identificador único |
 | instrument_id | uuid | FK → instruments.id, NOT NULL | Instrumento padre |
-| version_number | integer | NOT NULL | Número incremental de versión |
+| version_number | integer | NOT NULL | Número incremental de versión (interno) |
+| version_tag | text | NOT NULL, DEFAULT version_number::text | Tag corto editable para mostrar en UI (ej: "1", "2", "v2-piloto") |
 | is_current | boolean | DEFAULT false | Si es la versión activa para nuevas sesiones |
 | notes | text | | Notas sobre qué cambió en esta versión |
 | created_at | timestamptz | DEFAULT now() | Fecha de creación |
 
-**Constraints**: UNIQUE (instrument_id, version_number)
+**Constraints**: UNIQUE (instrument_id, version_number), UNIQUE (instrument_id, version_tag)
 
 **Reglas de negocio**:
 - Solo una versión por instrumento puede ser `is_current = true`
 - Al crear nueva versión, se desmarca la anterior como current
 - Las versiones no se pueden eliminar si hay sesiones asociadas
 - El version_number se auto-incrementa (max + 1)
+- El version_tag por defecto es el version_number como texto ("1", "2", "3"...)
+- El admin puede editar el version_tag para darle un nombre descriptivo (ej: "v2-piloto", "producción")
+- El version_tag debe ser único dentro del mismo instrumento
 
 ---
 

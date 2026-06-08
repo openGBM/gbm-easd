@@ -95,12 +95,13 @@ src/
 |---------|------|---------------|-------------|
 | id | uuid | PK, auto-gen | Identificador único |
 | instrument_id | uuid | FK → instruments.id, NOT NULL | Instrumento padre |
-| version_number | integer | NOT NULL | Número de versión (incremental) |
+| version_number | integer | NOT NULL | Número de versión (incremental, interno) |
+| version_tag | text | NOT NULL, DEFAULT version_number::text | Tag corto editable para UI (ej: "1", "2", "v2-piloto") |
 | is_current | boolean | DEFAULT false | Si es la versión activa |
 | created_at | timestamptz | DEFAULT now() | Fecha de creación |
 | notes | text | | Notas del cambio de versión |
 
-**Constraints**: UNIQUE (instrument_id, version_number)
+**Constraints**: UNIQUE (instrument_id, version_number), UNIQUE (instrument_id, version_tag)
 
 ### Modificaciones a Tablas Existentes
 
@@ -165,8 +166,8 @@ sessions (1) ──── (N) respondents (1) ──── (N) responses
 
 ### InstrumentBadge (Componente)
 - **Propósito**: Badge visual que indica tipo de instrumento y versión
-- **Props**: instrumentName, versionNumber
-- **Uso**: En listado de sesiones y detalle de sesión
+- **Props**: instrumentName, versionTag
+- **Uso**: En listado de sesiones y detalle de sesión (muestra "EA · v2-piloto" o "EA · 1")
 - **Condición**: Solo renderiza si flag `multi-instrument` = ON
 
 ### InstrumentSelector (Componente)
