@@ -14,8 +14,14 @@ export default function ResultsTable({ data, mode = 'sum' }: ResultsTableProps) 
     const avgGlobal = data.length > 0
       ? Math.round((data.reduce((sum, item) => sum + item.value, 0) / data.length) * 10) / 10
       : 0
-    // Convertir promedio a "suma equivalente" para calcular nivel (asumiendo 1 pregunta)
-    const globalLevel = getDimensionMaturityLevel(Math.round(avgGlobal), 1)
+
+    function getAverageLevel(avg: number): { level: string; color: string } {
+      if (avg < 2.4) return { level: 'Naciente', color: '#EF4444' }
+      if (avg < 3.7) return { level: 'Base', color: '#F59E0B' }
+      return { level: 'Clase Mundial', color: '#10B981' }
+    }
+
+    const globalLevel = getAverageLevel(avgGlobal)
 
     return (
       <div>
@@ -47,7 +53,7 @@ export default function ResultsTable({ data, mode = 'sum' }: ResultsTableProps) 
           </thead>
           <tbody>
             {data.map((item, index) => {
-              const dimLevel = getDimensionMaturityLevel(Math.round(item.value), 1)
+              const dimLevel = getAverageLevel(item.value)
               return (
                 <tr key={index} className="hover:bg-gray-50">
                   <td className="px-3 py-2 border-b text-gray-800">
