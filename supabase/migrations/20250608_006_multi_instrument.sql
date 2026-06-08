@@ -43,6 +43,9 @@ ADD COLUMN IF NOT EXISTS instrument_version_id uuid REFERENCES instrument_versio
 ALTER TABLE dimensions
 ADD COLUMN IF NOT EXISTS instrument_version_id uuid REFERENCES instrument_versions(id);
 
+-- Eliminar constraint UNIQUE global en display_order (ahora puede repetirse entre versiones)
+ALTER TABLE dimensions DROP CONSTRAINT IF EXISTS dimensions_display_order_key;
+
 -- ============================================================
 -- ÍNDICES
 -- ============================================================
