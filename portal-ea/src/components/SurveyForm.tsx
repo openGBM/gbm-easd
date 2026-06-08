@@ -296,10 +296,11 @@ export default function SurveyForm({ sessionId, dimensions, scaleLabels }: Surve
                   {question.text}
                 </p>
                 <div className="flex gap-2">
-                  {scale.map(({ value }) => (
+                  {scale.map(({ value, label }) => (
                     <button
                       key={value}
                       onClick={() => selectValue(question.id, value)}
+                      title={`${value} — ${label}`}
                       className={`w-10 h-10 rounded-lg border text-sm font-bold transition-all ${
                         selectedValue === value
                           ? 'text-white'
