@@ -107,6 +107,21 @@ El archivo debe tener **dos hojas**:
 
 > Si no se incluye la hoja de Escala, se usan las etiquetas por defecto (Totalmente en desacuerdo → Totalmente de acuerdo).
 
+**Hoja 3: "Niveles"** (o cualquier nombre que contenga "nivel") — opcional
+
+| Nivel | Color | Promedio Mínimo | Promedio Máximo |
+|-------|-------|-----------------|-----------------|
+| Inicial | #EF4444 | 1.0 | 2.0 |
+| En progreso | #F59E0B | 2.1 | 3.5 |
+| Avanzado | #10B981 | 3.6 | 5.0 |
+
+- **Nivel**: nombre del nivel de madurez (libre, ej: "Naciente", "Inicial", "Crítico")
+- **Color**: código hexadecimal para la UI (formato #RRGGBB)
+- **Promedio Mínimo**: desde qué promedio (inclusive) aplica este nivel
+- **Promedio Máximo**: hasta qué promedio (inclusive) aplica este nivel
+
+> Se pueden definir 2, 3, 5 o cualquier cantidad de niveles. Los rangos deben cubrir de 1.0 a 5.0 sin huecos. Si no se incluye la hoja de Niveles, se calculan automáticamente por tercios (1.0–2.3 Naciente, 2.4–3.6 Base, 3.7–5.0 Clase Mundial).
+
 #### Importar el Excel
 
 1. En la página de gestión del instrumento, hacer clic en **"📤 Importar Excel"**
@@ -244,15 +259,26 @@ El participante accede al enlace de la sesión (sin necesidad de login):
 
 ## Niveles de Madurez
 
-Los resultados se clasifican en tres niveles calculados automáticamente según la cantidad de preguntas de cada dimensión:
+Los resultados se clasifican en niveles configurables por instrumento. Cada instrumento puede definir sus propios niveles con rangos y nombres personalizados.
 
-| Nivel | Rango | Significado |
-|-------|-------|-------------|
-| 🔴 Naciente | Tercio inferior | Capacidad no desarrollada o incipiente |
-| 🟡 Base | Tercio medio | Capacidad en desarrollo con avances parciales |
-| 🟢 Clase Mundial | Tercio superior | Capacidad madura e institucionalizada |
+**Ejemplo de configuración por defecto:**
 
-El cálculo se adapta automáticamente: si una dimensión tiene 5 preguntas (máx 25 puntos), los rangos se dividen en tercios de ese máximo. Si tiene 6 preguntas (máx 30), se ajusta proporcionalmente.
+| Nivel | Rango (promedio) | Significado |
+|-------|------------------|-------------|
+| 🔴 Naciente | 1.0 – 2.3 | Capacidad no desarrollada o incipiente |
+| 🟡 Base | 2.4 – 3.6 | Capacidad en desarrollo con avances parciales |
+| 🟢 Clase Mundial | 3.7 – 5.0 | Capacidad madura e institucionalizada |
+
+**Ejemplo personalizado (4 niveles):**
+
+| Nivel | Rango | Color |
+|-------|-------|-------|
+| Crítico | 1.0 – 1.5 | Rojo |
+| Inicial | 1.6 – 2.5 | Naranja |
+| En progreso | 2.6 – 3.8 | Amarillo |
+| Optimizado | 3.9 – 5.0 | Verde |
+
+Los niveles se configuran en la hoja "Niveles" del Excel de cada instrumento. Si no se definen, se usan tercios automáticos.
 
 ---
 
@@ -274,4 +300,7 @@ Sí. Cada sesión es independiente. Crea una sesión por cliente/evento usando e
 El análisis usa servicios gratuitos con límites de uso. Para uso corporativo intensivo se pueden configurar API keys con planes pagados.
 
 **¿Puedo personalizar la escala de valores?**
-Sí. Cada instrumento puede tener sus propias etiquetas para los valores 1-5, configurables desde el Excel de importación.
+Sí. Cada instrumento puede tener sus propias etiquetas para los valores 1-5, configurables desde el Excel de importación (hoja "Escala").
+
+**¿Puedo personalizar los niveles de madurez?**
+Sí. Cada instrumento puede tener sus propios niveles con nombres, colores y rangos de promedio personalizados, configurables desde el Excel de importación (hoja "Niveles"). Se pueden definir 2, 3, 5 o cualquier cantidad de niveles.
