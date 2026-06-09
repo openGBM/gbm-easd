@@ -353,7 +353,53 @@ export default function InstrumentDetailPage() {
             maturityLevels!.push({ label, color, minAverage: minAvg, maxAverage: maxAvg })
           }
         })
-        if (maturityLevels.length === 0) maturityLevels = null
+        if (maturityLevels.length === 0) {
+          maturityLevels = null
+        } else {
+          // Validar niveles de madurez
+          const levelErrors: string[] = []
+          const sorted = [...maturityLevels].sort((a, b) => a.minAverage - b.minAverage)
+
+          sorted.forEach((lvl, idx) => {
+            // Validar que min < max
+            if (lvl.minAverage >= lvl.maxAverage) {
+              levelErrors.push(`Nivel "${lvl.label}": el promedio mínimo (${lvl.minAverage}) debe ser menor que el máximo (${lvl.maxAverage}).`)
+            }
+            // Validar color hex
+            if (lvl.color && !/^#[0-9a-fA-F]{6}$/.test(lvl.color)) {
+              levelErrors.push(`Nivel "${lvl.label}": color "${lvl.color}" no es hex válido (#RRGGBB).`)
+            }
+            // Validar que no haya solapamiento con el siguiente nivel
+            if (idx < sorted.length - 1) {
+              const next = sorted[idx + 1]
+              if (lvl.maxAverage >= next.minAverage) {
+                levelErrors.push(`Niveles "${lvl.label}" y "${next.label}" se solapan (${lvl.maxAverage} >= ${next.minAverage}).`)
+              }
+            }
+          })
+
+          // Validar que el rango cubra 1.0 a 5.0
+          if (sorted[0].minAverage > 1.0) {
+            levelErrors.push(`El primer nivel ("${sorted[0].label}") no cubre desde 1.0 (empieza en ${sorted[0].minAverage}).`)
+          }
+          if (sorted[sorted.length - 1].maxAverage < 5.0) {
+            levelErrors.push(`El último nivel ("${sorted[sorted.length - 1].label}") no cubre hasta 5.0 (termina en ${sorted[sorted.length - 1].maxAverage}).`)
+          }
+
+          // Validar huecos entre niveles
+          for (let i = 0; i < sorted.length - 1; i++) {
+            const gap = sorted[i + 1].minAverage - sorted[i].maxAverage
+            if (gap > 0.1) {
+              levelErrors.push(`Hueco entre "${sorted[i].label}" (max ${sorted[i].maxAverage}) y "${sorted[i + 1].label}" (min ${sorted[i + 1].minAverage}).`)
+            }
+          }
+
+          if (levelErrors.length > 0) {
+            alert(`Errores en Niveles de Madurez:\n\n${levelErrors.join('\n')}`)
+            setImporting(false)
+            return
+          }
+        }
       }
 
       // Determinar si crear nueva versión o editar la actual
