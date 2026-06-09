@@ -132,10 +132,10 @@ gbm-easd/
 - [x] v1.0 — MVP: Encuesta EA, radar, admin básico
 - [x] v1.1 — Análisis IA, export Excel, dashboards
 - [x] v1.2 — Multi-instrumento, versionamiento, import/export Excel, escalas y niveles configurables
-- [ ] v2.1 — Estabilización: middleware, tests e2e, audit log
-- [ ] v2.2 — Editor visual de preguntas, notificaciones, dashboard histórico
+- [ ] v2.1 — Editor visual de preguntas (sin depender de Excel), filtros en listado de sesiones
+- [ ] v2.2 — Notificaciones por email, dashboard histórico con tendencias
 - [ ] v3.0 — Escalas configurables (no solo 1-5), tipos de pregunta variados
-- [ ] v4.0 — Multi-tenant, roles granulares, SSO
+- [ ] v4.0 — Multi-tenant, roles granulares, SSO, middleware server-side
 
 ## Licencia
 

@@ -161,36 +161,32 @@ El portal es una aplicación funcional en producción (Vercel + Supabase Cloud) 
 
 ---
 
-### v2.1 — Estabilización y Seguridad
+### v2.1 — Editor Visual y UX
 
-**Objetivo**: Hardening del sistema para uso corporativo  
-**Estimado**: 1-2 semanas
-
-| Tarea | Tipo |
-|-------|------|
-| Reimplementar middleware Next.js | Seguridad |
-| Import Excel via API Route con transacción | Confiabilidad |
-| Generar tipos Supabase estrictos | Mantenibilidad |
-| Agregar audit log de acciones admin | Seguridad |
-| Rate limiting en login (visual) | Seguridad |
-| Tests e2e flujo encuesta + import | Calidad |
-| Error boundaries en páginas admin | UX |
-
----
-
-### v2.2 — Experiencia del Administrador
-
-**Objetivo**: Mejorar la productividad del admin  
+**Objetivo**: Reducir fricción operativa del admin  
 **Estimado**: 2-3 semanas
 
 | Tarea | Tipo |
 |-------|------|
-| Editor visual de preguntas (sin Excel) | UX |
+| Editor visual de preguntas (sin depender de Excel) | UX |
 | Duplicar instrumento existente | Productividad |
-| Comparación entre versiones de un instrumento | Visibilidad |
 | Filtros y búsqueda en listado de sesiones | UX |
-| Dashboard con gráficos históricos (tendencias) | Analytics |
+| Error boundaries en páginas admin | UX |
+| Monitoreo de errores (Sentry o similar) | Observabilidad |
+
+---
+
+### v2.2 — Comunicación y Analytics
+
+**Objetivo**: Mejorar visibilidad y comunicación  
+**Estimado**: 2-3 semanas
+
+| Tarea | Tipo |
+|-------|------|
 | Notificaciones por email al completar encuesta | Comunicación |
+| Dashboard con gráficos históricos (tendencias) | Analytics |
+| Comparación entre versiones de un instrumento | Visibilidad |
+| Exportación PDF de resultados con branding | Output |
 
 ---
 
