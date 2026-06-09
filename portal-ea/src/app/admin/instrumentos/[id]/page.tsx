@@ -22,6 +22,7 @@ export default function InstrumentDetailPage() {
   const [hasResponses, setHasResponses] = useState(false)
   const [editingPrompt, setEditingPrompt] = useState(false)
   const [promptValue, setPromptValue] = useState('')
+  const [maturityLevelsEdit, setMaturityLevelsEdit] = useState<{ label: string; color: string; minAverage: number; maxAverage: number }[]>([])
 
   useEffect(() => {
     checkAuthAndLoad()
@@ -58,6 +59,13 @@ export default function InstrumentDetailPage() {
       const current = versionsData.find(v => v.is_current)
       if (current) {
         setCurrentVersion(current)
+        // Inicializar editor de niveles de madurez
+        const defaultLevels = [
+          { label: 'Naciente', color: '#EF4444', minAverage: 1.0, maxAverage: 2.3 },
+          { label: 'Base', color: '#F59E0B', minAverage: 2.4, maxAverage: 3.6 },
+          { label: 'Clase Mundial', color: '#10B981', minAverage: 3.7, maxAverage: 5.0 },
+        ]
+        setMaturityLevelsEdit((current.maturity_levels as any[]) || defaultLevels)
         await loadDimensions(current.id)
         await checkHasResponses(current.id)
       }
@@ -155,6 +163,85 @@ export default function InstrumentDetailPage() {
   async function deleteQuestion(questionId: string, dimId: string) {
     await supabase.from('questions').delete().eq('id', questionId)
     if (currentVersion) await loadDimensions(currentVersion.id)
+  }
+
+  async function saveScaleLabels() {
+    if (!currentVersion) return
+    const labels: { value: number; label: string; description?: string }[] = []
+    for (let v = 1; v <= 5; v++) {
+      const labelEl = document.getElementById(`scale-label-${v}`) as HTMLInputElement
+      const descEl = document.getElementById(`scale-desc-${v}`) as HTMLInputElement
+      const label = labelEl?.value.trim() || ''
+      const description = descEl?.value.trim() || ''
+      if (label) {
+        labels.push({ value: v, label, ...(description ? { description } : {}) })
+      }
+    }
+
+    const { error } = await supabase
+      .from('instrument_versions')
+      .update({ scale_labels: labels.length > 0 ? labels : null })
+      .eq('id', currentVersion.id)
+
+    if (error) {
+      alert('Error al guardar escala.')
+    } else {
+      alert('Escala guardada exitosamente.')
+      await loadInstrument()
+    }
+  }
+
+  function updateMaturityLevel(idx: number, field: string, value: any) {
+    setMaturityLevelsEdit(prev => prev.map((lvl, i) => i === idx ? { ...lvl, [field]: value } : lvl))
+  }
+
+  function addMaturityLevel() {
+    const last = maturityLevelsEdit[maturityLevelsEdit.length - 1]
+    const newMin = last ? last.maxAverage + 0.1 : 1.0
+    setMaturityLevelsEdit(prev => [...prev, { label: '', color: '#666666', minAverage: Math.round(newMin * 10) / 10, maxAverage: 5.0 }])
+  }
+
+  function removeMaturityLevel(idx: number) {
+    setMaturityLevelsEdit(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  async function saveMaturityLevels() {
+    if (!currentVersion) return
+
+    // Validar
+    const sorted = [...maturityLevelsEdit].sort((a, b) => a.minAverage - b.minAverage)
+    const errors: string[] = []
+
+    sorted.forEach((lvl, idx) => {
+      if (!lvl.label.trim()) errors.push(`Nivel ${idx + 1}: falta nombre.`)
+      if (lvl.minAverage >= lvl.maxAverage) errors.push(`"${lvl.label}": mín (${lvl.minAverage}) debe ser menor que máx (${lvl.maxAverage}).`)
+      if (lvl.color && !/^#[0-9a-fA-F]{6}$/.test(lvl.color)) errors.push(`"${lvl.label}": color inválido.`)
+      if (idx < sorted.length - 1 && lvl.maxAverage >= sorted[idx + 1].minAverage) {
+        errors.push(`"${lvl.label}" y "${sorted[idx + 1].label}" se solapan.`)
+      }
+    })
+
+    if (sorted.length > 0) {
+      if (sorted[0].minAverage > 1.0) errors.push(`El primer nivel no cubre desde 1.0.`)
+      if (sorted[sorted.length - 1].maxAverage < 5.0) errors.push(`El último nivel no cubre hasta 5.0.`)
+    }
+
+    if (errors.length > 0) {
+      alert(`Errores en niveles:\n\n${errors.join('\n')}`)
+      return
+    }
+
+    const { error } = await supabase
+      .from('instrument_versions')
+      .update({ maturity_levels: maturityLevelsEdit.length > 0 ? maturityLevelsEdit : null })
+      .eq('id', currentVersion.id)
+
+    if (error) {
+      alert('Error al guardar niveles.')
+    } else {
+      alert('Niveles de madurez guardados exitosamente.')
+      await loadInstrument()
+    }
   }
 
   // ===================== EXPORTAR A EXCEL =====================
@@ -737,6 +824,110 @@ export default function InstrumentDetailPage() {
         >
           + Agregar Dimensión
         </button>
+      </div>
+
+      {/* Editor de Escala */}
+      <div className="bg-white rounded-xl shadow-sm border p-6 mb-8">
+        <h2 className="text-lg font-medium mb-4">Escala de Valores (1-5)</h2>
+        <p className="text-xs text-gray-500 mb-4">Define las etiquetas que verá el encuestado para cada valor.</p>
+        <div className="space-y-2">
+          {[1, 2, 3, 4, 5].map(val => {
+            const current = currentVersion?.scale_labels as any[] | null
+            const existing = current?.find((s: any) => s.value === val)
+            return (
+              <div key={val} className="flex items-center gap-3">
+                <span className="w-6 text-center font-bold text-gray-700">{val}</span>
+                <input
+                  type="text"
+                  defaultValue={existing?.label || ''}
+                  placeholder={val === 1 ? 'Totalmente en desacuerdo' : val === 5 ? 'Totalmente de acuerdo' : `Nivel ${val}`}
+                  className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  id={`scale-label-${val}`}
+                />
+                <input
+                  type="text"
+                  defaultValue={existing?.description || ''}
+                  placeholder="Descripción (opcional)"
+                  className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  id={`scale-desc-${val}`}
+                />
+              </div>
+            )
+          })}
+        </div>
+        <button
+          onClick={saveScaleLabels}
+          className="mt-4 px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          Guardar Escala
+        </button>
+      </div>
+
+      {/* Editor de Niveles de Madurez */}
+      <div className="bg-white rounded-xl shadow-sm border p-6 mb-8">
+        <h2 className="text-lg font-medium mb-4">Niveles de Madurez</h2>
+        <p className="text-xs text-gray-500 mb-4">Define los umbrales y nombres de los niveles de evaluación.</p>
+        <div className="space-y-2">
+          <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-500 px-1">
+            <span className="col-span-4">Nivel</span>
+            <span className="col-span-2">Color</span>
+            <span className="col-span-2">Prom. Min</span>
+            <span className="col-span-2">Prom. Max</span>
+            <span className="col-span-2"></span>
+          </div>
+          {maturityLevelsEdit.map((lvl, idx) => (
+            <div key={idx} className="grid grid-cols-12 gap-2 items-center">
+              <input
+                type="text"
+                value={lvl.label}
+                onChange={e => updateMaturityLevel(idx, 'label', e.target.value)}
+                placeholder="Nombre"
+                className="col-span-4 px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
+              />
+              <input
+                type="text"
+                value={lvl.color}
+                onChange={e => updateMaturityLevel(idx, 'color', e.target.value)}
+                placeholder="#RRGGBB"
+                className="col-span-2 px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
+              />
+              <input
+                type="number"
+                step="0.1"
+                value={lvl.minAverage}
+                onChange={e => updateMaturityLevel(idx, 'minAverage', parseFloat(e.target.value) || 0)}
+                className="col-span-2 px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
+              />
+              <input
+                type="number"
+                step="0.1"
+                value={lvl.maxAverage}
+                onChange={e => updateMaturityLevel(idx, 'maxAverage', parseFloat(e.target.value) || 0)}
+                className="col-span-2 px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
+              />
+              <button
+                onClick={() => removeMaturityLevel(idx)}
+                className="col-span-2 text-xs text-red-400 hover:text-red-600"
+              >
+                Eliminar
+              </button>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2 mt-4">
+          <button
+            onClick={addMaturityLevel}
+            className="px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
+          >
+            + Agregar Nivel
+          </button>
+          <button
+            onClick={saveMaturityLevels}
+            className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Guardar Niveles
+          </button>
+        </div>
       </div>
 
       {/* Historial de versiones */}

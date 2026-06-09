@@ -91,23 +91,37 @@
 - Versiones con respuestas son inmutables
 
 ### RF-11: Gestión de Dimensiones y Preguntas por Instrumento
-- El admin puede crear/editar dimensiones para un instrumento
-- El admin puede crear/editar preguntas dentro de cada dimensión
-- Al guardar cambios se crea una nueva versión del instrumento
+- El admin puede crear/editar dimensiones para un instrumento (editor visual inline)
+- El admin puede crear/editar/eliminar preguntas dentro de cada dimensión
+- Editor visual: agregar dimensión (nombre), agregar pregunta (texto), eliminar dimensión/pregunta con confirmación
+- Al guardar cambios se crea una nueva versión del instrumento (solo si hay respuestas)
 - El historial de versiones es consultable
+- Import/Export Excel sigue siendo compatible como método alternativo de edición
 
 ### RF-12: Sesiones Asociadas a Instrumento
 - Al crear una sesión, el admin selecciona qué instrumento aplicar
 - La sesión queda ligada al instrumento y su versión actual al momento de creación
 - En el listado de sesiones se muestra un indicador del tipo de instrumento y versión aplicada
 - Cada sesión aplica un único instrumento
+- Filtros en listado: búsqueda por nombre + filtro por estado (todas/activas/inactivas)
 
 ### RF-13: Feature Flag Multi-Instrumento
-- La funcionalidad multi-instrumento se gestiona con Vercel Flags (@flags-sdk/vercel)
-- Flag `multi-instrument` (boolean): off = comportamiento v1.x, on = multi-instrumento
-- Gestionable desde Vercel Dashboard sin redeploy
-- Override local vía Vercel Toolbar o variable de entorno
+- La funcionalidad multi-instrumento se gestiona con variable de entorno NEXT_PUBLIC_MULTI_INSTRUMENT
+- Flag `true`: habilita multi-instrumento. `false` o ausente: comportamiento v1.x
+- Gestionable desde Vercel env vars sin redeploy (requiere rebuild)
 - Retrocompatible: con flag off, todo funciona como v1.x
+
+### RF-14: Duplicar Instrumento
+- El admin puede duplicar un instrumento existente desde el catálogo
+- Se copia: nombre (con sufijo), descripción, expertise IA, versión actual (scale_labels, maturity_levels), dimensiones y preguntas
+- El duplicado es independiente del original
+
+### RF-15: Escalas y Niveles Editables Visualmente
+- El admin puede editar las etiquetas de escala (1-5) desde la UI del instrumento
+- El admin puede editar los niveles de madurez (nombre, color, rango min/max) desde la UI
+- Validación: sin solapamientos, cobertura 1.0-5.0, min < max, color hex válido
+- Se puede agregar/eliminar niveles (no limitado a 3)
+- Los cambios se guardan en la versión actual del instrumento
 
 ---
 
