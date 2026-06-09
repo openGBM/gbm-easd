@@ -1,240 +1,207 @@
-<mxfile host="app.diagrams.net" modified="2026-06-09" agent="Kiro" version="21.0.0" type="device">
+<mxfile host="Electron" agent="Kiro">
   <diagram name="Arquitectura del Sistema" id="arch-001">
-    <mxGraphModel dx="1500" dy="1100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="928" dy="522" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-
-        <!-- Title -->
-        <mxCell id="title" value="Portal de Evaluaciones de Autodiagnóstico — Arquitectura v1.2" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;fontColor=#1a1a2e;" vertex="1" parent="1">
-          <mxGeometry x="250" y="20" width="1000" height="40" as="geometry" />
+        <mxCell id="title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;fontColor=#1a1a2e;" value="Portal de Evaluaciones de Autodiagnóstico — Arquitectura v1.2" vertex="1">
+          <mxGeometry height="40" width="1000" x="250" y="20" as="geometry" />
         </mxCell>
-
-        <!-- ===== USUARIOS ===== -->
-        <mxCell id="users-group" value="Usuarios" style="swimlane;fontStyle=1;align=center;verticalAlign=top;startSize=30;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="40" y="80" width="200" height="200" as="geometry" />
+        <mxCell id="users-group" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;startSize=30;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;rounded=1;" value="Usuarios" vertex="1">
+          <mxGeometry height="200" width="200" x="40" y="80" as="geometry" />
         </mxCell>
-        <mxCell id="user-admin" value="Admin" style="shape=mxgraph.basic.person;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="users-group">
-          <mxGeometry x="20" y="40" width="60" height="60" as="geometry" />
+        <mxCell id="user-admin" parent="users-group" style="shape=mxgraph.basic.person;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" value="Admin" vertex="1">
+          <mxGeometry height="60" width="60" x="20" y="40" as="geometry" />
         </mxCell>
-        <mxCell id="user-encuestado" value="Encuestado" style="shape=mxgraph.basic.person;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="users-group">
-          <mxGeometry x="120" y="40" width="60" height="60" as="geometry" />
+        <mxCell id="user-encuestado" parent="users-group" style="shape=mxgraph.basic.person;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" value="Encuestado" vertex="1">
+          <mxGeometry height="60" width="60" x="120" y="40" as="geometry" />
         </mxCell>
-        <mxCell id="user-patrocinador" value="Patrocinador" style="shape=mxgraph.basic.person;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="users-group">
-          <mxGeometry x="65" y="120" width="60" height="60" as="geometry" />
+        <mxCell id="user-patrocinador" parent="users-group" style="shape=mxgraph.basic.person;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" value="Patrocinador" vertex="1">
+          <mxGeometry height="60" width="60" x="65" y="120" as="geometry" />
         </mxCell>
-
-        <!-- ===== FRONTEND (Vercel) ===== -->
-        <mxCell id="frontend-group" value="Frontend — Vercel (Next.js 16 App Router)" style="swimlane;fontStyle=1;align=center;verticalAlign=top;startSize=30;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#333333;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="300" y="80" width="820" height="440" as="geometry" />
+        <mxCell id="frontend-group" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;startSize=30;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#333333;rounded=1;" value="Frontend — Vercel (Next.js 16 App Router)" vertex="1">
+          <mxGeometry height="440" width="820" x="300" y="80" as="geometry" />
         </mxCell>
-
-        <!-- Páginas Públicas -->
-        <mxCell id="pub-label" value="Páginas Públicas" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#666666;" vertex="1" parent="frontend-group">
-          <mxGeometry x="20" y="35" width="120" height="20" as="geometry" />
+        <mxCell id="pub-label" parent="frontend-group" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#666666;" value="Páginas Públicas" vertex="1">
+          <mxGeometry height="20" width="120" x="20" y="35" as="geometry" />
         </mxCell>
-        <mxCell id="page-landing" value="/ (Landing)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="frontend-group">
-          <mxGeometry x="20" y="60" width="100" height="40" as="geometry" />
+        <mxCell id="page-landing" parent="frontend-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" value="/ (Landing)" vertex="1">
+          <mxGeometry height="40" width="100" x="20" y="60" as="geometry" />
         </mxCell>
-        <mxCell id="page-encuesta" value="/encuesta/[id]&#xa;(Wizard + Tooltip)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="frontend-group">
-          <mxGeometry x="140" y="60" width="120" height="40" as="geometry" />
+        <mxCell id="page-encuesta" parent="frontend-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" value="/encuesta/[id]&#xa;(Wizard + Tooltip)" vertex="1">
+          <mxGeometry height="40" width="120" x="140" y="60" as="geometry" />
         </mxCell>
-        <mxCell id="page-resultados" value="/resultados/[id]&#xa;(Radar + Niveles)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="frontend-group">
-          <mxGeometry x="280" y="60" width="120" height="40" as="geometry" />
+        <mxCell id="page-resultados" parent="frontend-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" value="/resultados/[id]&#xa;(Radar + Niveles)" vertex="1">
+          <mxGeometry height="40" width="120" x="280" y="60" as="geometry" />
         </mxCell>
-
-        <!-- Páginas Admin -->
-        <mxCell id="admin-label" value="Páginas Admin (Protegidas)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#666666;" vertex="1" parent="frontend-group">
-          <mxGeometry x="20" y="115" width="160" height="20" as="geometry" />
+        <mxCell id="admin-label" parent="frontend-group" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#666666;" value="Páginas Admin (Protegidas)" vertex="1">
+          <mxGeometry height="20" width="160" x="20" y="115" as="geometry" />
         </mxCell>
-        <mxCell id="page-login" value="/admin/login" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="frontend-group">
-          <mxGeometry x="20" y="140" width="90" height="40" as="geometry" />
+        <mxCell id="page-login" parent="frontend-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" value="/admin/login" vertex="1">
+          <mxGeometry height="40" width="90" x="20" y="140" as="geometry" />
         </mxCell>
-        <mxCell id="page-dashboard" value="/admin&#xa;(Dashboard + Filtros)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="frontend-group">
-          <mxGeometry x="125" y="140" width="120" height="40" as="geometry" />
+        <mxCell id="page-dashboard" parent="frontend-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" value="/admin&#xa;(Dashboard + Filtros)" vertex="1">
+          <mxGeometry height="40" width="120" x="125" y="140" as="geometry" />
         </mxCell>
-        <mxCell id="page-sesion-detail" value="/admin/sesiones/[id]&#xa;(Detalle + IA)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="frontend-group">
-          <mxGeometry x="260" y="140" width="130" height="40" as="geometry" />
+        <mxCell id="page-sesion-detail" parent="frontend-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" value="/admin/sesiones/[id]&#xa;(Detalle + IA)" vertex="1">
+          <mxGeometry height="40" width="130" x="260" y="140" as="geometry" />
         </mxCell>
-        <mxCell id="page-instrumentos" value="/admin/instrumentos&#xa;(Catálogo + Duplicar)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="frontend-group">
-          <mxGeometry x="405" y="140" width="140" height="40" as="geometry" />
+        <mxCell id="page-instrumentos" parent="frontend-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" value="/admin/instrumentos&#xa;(Catálogo + Duplicar)" vertex="1">
+          <mxGeometry height="40" width="140" x="405" y="140" as="geometry" />
         </mxCell>
-        <mxCell id="page-instrumento-detail" value="/admin/instrumentos/[id]&#xa;(Editor Visual)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="frontend-group">
-          <mxGeometry x="560" y="140" width="130" height="40" as="geometry" />
+        <mxCell id="page-instrumento-detail" parent="frontend-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" value="/admin/instrumentos/[id]&#xa;(Editor Visual)" vertex="1">
+          <mxGeometry height="40" width="130" x="560" y="140" as="geometry" />
         </mxCell>
-
-        <!-- Sub-editores del instrumento -->
-        <mxCell id="editors-label" value="Editores del Instrumento (inline)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#666666;" vertex="1" parent="frontend-group">
-          <mxGeometry x="405" y="190" width="200" height="20" as="geometry" />
+        <mxCell id="editors-label" parent="frontend-group" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#666666;" value="Editores del Instrumento (inline)" vertex="1">
+          <mxGeometry height="20" width="200" x="405" y="190" as="geometry" />
         </mxCell>
-        <mxCell id="editor-bank" value="Editor Visual&#xa;Dimensiones + Preguntas" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="frontend-group">
-          <mxGeometry x="405" y="215" width="130" height="40" as="geometry" />
+        <mxCell id="editor-bank" parent="frontend-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" value="Editor Visual&#xa;Dimensiones + Preguntas" vertex="1">
+          <mxGeometry height="40" width="130" x="405" y="215" as="geometry" />
         </mxCell>
-        <mxCell id="editor-scale" value="Editor Escala&#xa;Etiquetas 1-5" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="frontend-group">
-          <mxGeometry x="550" y="215" width="110" height="40" as="geometry" />
+        <mxCell id="editor-scale" parent="frontend-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" value="Editor Escala&#xa;Etiquetas 1-5" vertex="1">
+          <mxGeometry height="40" width="110" x="550" y="215" as="geometry" />
         </mxCell>
-        <mxCell id="editor-levels" value="Editor Niveles&#xa;Umbrales + Labels" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="frontend-group">
-          <mxGeometry x="675" y="215" width="120" height="40" as="geometry" />
+        <mxCell id="editor-levels" parent="frontend-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" value="Editor Niveles&#xa;Umbrales + Labels" vertex="1">
+          <mxGeometry height="40" width="120" x="675" y="215" as="geometry" />
         </mxCell>
-
-        <!-- Componentes -->
-        <mxCell id="comp-label" value="Componentes Reutilizables" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#666666;" vertex="1" parent="frontend-group">
-          <mxGeometry x="20" y="270" width="160" height="20" as="geometry" />
+        <mxCell id="comp-label" parent="frontend-group" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#666666;" value="Componentes Reutilizables" vertex="1">
+          <mxGeometry height="20" width="160" x="20" y="270" as="geometry" />
         </mxCell>
-        <mxCell id="comp-survey" value="SurveyForm" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="frontend-group">
-          <mxGeometry x="20" y="295" width="90" height="35" as="geometry" />
+        <mxCell id="comp-survey" parent="frontend-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" value="SurveyForm" vertex="1">
+          <mxGeometry height="35" width="90" x="20" y="295" as="geometry" />
         </mxCell>
-        <mxCell id="comp-radar" value="RadarChart" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="frontend-group">
-          <mxGeometry x="125" y="295" width="90" height="35" as="geometry" />
+        <mxCell id="comp-radar" parent="frontend-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" value="RadarChart" vertex="1">
+          <mxGeometry height="35" width="90" x="125" y="295" as="geometry" />
         </mxCell>
-        <mxCell id="comp-results" value="ResultsTable&#xa;(sum/average)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="frontend-group">
-          <mxGeometry x="230" y="295" width="100" height="35" as="geometry" />
+        <mxCell id="comp-results" parent="frontend-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" value="ResultsTable&#xa;(sum/average)" vertex="1">
+          <mxGeometry height="35" width="100" x="230" y="295" as="geometry" />
         </mxCell>
-        <mxCell id="comp-qr" value="QRCodeDisplay" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="frontend-group">
-          <mxGeometry x="345" y="295" width="95" height="35" as="geometry" />
+        <mxCell id="comp-qr" parent="frontend-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" value="QRCodeDisplay" vertex="1">
+          <mxGeometry height="35" width="95" x="345" y="295" as="geometry" />
         </mxCell>
-        <mxCell id="comp-badge" value="InstrumentBadge" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="frontend-group">
-          <mxGeometry x="455" y="295" width="110" height="35" as="geometry" />
+        <mxCell id="comp-badge" parent="frontend-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" value="InstrumentBadge" vertex="1">
+          <mxGeometry height="35" width="110" x="455" y="295" as="geometry" />
         </mxCell>
-        <mxCell id="comp-selector" value="InstrumentSelector" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="frontend-group">
-          <mxGeometry x="580" y="295" width="115" height="35" as="geometry" />
+        <mxCell id="comp-selector" parent="frontend-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" value="InstrumentSelector" vertex="1">
+          <mxGeometry height="35" width="115" x="580" y="295" as="geometry" />
         </mxCell>
-
-        <!-- API Route + Feature Flag -->
-        <mxCell id="api-label" value="Server-side" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#666666;" vertex="1" parent="frontend-group">
-          <mxGeometry x="20" y="350" width="100" height="20" as="geometry" />
+        <mxCell id="api-label" parent="frontend-group" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#666666;" value="Server-side" vertex="1">
+          <mxGeometry height="20" width="100" x="20" y="350" as="geometry" />
         </mxCell>
-        <mxCell id="api-analysis" value="/api/analysis&#xa;(Análisis IA dinámico)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="frontend-group">
-          <mxGeometry x="20" y="375" width="140" height="40" as="geometry" />
+        <mxCell id="api-analysis" parent="frontend-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" value="/api/analysis&#xa;(Análisis IA dinámico)" vertex="1">
+          <mxGeometry height="40" width="140" x="470" y="375" as="geometry" />
         </mxCell>
-        <mxCell id="feature-flag" value="Feature Flag&#xa;NEXT_PUBLIC_MULTI_INSTRUMENT" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=9;dashed=1;" vertex="1" parent="frontend-group">
-          <mxGeometry x="200" y="375" width="210" height="40" as="geometry" />
+        <mxCell id="feature-flag" parent="frontend-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=9;dashed=1;" value="Feature Flag&#xa;NEXT_PUBLIC_MULTI_INSTRUMENT" vertex="1">
+          <mxGeometry height="40" width="210" x="235" y="375" as="geometry" />
         </mxCell>
-        <mxCell id="excel-io" value="Import/Export Excel&#xa;(3 hojas: Banco, Escala, Niveles)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=9;" vertex="1" parent="frontend-group">
-          <mxGeometry x="450" y="375" width="180" height="40" as="geometry" />
+        <mxCell id="excel-io" parent="frontend-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=9;" value="Import/Export Excel&#xa;(3 hojas: Banco, Escala, Niveles)" vertex="1">
+          <mxGeometry height="40" width="180" x="20" y="375" as="geometry" />
         </mxCell>
-
-        <!-- ===== BACKEND (Supabase) ===== -->
-        <mxCell id="backend-group" value="Backend — Supabase Cloud (PostgreSQL + Auth + RLS)" style="swimlane;fontStyle=1;align=center;verticalAlign=top;startSize=30;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#333333;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="300" y="580" width="550" height="280" as="geometry" />
+        <mxCell id="backend-group" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;startSize=30;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#333333;rounded=1;" value="Backend — Supabase Cloud (PostgreSQL + Auth + RLS)" vertex="1">
+          <mxGeometry height="280" width="550" x="300" y="580" as="geometry" />
         </mxCell>
-
-        <!-- Auth + RLS -->
-        <mxCell id="supabase-auth" value="Auth&#xa;(email/password)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="backend-group">
-          <mxGeometry x="20" y="40" width="110" height="40" as="geometry" />
+        <mxCell id="supabase-auth" parent="backend-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" value="Auth&#xa;(email/password)" vertex="1">
+          <mxGeometry height="40" width="110" x="20" y="40" as="geometry" />
         </mxCell>
-        <mxCell id="supabase-rls" value="RLS + GRANTS&#xa;(authenticated/anon)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="backend-group">
-          <mxGeometry x="145" y="40" width="140" height="40" as="geometry" />
+        <mxCell id="supabase-rls" parent="backend-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" value="RLS + GRANTS&#xa;(authenticated/anon)" vertex="1">
+          <mxGeometry height="40" width="140" x="145" y="40" as="geometry" />
         </mxCell>
-
-        <!-- Tablas principales -->
-        <mxCell id="db-label" value="Tablas — Sesiones y Respuestas" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#666666;" vertex="1" parent="backend-group">
-          <mxGeometry x="20" y="95" width="200" height="20" as="geometry" />
+        <mxCell id="db-label" parent="backend-group" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#666666;" value="Tablas — Sesiones y Respuestas" vertex="1">
+          <mxGeometry height="20" width="200" x="20" y="95" as="geometry" />
         </mxCell>
-        <mxCell id="tbl-sessions" value="sessions" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="backend-group">
-          <mxGeometry x="20" y="120" width="70" height="50" as="geometry" />
+        <mxCell id="tbl-sessions" parent="backend-group" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" value="sessions" vertex="1">
+          <mxGeometry height="50" width="70" x="20" y="120" as="geometry" />
         </mxCell>
-        <mxCell id="tbl-respondents" value="respondents" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="backend-group">
-          <mxGeometry x="100" y="120" width="75" height="50" as="geometry" />
+        <mxCell id="tbl-respondents" parent="backend-group" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" value="respondents" vertex="1">
+          <mxGeometry height="50" width="75" x="100" y="120" as="geometry" />
         </mxCell>
-        <mxCell id="tbl-responses" value="responses" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="backend-group">
-          <mxGeometry x="185" y="120" width="70" height="50" as="geometry" />
+        <mxCell id="tbl-responses" parent="backend-group" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" value="responses" vertex="1">
+          <mxGeometry height="50" width="70" x="185" y="120" as="geometry" />
         </mxCell>
-        <mxCell id="tbl-analyses" value="session&#xa;_analyses" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=9;" vertex="1" parent="backend-group">
-          <mxGeometry x="265" y="120" width="80" height="50" as="geometry" />
+        <mxCell id="tbl-analyses" parent="backend-group" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=9;" value="session&#xa;_analyses" vertex="1">
+          <mxGeometry height="50" width="80" x="265" y="120" as="geometry" />
         </mxCell>
-
-        <!-- Tablas multi-instrumento -->
-        <mxCell id="db-label2" value="Tablas — Multi-Instrumento (Feature Flag)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#666666;" vertex="1" parent="backend-group">
-          <mxGeometry x="20" y="185" width="250" height="20" as="geometry" />
+        <mxCell id="db-label2" parent="backend-group" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#666666;" value="Tablas — Multi-Instrumento (Feature Flag)" vertex="1">
+          <mxGeometry height="20" width="250" x="20" y="185" as="geometry" />
         </mxCell>
-        <mxCell id="tbl-instruments" value="instruments&#xa;(ai_expertise_prompt)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" vertex="1" parent="backend-group">
-          <mxGeometry x="20" y="210" width="120" height="50" as="geometry" />
+        <mxCell id="tbl-instruments" parent="backend-group" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" value="instruments&#xa;(ai_expertise_prompt)" vertex="1">
+          <mxGeometry height="50" width="120" x="20" y="210" as="geometry" />
         </mxCell>
-        <mxCell id="tbl-versions" value="instrument_versions&#xa;(scale_labels, maturity_levels)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" vertex="1" parent="backend-group">
-          <mxGeometry x="155" y="210" width="160" height="50" as="geometry" />
+        <mxCell id="tbl-versions" parent="backend-group" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" value="instrument_versions&#xa;(scale_labels, maturity_levels)" vertex="1">
+          <mxGeometry height="50" width="160" x="155" y="210" as="geometry" />
         </mxCell>
-        <mxCell id="tbl-dimensions" value="dimensions&#xa;(instrument_version_id)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" vertex="1" parent="backend-group">
-          <mxGeometry x="330" y="210" width="120" height="50" as="geometry" />
+        <mxCell id="tbl-dimensions" parent="backend-group" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" value="dimensions&#xa;(instrument_version_id)" vertex="1">
+          <mxGeometry height="50" width="120" x="330" y="210" as="geometry" />
         </mxCell>
-        <mxCell id="tbl-questions" value="questions" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" vertex="1" parent="backend-group">
-          <mxGeometry x="465" y="210" width="70" height="50" as="geometry" />
+        <mxCell id="tbl-questions" parent="backend-group" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" value="questions" vertex="1">
+          <mxGeometry height="50" width="70" x="465" y="210" as="geometry" />
         </mxCell>
-
-        <!-- ===== IA PROVIDERS ===== -->
-        <mxCell id="ia-group" value="IA Providers (Free Tier)" style="swimlane;fontStyle=1;align=center;verticalAlign=top;startSize=30;fillColor=#ffe6cc;strokeColor=#d79b00;fontColor=#333333;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="920" y="580" width="220" height="160" as="geometry" />
+        <mxCell id="ia-group" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;startSize=30;fillColor=#ffe6cc;strokeColor=#d79b00;fontColor=#333333;rounded=1;" value="IA Providers (Free Tier)" vertex="1">
+          <mxGeometry height="160" width="220" x="920" y="580" as="geometry" />
         </mxCell>
-        <mxCell id="ia-gemini" value="Google Gemini 2.0 Flash&#xa;(primario)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="ia-group">
-          <mxGeometry x="20" y="40" width="180" height="40" as="geometry" />
+        <mxCell id="ia-gemini" parent="ia-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" value="Google Gemini 2.0 Flash&#xa;(primario)" vertex="1">
+          <mxGeometry height="40" width="180" x="20" y="40" as="geometry" />
         </mxCell>
-        <mxCell id="ia-groq" value="Groq Llama 3.3 70B&#xa;(fallback)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="ia-group">
-          <mxGeometry x="20" y="95" width="180" height="40" as="geometry" />
+        <mxCell id="ia-groq" parent="ia-group" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" value="Groq Llama 3.3 70B&#xa;(fallback)" vertex="1">
+          <mxGeometry height="40" width="180" x="20" y="95" as="geometry" />
         </mxCell>
-
-        <!-- ===== FLECHAS ===== -->
-        <mxCell id="arrow-users-frontend" value="" style="endArrow=classic;html=1;rounded=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1" source="users-group" target="frontend-group">
+        <mxCell id="arrow-users-frontend" edge="1" parent="1" source="users-group" style="endArrow=classic;html=1;rounded=1;strokeWidth=2;strokeColor=#666666;" target="frontend-group" value="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="arrow-frontend-backend" value="Supabase Client (REST)" style="endArrow=classic;startArrow=classic;html=1;rounded=1;strokeWidth=2;strokeColor=#82b366;" edge="1" parent="1">
+        <mxCell id="arrow-frontend-backend" edge="1" parent="1" style="endArrow=classic;startArrow=classic;html=1;rounded=1;strokeWidth=2;strokeColor=#82b366;" value="Supabase Client (REST)">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="650" y="520" as="sourcePoint" />
             <mxPoint x="650" y="580" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="arrow-api-ia" value="API (Gemini → Groq)" style="endArrow=classic;html=1;rounded=1;strokeWidth=2;strokeColor=#d79b00;dashed=1;" edge="1" parent="1">
+        <mxCell id="arrow-api-ia" edge="1" parent="1" style="endArrow=classic;html=1;rounded=1;strokeWidth=2;strokeColor=#d79b00;dashed=1;" value="API (Gemini → Groq)">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="800" y="500" as="sourcePoint" />
             <mxPoint x="1030" y="580" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-
-        <!-- Legend -->
-        <mxCell id="legend-title" value="Leyenda" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
-          <mxGeometry x="1180" y="80" width="80" height="20" as="geometry" />
+        <mxCell id="legend-title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#333333;" value="Leyenda" vertex="1">
+          <mxGeometry height="20" width="80" x="1180" y="80" as="geometry" />
         </mxCell>
-        <mxCell id="legend-pub" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
-          <mxGeometry x="1180" y="105" width="20" height="15" as="geometry" />
+        <mxCell id="legend-pub" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="" vertex="1">
+          <mxGeometry height="15" width="20" x="1180" y="105" as="geometry" />
         </mxCell>
-        <mxCell id="legend-pub-text" value="Público" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
-          <mxGeometry x="1205" y="105" width="80" height="15" as="geometry" />
+        <mxCell id="legend-pub-text" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" value="Público" vertex="1">
+          <mxGeometry height="15" width="80" x="1205" y="105" as="geometry" />
         </mxCell>
-        <mxCell id="legend-admin" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="1180" y="125" width="20" height="15" as="geometry" />
+        <mxCell id="legend-admin" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="" vertex="1">
+          <mxGeometry height="15" width="20" x="1180" y="125" as="geometry" />
         </mxCell>
-        <mxCell id="legend-admin-text" value="Admin" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
-          <mxGeometry x="1205" y="125" width="80" height="15" as="geometry" />
+        <mxCell id="legend-admin-text" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" value="Admin" vertex="1">
+          <mxGeometry height="15" width="80" x="1205" y="125" as="geometry" />
         </mxCell>
-        <mxCell id="legend-comp" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
-          <mxGeometry x="1180" y="145" width="20" height="15" as="geometry" />
+        <mxCell id="legend-comp" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="" vertex="1">
+          <mxGeometry height="15" width="20" x="1180" y="145" as="geometry" />
         </mxCell>
-        <mxCell id="legend-comp-text" value="Componentes / Editores" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
-          <mxGeometry x="1205" y="145" width="120" height="15" as="geometry" />
+        <mxCell id="legend-comp-text" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" value="Componentes / Editores" vertex="1">
+          <mxGeometry height="15" width="120" x="1205" y="145" as="geometry" />
         </mxCell>
-        <mxCell id="legend-api" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
-          <mxGeometry x="1180" y="165" width="20" height="15" as="geometry" />
+        <mxCell id="legend-api" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" value="" vertex="1">
+          <mxGeometry height="15" width="20" x="1180" y="165" as="geometry" />
         </mxCell>
-        <mxCell id="legend-api-text" value="API / IA / Excel" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
-          <mxGeometry x="1205" y="165" width="100" height="15" as="geometry" />
+        <mxCell id="legend-api-text" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" value="API / IA / Excel" vertex="1">
+          <mxGeometry height="15" width="100" x="1205" y="165" as="geometry" />
         </mxCell>
-        <mxCell id="legend-multi" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
-          <mxGeometry x="1180" y="185" width="20" height="15" as="geometry" />
+        <mxCell id="legend-multi" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="" vertex="1">
+          <mxGeometry height="15" width="20" x="1180" y="185" as="geometry" />
         </mxCell>
-        <mxCell id="legend-multi-text" value="Multi-instrumento" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
-          <mxGeometry x="1205" y="185" width="110" height="15" as="geometry" />
+        <mxCell id="legend-multi-text" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" value="Multi-instrumento" vertex="1">
+          <mxGeometry height="15" width="110" x="1205" y="185" as="geometry" />
         </mxCell>
-        <mxCell id="legend-security" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
-          <mxGeometry x="1180" y="205" width="20" height="15" as="geometry" />
+        <mxCell id="legend-security" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="" vertex="1">
+          <mxGeometry height="15" width="20" x="1180" y="205" as="geometry" />
         </mxCell>
-        <mxCell id="legend-security-text" value="Seguridad" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
-          <mxGeometry x="1205" y="205" width="80" height="15" as="geometry" />
+        <mxCell id="legend-security-text" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" value="Seguridad" vertex="1">
+          <mxGeometry height="15" width="80" x="1205" y="205" as="geometry" />
         </mxCell>
-
-        <!-- Footer -->
-        <mxCell id="footer" value="GBM — Portal de Evaluaciones v1.2 | Next.js 16 + Supabase + Gemini/Groq | Multi-instrumento con escalas y niveles configurables" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#999999;" vertex="1" parent="1">
-          <mxGeometry x="300" y="890" width="800" height="20" as="geometry" />
+        <mxCell id="footer" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#999999;" value="GBM — Portal de Evaluaciones v1.2 | Next.js 16 + Supabase + Gemini/Groq | Multi-instrumento con escalas y niveles configurables" vertex="1">
+          <mxGeometry height="20" width="800" x="300" y="890" as="geometry" />
         </mxCell>
-
       </root>
     </mxGraphModel>
   </diagram>

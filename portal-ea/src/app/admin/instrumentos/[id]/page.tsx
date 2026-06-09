@@ -184,9 +184,11 @@ export default function InstrumentDetailPage() {
     const current = dimensions[idx]
     const swap = dimensions[swapIdx]
 
-    // Intercambiar display_order
-    await supabase.from('dimensions').update({ display_order: swap.display_order }).eq('id', current.id)
+    // Usar valor temporal para evitar conflicto
+    const tempOrder = -999
+    await supabase.from('dimensions').update({ display_order: tempOrder }).eq('id', current.id)
     await supabase.from('dimensions').update({ display_order: current.display_order }).eq('id', swap.id)
+    await supabase.from('dimensions').update({ display_order: swap.display_order }).eq('id', current.id)
 
     if (currentVersion) await loadDimensions(currentVersion.id)
   }
@@ -202,9 +204,11 @@ export default function InstrumentDetailPage() {
     const current = dim.questions[idx]
     const swap = dim.questions[swapIdx]
 
-    // Intercambiar display_order
-    await supabase.from('questions').update({ display_order: swap.display_order }).eq('id', current.id)
+    // Usar valor temporal para evitar conflicto de constraint
+    const tempOrder = -999
+    await supabase.from('questions').update({ display_order: tempOrder }).eq('id', current.id)
     await supabase.from('questions').update({ display_order: current.display_order }).eq('id', swap.id)
+    await supabase.from('questions').update({ display_order: swap.display_order }).eq('id', current.id)
 
     if (currentVersion) await loadDimensions(currentVersion.id)
   }
