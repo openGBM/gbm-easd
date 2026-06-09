@@ -1,27 +1,42 @@
 'use client'
 
-import { getDimensionMaturityLevel, getMaturityLevel } from '@/types/database'
+import { getDimensionMaturityLevel, getMaturityLevel, MaturityLevel } from '@/types/database'
 
 interface ResultsTableProps {
   data: { dimension: string; value: number; questionCount?: number }[]
   /** 'sum' = valor es suma total de la dimensión; 'average' = valor es promedio 1-5 */
   mode?: 'sum' | 'average'
+  /** Niveles de madurez personalizados (si no se pasan, usa tercios automáticos) */
+  maturityLevels?: MaturityLevel[] | null
 }
 
-export default function ResultsTable({ data, mode = 'sum' }: ResultsTableProps) {
+export default function ResultsTable({ data, mode = 'sum', maturityLevels }: ResultsTableProps) {
+
+  function getCustomLevel(avg: number): { level: string; color: string } {
+    if (maturityLevels && maturityLevels.length > 0) {
+      // Buscar el nivel que contiene este promedio
+      const sorted = [...maturityLevels].sort((a, b) => a.minAverage - b.minAverage)
+      for (const lvl of sorted) {
+        if (avg >= lvl.minAverage && avg <= lvl.maxAverage) {
+          return { level: lvl.label, color: lvl.color }
+        }
+      }
+      // Si no cae en ningún rango, usar el último
+      const last = sorted[sorted.length - 1]
+      return { level: last.label, color: last.color }
+    }
+    // Default: tercios
+    if (avg < 2.4) return { level: 'Naciente', color: '#EF4444' }
+    if (avg < 3.7) return { level: 'Base', color: '#F59E0B' }
+    return { level: 'Clase Mundial', color: '#10B981' }
+  }
   if (mode === 'average') {
     // Modo promedio: value está entre 1-5, calcular nivel basado en promedio
     const avgGlobal = data.length > 0
       ? Math.round((data.reduce((sum, item) => sum + item.value, 0) / data.length) * 10) / 10
       : 0
 
-    function getAverageLevel(avg: number): { level: string; color: string } {
-      if (avg < 2.4) return { level: 'Naciente', color: '#EF4444' }
-      if (avg < 3.7) return { level: 'Base', color: '#F59E0B' }
-      return { level: 'Clase Mundial', color: '#10B981' }
-    }
-
-    const globalLevel = getAverageLevel(avgGlobal)
+    const globalLevel = getCustomLevel(avgGlobal)
 
     return (
       <div>
@@ -53,7 +68,7 @@ export default function ResultsTable({ data, mode = 'sum' }: ResultsTableProps) 
           </thead>
           <tbody>
             {data.map((item, index) => {
-              const dimLevel = getAverageLevel(item.value)
+              const dimLevel = getCustomLevel(item.value)
               return (
                 <tr key={index} className="hover:bg-gray-50">
                   <td className="px-3 py-2 border-b text-gray-800">
@@ -79,10 +94,20 @@ export default function ResultsTable({ data, mode = 'sum' }: ResultsTableProps) 
         {/* Leyenda */}
         <div className="mt-4 p-3 bg-gray-50 rounded-lg">
           <p className="text-xs font-medium text-gray-700 mb-1">Clave de Evaluación (promedio 1-5):</p>
-          <div className="flex gap-3 text-xs">
-            <span className="text-red-500">● 1.0–2.3: Naciente</span>
-            <span className="text-yellow-500">● 2.4–3.6: Base</span>
-            <span className="text-green-500">● 3.7–5.0: Clase Mundial</span>
+          <div className="flex flex-wrap gap-3 text-xs">
+            {maturityLevels && maturityLevels.length > 0 ? (
+              [...maturityLevels].sort((a, b) => a.minAverage - b.minAverage).map(lvl => (
+                <span key={lvl.label} style={{ color: lvl.color }}>
+                  ● {lvl.minAverage}–{lvl.maxAverage}: {lvl.label}
+                </span>
+              ))
+            ) : (
+              <>
+                <span className="text-red-500">● 1.0–2.3: Naciente</span>
+                <span className="text-yellow-500">● 2.4–3.6: Base</span>
+                <span className="text-green-500">● 3.7–5.0: Clase Mundial</span>
+              </>
+            )}
           </div>
         </div>
       </div>

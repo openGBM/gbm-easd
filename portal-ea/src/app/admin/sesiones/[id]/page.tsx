@@ -30,6 +30,7 @@ export default function SessionDetailPage() {
   const [generatingAnalysis, setGeneratingAnalysis] = useState(false)
   const [analysisError, setAnalysisError] = useState('')
   const [instrumentInfo, setInstrumentInfo] = useState<{ name: string; versionTag: string } | null>(null)
+  const [maturityLevels, setMaturityLevels] = useState<any[] | null>(null)
 
   useEffect(() => {
     checkAuthAndLoad()
@@ -47,7 +48,7 @@ export default function SessionDetailPage() {
   async function loadSession() {
     const { data: sessionData } = await supabase
       .from('sessions')
-      .select('*, instrument_versions(version_tag, instruments(name))')
+      .select('*, instrument_versions(version_tag, maturity_levels, instruments(name))')
       .eq('id', sessionId)
       .single()
 
@@ -59,6 +60,9 @@ export default function SessionDetailPage() {
           name: (sessionData.instrument_versions as any).instruments.name,
           versionTag: (sessionData.instrument_versions as any).version_tag,
         })
+        if ((sessionData.instrument_versions as any).maturity_levels) {
+          setMaturityLevels((sessionData.instrument_versions as any).maturity_levels)
+        }
       }
     }
 
@@ -561,7 +565,7 @@ export default function SessionDetailPage() {
               </div>
               <div className="bg-white rounded-xl shadow-sm border p-6">
                 <h2 className="text-lg font-bold mb-4 text-center">Resumen</h2>
-                <ResultsTable data={chartData} mode="average" />
+                <ResultsTable data={chartData} mode="average" maturityLevels={maturityLevels} />
               </div>
             </div>
           ) : (

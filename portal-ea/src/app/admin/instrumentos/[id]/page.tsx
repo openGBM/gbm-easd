@@ -160,6 +160,28 @@ export default function InstrumentDetailPage() {
         wsScale.addRow({ value: s.value, label: s.label, description: s.description || '' })
       })
 
+    // Hoja 3: Niveles de Madurez
+    const wsLevels = wb.addWorksheet('Niveles')
+    wsLevels.columns = [
+      { header: 'Nivel', key: 'label', width: 20 },
+      { header: 'Color', key: 'color', width: 10 },
+      { header: 'Promedio Mínimo', key: 'minAverage', width: 18 },
+      { header: 'Promedio Máximo', key: 'maxAverage', width: 18 },
+    ]
+    wsLevels.getRow(1).font = { bold: true }
+
+    const defaultLevels = [
+      { label: 'Naciente', color: '#EF4444', minAverage: 1.0, maxAverage: 2.3 },
+      { label: 'Base', color: '#F59E0B', minAverage: 2.4, maxAverage: 3.6 },
+      { label: 'Clase Mundial', color: '#10B981', minAverage: 3.7, maxAverage: 5.0 },
+    ]
+    const levelsData = (currentVersion.maturity_levels as any[]) || defaultLevels
+    levelsData
+      .sort((a: any, b: any) => a.minAverage - b.minAverage)
+      .forEach((lvl: any) => {
+        wsLevels.addRow({ label: lvl.label, color: lvl.color, minAverage: lvl.minAverage, maxAverage: lvl.maxAverage })
+      })
+
     // Descargar
     const buffer = await wb.xlsx.writeBuffer()
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
@@ -315,6 +337,25 @@ export default function InstrumentDetailPage() {
         if (scaleLabels.length === 0) scaleLabels = null
       }
 
+      // Parsear hoja de Niveles de Madurez (opcional)
+      let maturityLevels: { label: string; color: string; minAverage: number; maxAverage: number }[] | null = null
+      const wsLevels = wb.getWorksheet('Niveles')
+        || wb.worksheets.find(ws => ws.name.toLowerCase().includes('nivel'))
+      if (wsLevels) {
+        maturityLevels = []
+        wsLevels.eachRow((row, rowNumber) => {
+          if (rowNumber === 1) return
+          const label = row.getCell(1).value?.toString().trim() || ''
+          const color = row.getCell(2).value?.toString().trim() || ''
+          const minAvg = Number(row.getCell(3).value) || 0
+          const maxAvg = Number(row.getCell(4).value) || 0
+          if (label && maxAvg > 0) {
+            maturityLevels!.push({ label, color, minAverage: minAvg, maxAverage: maxAvg })
+          }
+        })
+        if (maturityLevels.length === 0) maturityLevels = null
+      }
+
       // Determinar si crear nueva versión o editar la actual
       let targetVersionId = currentVersion.id
 
@@ -339,6 +380,7 @@ export default function InstrumentDetailPage() {
             is_current: true,
             notes: `Importado desde Excel (${file.name})`,
             scale_labels: scaleLabels,
+            maturity_levels: maturityLevels,
           })
           .select('id')
           .single()
@@ -360,7 +402,7 @@ export default function InstrumentDetailPage() {
         if (scaleLabels !== undefined) {
           await supabase
             .from('instrument_versions')
-            .update({ scale_labels: scaleLabels })
+            .update({ scale_labels: scaleLabels, maturity_levels: maturityLevels })
             .eq('id', currentVersion.id)
         }
       }
