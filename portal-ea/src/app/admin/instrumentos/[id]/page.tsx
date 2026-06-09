@@ -165,6 +165,50 @@ export default function InstrumentDetailPage() {
     if (currentVersion) await loadDimensions(currentVersion.id)
   }
 
+  async function updateDimensionName(dimId: string, newName: string) {
+    if (!newName.trim()) return
+    await supabase.from('dimensions').update({ name: newName.trim() }).eq('id', dimId)
+  }
+
+  async function updateQuestionText(questionId: string, newText: string) {
+    if (!newText.trim()) return
+    await supabase.from('questions').update({ text: newText.trim() }).eq('id', questionId)
+  }
+
+  async function moveDimension(dimId: string, direction: 'up' | 'down') {
+    const idx = dimensions.findIndex(d => d.id === dimId)
+    if (idx < 0) return
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+    if (swapIdx < 0 || swapIdx >= dimensions.length) return
+
+    const current = dimensions[idx]
+    const swap = dimensions[swapIdx]
+
+    // Intercambiar display_order
+    await supabase.from('dimensions').update({ display_order: swap.display_order }).eq('id', current.id)
+    await supabase.from('dimensions').update({ display_order: current.display_order }).eq('id', swap.id)
+
+    if (currentVersion) await loadDimensions(currentVersion.id)
+  }
+
+  async function moveQuestion(questionId: string, dimId: string, direction: 'up' | 'down') {
+    const dim = dimensions.find(d => d.id === dimId)
+    if (!dim) return
+    const idx = dim.questions.findIndex(q => q.id === questionId)
+    if (idx < 0) return
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+    if (swapIdx < 0 || swapIdx >= dim.questions.length) return
+
+    const current = dim.questions[idx]
+    const swap = dim.questions[swapIdx]
+
+    // Intercambiar display_order
+    await supabase.from('questions').update({ display_order: swap.display_order }).eq('id', current.id)
+    await supabase.from('questions').update({ display_order: current.display_order }).eq('id', swap.id)
+
+    if (currentVersion) await loadDimensions(currentVersion.id)
+  }
+
   async function saveScaleLabels() {
     if (!currentVersion) return
     const labels: { value: number; label: string; description?: string }[] = []
@@ -772,17 +816,37 @@ export default function InstrumentDetailPage() {
           <p className="text-gray-400 text-sm">Sin dimensiones. Importa un Excel o agrega manualmente.</p>
         ) : (
           <div className="space-y-4">
-            {dimensions.map(dim => (
+            {dimensions.map((dim, dimIdx) => (
               <div key={dim.id} className="border rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
                   {dim.color && (
                     <span className="w-3 h-3 rounded-full" style={{ backgroundColor: dim.color }}></span>
                   )}
-                  <h3 className="font-bold text-gray-900">{dim.display_order}. {dim.name}</h3>
-                  <span className="text-xs text-gray-400">{dim.questions.length} preguntas</span>
+                  <span className="text-xs text-gray-400 font-mono w-5">{dim.display_order}.</span>
+                  <input
+                    type="text"
+                    defaultValue={dim.name}
+                    onBlur={e => updateDimensionName(dim.id, e.target.value)}
+                    className="font-bold text-gray-900 flex-1 px-2 py-0.5 border border-transparent hover:border-gray-300 focus:border-blue-400 rounded text-sm focus:outline-none"
+                  />
+                  <span className="text-xs text-gray-400">{dim.questions.length} preg.</span>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => moveDimension(dim.id, 'up')}
+                      disabled={dimIdx === 0}
+                      className="text-xs text-gray-400 hover:text-gray-700 disabled:opacity-30"
+                      title="Subir"
+                    >▲</button>
+                    <button
+                      onClick={() => moveDimension(dim.id, 'down')}
+                      disabled={dimIdx === dimensions.length - 1}
+                      className="text-xs text-gray-400 hover:text-gray-700 disabled:opacity-30"
+                      title="Bajar"
+                    >▼</button>
+                  </div>
                   <button
                     onClick={() => deleteDimension(dim.id)}
-                    className="ml-auto text-xs text-red-400 hover:text-red-600"
+                    className="text-xs text-red-400 hover:text-red-600"
                     title="Eliminar dimensión"
                   >
                     ✕
@@ -792,17 +856,34 @@ export default function InstrumentDetailPage() {
                   <p className="text-sm text-gray-500 mb-2">{dim.description}</p>
                 )}
                 <ul className="space-y-1 pl-4">
-                  {dim.questions.map(q => (
+                  {dim.questions.map((q, qIdx) => (
                     <li key={q.id} className="text-sm text-gray-700 flex items-center gap-1 group">
-                      <span className="text-gray-400 mr-1">{q.display_order}.</span>
-                      <span className="flex-1">{q.text}</span>
-                      <button
-                        onClick={() => deleteQuestion(q.id, dim.id)}
-                        className="opacity-0 group-hover:opacity-100 text-xs text-red-400 hover:text-red-600 transition-opacity"
-                        title="Eliminar pregunta"
-                      >
-                        ✕
-                      </button>
+                      <span className="text-gray-400 mr-1 font-mono text-xs w-4">{q.display_order}.</span>
+                      <input
+                        type="text"
+                        defaultValue={q.text}
+                        onBlur={e => updateQuestionText(q.id, e.target.value)}
+                        className="flex-1 px-2 py-0.5 border border-transparent hover:border-gray-300 focus:border-blue-400 rounded text-sm focus:outline-none"
+                      />
+                      <div className="opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
+                        <button
+                          onClick={() => moveQuestion(q.id, dim.id, 'up')}
+                          disabled={qIdx === 0}
+                          className="text-xs text-gray-400 hover:text-gray-700 disabled:opacity-30"
+                          title="Subir"
+                        >▲</button>
+                        <button
+                          onClick={() => moveQuestion(q.id, dim.id, 'down')}
+                          disabled={qIdx === dim.questions.length - 1}
+                          className="text-xs text-gray-400 hover:text-gray-700 disabled:opacity-30"
+                          title="Bajar"
+                        >▼</button>
+                        <button
+                          onClick={() => deleteQuestion(q.id, dim.id)}
+                          className="text-xs text-red-400 hover:text-red-600"
+                          title="Eliminar"
+                        >✕</button>
+                      </div>
                     </li>
                   ))}
                 </ul>
