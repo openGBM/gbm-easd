@@ -105,6 +105,97 @@ export default function InstrumentosPage() {
     await loadInstruments()
   }
 
+  async function duplicateInstrument(inst: InstrumentWithVersion & { session_count: number }) {
+    const newName = prompt('Nombre del instrumento duplicado:', `${inst.name} (copia)`)
+    if (!newName) return
+
+    // Crear nuevo instrumento
+    const { data: newInst, error } = await supabase
+      .from('instruments')
+      .insert({
+        name: newName,
+        description: inst.description,
+        ai_expertise_prompt: inst.ai_expertise_prompt,
+      })
+      .select('id')
+      .single()
+
+    if (error || !newInst) {
+      alert('Error al duplicar el instrumento.')
+      return
+    }
+
+    // Crear versión 1 con los mismos datos que la versión current del original
+    const versionData: any = {
+      instrument_id: newInst.id,
+      version_number: 1,
+      version_tag: '1',
+      is_current: true,
+    }
+
+    if (inst.current_version) {
+      // Copiar scale_labels y maturity_levels de la versión original
+      const { data: origVersion } = await supabase
+        .from('instrument_versions')
+        .select('scale_labels, maturity_levels')
+        .eq('id', inst.current_version.id)
+        .single()
+
+      if (origVersion) {
+        versionData.scale_labels = origVersion.scale_labels
+        versionData.maturity_levels = origVersion.maturity_levels
+      }
+    }
+
+    const { data: newVersion } = await supabase
+      .from('instrument_versions')
+      .insert(versionData)
+      .select('id')
+      .single()
+
+    if (!newVersion) {
+      alert('Error al crear versión del instrumento duplicado.')
+      return
+    }
+
+    // Copiar dimensiones y preguntas de la versión current del original
+    if (inst.current_version) {
+      const { data: origDims } = await supabase
+        .from('dimensions')
+        .select('*, questions(*)')
+        .eq('instrument_version_id', inst.current_version.id)
+        .order('display_order')
+
+      if (origDims) {
+        for (const dim of origDims) {
+          const { data: newDim } = await supabase
+            .from('dimensions')
+            .insert({
+              name: dim.name,
+              description: dim.description,
+              color: dim.color,
+              display_order: dim.display_order,
+              instrument_version_id: newVersion.id,
+            })
+            .select('id')
+            .single()
+
+          if (newDim && dim.questions) {
+            const questions = (dim.questions as any[]).map(q => ({
+              dimension_id: newDim.id,
+              text: q.text,
+              display_order: q.display_order,
+            }))
+            await supabase.from('questions').insert(questions)
+          }
+        }
+      }
+    }
+
+    alert(`Instrumento "${newName}" duplicado exitosamente.`)
+    await loadInstruments()
+  }
+
   if (loading) {
     return (
       <div className="text-center py-12">
@@ -197,6 +288,12 @@ export default function InstrumentosPage() {
                   >
                     Gestionar
                   </Link>
+                  <button
+                    onClick={() => duplicateInstrument(inst)}
+                    className="px-4 py-1.5 rounded-lg text-sm font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
+                  >
+                    Duplicar
+                  </button>
                   <button
                     onClick={() => toggleInstrument(inst.id, inst.is_active)}
                     className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${

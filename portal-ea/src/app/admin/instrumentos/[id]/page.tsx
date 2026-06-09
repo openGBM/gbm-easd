@@ -105,6 +105,58 @@ export default function InstrumentDetailPage() {
     }
   }
 
+  // ===================== EDITOR VISUAL =====================
+  async function addDimension() {
+    if (!currentVersion) return
+    const name = prompt('Nombre de la nueva dimensión:')
+    if (!name) return
+
+    const newOrder = dimensions.length > 0 ? Math.max(...dimensions.map(d => d.display_order)) + 1 : 1
+
+    const { error } = await supabase
+      .from('dimensions')
+      .insert({
+        name: name.trim(),
+        display_order: newOrder,
+        instrument_version_id: currentVersion.id,
+      })
+
+    if (error) {
+      alert('Error al agregar dimensión.')
+      return
+    }
+    await loadDimensions(currentVersion.id)
+  }
+
+  async function deleteDimension(dimId: string) {
+    if (!confirm('¿Eliminar esta dimensión y todas sus preguntas?')) return
+
+    await supabase.from('questions').delete().eq('dimension_id', dimId)
+    await supabase.from('dimensions').delete().eq('id', dimId)
+
+    if (currentVersion) await loadDimensions(currentVersion.id)
+  }
+
+  async function addQuestion(dimId: string, order: number) {
+    const text = prompt('Texto de la nueva pregunta:')
+    if (!text) return
+
+    const { error } = await supabase
+      .from('questions')
+      .insert({ dimension_id: dimId, text: text.trim(), display_order: order })
+
+    if (error) {
+      alert('Error al agregar pregunta.')
+      return
+    }
+    if (currentVersion) await loadDimensions(currentVersion.id)
+  }
+
+  async function deleteQuestion(questionId: string, dimId: string) {
+    await supabase.from('questions').delete().eq('id', questionId)
+    if (currentVersion) await loadDimensions(currentVersion.id)
+  }
+
   // ===================== EXPORTAR A EXCEL =====================
   async function exportToExcel() {
     if (!currentVersion || dimensions.length === 0) return
@@ -628,9 +680,9 @@ export default function InstrumentDetailPage() {
           </label>
         </div>
 
-        {/* Vista previa del banco */}
+        {/* Vista previa del banco con edición inline */}
         {dimensions.length === 0 ? (
-          <p className="text-gray-400 text-sm">Sin dimensiones. Importa un Excel para configurar el banco.</p>
+          <p className="text-gray-400 text-sm">Sin dimensiones. Importa un Excel o agrega manualmente.</p>
         ) : (
           <div className="space-y-4">
             {dimensions.map(dim => (
@@ -641,22 +693,50 @@ export default function InstrumentDetailPage() {
                   )}
                   <h3 className="font-bold text-gray-900">{dim.display_order}. {dim.name}</h3>
                   <span className="text-xs text-gray-400">{dim.questions.length} preguntas</span>
+                  <button
+                    onClick={() => deleteDimension(dim.id)}
+                    className="ml-auto text-xs text-red-400 hover:text-red-600"
+                    title="Eliminar dimensión"
+                  >
+                    ✕
+                  </button>
                 </div>
                 {dim.description && (
                   <p className="text-sm text-gray-500 mb-2">{dim.description}</p>
                 )}
                 <ul className="space-y-1 pl-4">
                   {dim.questions.map(q => (
-                    <li key={q.id} className="text-sm text-gray-700">
+                    <li key={q.id} className="text-sm text-gray-700 flex items-center gap-1 group">
                       <span className="text-gray-400 mr-1">{q.display_order}.</span>
-                      {q.text}
+                      <span className="flex-1">{q.text}</span>
+                      <button
+                        onClick={() => deleteQuestion(q.id, dim.id)}
+                        className="opacity-0 group-hover:opacity-100 text-xs text-red-400 hover:text-red-600 transition-opacity"
+                        title="Eliminar pregunta"
+                      >
+                        ✕
+                      </button>
                     </li>
                   ))}
                 </ul>
+                <button
+                  onClick={() => addQuestion(dim.id, dim.questions.length + 1)}
+                  className="mt-2 text-xs text-blue-500 hover:text-blue-700"
+                >
+                  + Agregar pregunta
+                </button>
               </div>
             ))}
           </div>
         )}
+
+        {/* Agregar nueva dimensión */}
+        <button
+          onClick={addDimension}
+          className="mt-4 px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
+        >
+          + Agregar Dimensión
+        </button>
       </div>
 
       {/* Historial de versiones */}
