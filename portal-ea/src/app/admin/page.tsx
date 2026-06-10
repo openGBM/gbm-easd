@@ -190,7 +190,7 @@ export default function AdminDashboard() {
 
   async function deleteSession(id: string, name: string) {
     const confirmed = confirm(
-      `¿Eliminar la sesión "${name}" y todos sus encuestados y respuestas?\n\nEsta acción no se puede deshacer.`
+      `⚠️ ¿Eliminar la sesión "${name}" y todos sus encuestados y respuestas?\n\nEsta acción no se puede deshacer. Antes de eliminar una sesión asegúrese de haber exportado los datos a Excel y generado el análisis IA si lo requiere.`
     )
     if (!confirmed) return
 

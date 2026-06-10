@@ -141,7 +141,7 @@ export default function SessionDetailPage() {
   }
 
   async function deleteRespondent(respondentId: string) {
-    if (!confirm('¿Eliminar este encuestado y todas sus respuestas?')) return
+    if (!confirm('⚠️ ¿Eliminar este encuestado y todas sus respuestas?\n\nEsta acción no se puede deshacer. Las respuestas de este encuestado se perderán permanentemente.')) return
 
     // Primero eliminar respuestas
     await supabase.from('responses').delete().eq('respondent_id', respondentId)
@@ -158,7 +158,7 @@ export default function SessionDetailPage() {
   async function deleteSession() {
     if (!session) return
     const confirmed = confirm(
-      `¿Eliminar la sesión "${session.name}" y todos sus encuestados y respuestas?\n\nEsta acción no se puede deshacer.`
+      `⚠️ ¿Eliminar la sesión "${session.name}" y todos sus encuestados y respuestas?\n\nEsta acción no se puede deshacer. Antes de eliminar una sesión asegúrese de haber exportado los datos a Excel y generado el análisis IA si lo requiere.`
     )
     if (!confirmed) return
 

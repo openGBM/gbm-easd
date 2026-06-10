@@ -137,7 +137,7 @@ export default function InstrumentDetailPage() {
   }
 
   async function deleteDimension(dimId: string) {
-    if (!confirm('¿Eliminar esta dimensión y todas sus preguntas?')) return
+    if (!confirm('⚠️ ¿Eliminar esta dimensión y todas sus preguntas?\n\nEsta acción no se puede deshacer. Todas las preguntas asociadas se perderán permanentemente.')) return
 
     await supabase.from('questions').delete().eq('dimension_id', dimId)
     await supabase.from('dimensions').delete().eq('id', dimId)
