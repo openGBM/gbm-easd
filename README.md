@@ -66,6 +66,8 @@ npm install
 
 # Configurar variables de entorno
 # Crear .env.local con las credenciales
+cp .env.local.example .env.local
+# Editar con credenciales de Supabase local
 
 # Iniciar servidor de desarrollo
 npm run dev
@@ -95,7 +97,7 @@ gbm-easd/
 │       └── flags.ts         # Feature flags
 ├── supabase/                # Configuración Supabase + Migraciones
 │   ├── config.toml
-│   └── migrations/          # 7 migraciones SQL
+│   └── migrations/          # 6 migraciones SQL
 ├── docs/                    # Documentación
 │   ├── vision.md            # Visión del producto
 │   ├── manual-administrador.md  # Manual de usuario
