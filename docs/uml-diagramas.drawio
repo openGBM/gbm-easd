@@ -322,4 +322,166 @@
       </root>
     </mxGraphModel>
   </diagram>
+  <diagram name="Diagrama de Secuencia - Admin" id="uml-sequence-admin">
+    <mxGraphModel dx="1300" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title-adm" value="Diagrama de Secuencia — Flujo del Administrador" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#1a1a2e;" vertex="1" parent="1">
+          <mxGeometry x="300" y="10" width="500" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Actors -->
+        <mxCell id="adm-user" value="Admin" style="shape=mxgraph.basic.person;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="50" width="50" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="adm-browser" value="Browser&#xa;(Client)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="220" y="55" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="adm-layout" value="AdminLayout&#xa;(Server)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="420" y="55" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="adm-supa" value="Supabase&#xa;(Auth + DB)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="630" y="45" width="90" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="adm-ia" value="IA Provider&#xa;(Gemini/Groq)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="830" y="55" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Lifelines -->
+        <mxCell id="al1" value="" style="endArrow=none;html=1;dashed=1;strokeColor=#999999;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="85" y="105" as="sourcePoint" /><mxPoint x="85" y="850" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="al2" value="" style="endArrow=none;html=1;dashed=1;strokeColor=#999999;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="265" y="100" as="sourcePoint" /><mxPoint x="265" y="850" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="al3" value="" style="endArrow=none;html=1;dashed=1;strokeColor=#999999;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="470" y="100" as="sourcePoint" /><mxPoint x="470" y="850" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="al4" value="" style="endArrow=none;html=1;dashed=1;strokeColor=#999999;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="675" y="105" as="sourcePoint" /><mxPoint x="675" y="850" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="al5" value="" style="endArrow=none;html=1;dashed=1;strokeColor=#999999;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="880" y="100" as="sourcePoint" /><mxPoint x="880" y="850" as="targetPoint" /></mxGeometry>
+        </mxCell>
+
+        <!-- Login -->
+        <mxCell id="am1" value="POST /admin/login (email, password)" style="endArrow=classic;html=1;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="85" y="130" as="sourcePoint" /><mxPoint x="265" y="130" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="am2" value="signInWithPassword()" style="endArrow=classic;html=1;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="265" y="155" as="sourcePoint" /><mxPoint x="675" y="155" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="am3" value="{ session, user }" style="endArrow=classic;html=1;strokeWidth=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="675" y="180" as="sourcePoint" /><mxPoint x="265" y="180" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="am4" value="redirect → /admin" style="endArrow=classic;html=1;strokeWidth=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="265" y="200" as="sourcePoint" /><mxPoint x="85" y="200" as="targetPoint" /></mxGeometry>
+        </mxCell>
+
+        <!-- Dashboard Load -->
+        <mxCell id="am5" value="GET /admin" style="endArrow=classic;html=1;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="85" y="235" as="sourcePoint" /><mxPoint x="470" y="235" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="am6" value="getUser() → verificar email en allowedAdmins" style="endArrow=classic;html=1;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="470" y="260" as="sourcePoint" /><mxPoint x="675" y="260" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="am7" value="{ user }" style="endArrow=classic;html=1;strokeWidth=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="675" y="280" as="sourcePoint" /><mxPoint x="470" y="280" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="am8" value="Dashboard HTML + client hydrate" style="endArrow=classic;html=1;strokeWidth=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="470" y="300" as="sourcePoint" /><mxPoint x="85" y="300" as="targetPoint" /></mxGeometry>
+        </mxCell>
+
+        <!-- Load Sessions + Stats -->
+        <mxCell id="am9" value="loadSessions() + loadStats()" style="endArrow=classic;html=1;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="265" y="330" as="sourcePoint" /><mxPoint x="675" y="330" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="am10" value="sessions[], counts, respondents" style="endArrow=classic;html=1;strokeWidth=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="675" y="355" as="sourcePoint" /><mxPoint x="265" y="355" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="am11" value="Render: métricas + lista sesiones" style="endArrow=classic;html=1;strokeWidth=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="265" y="375" as="sourcePoint" /><mxPoint x="85" y="375" as="targetPoint" /></mxGeometry>
+        </mxCell>
+
+        <!-- Create Session -->
+        <mxCell id="box-create" value="" style="rounded=0;html=1;fillColor=none;strokeColor=#6c8ebf;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="400" width="650" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="box-create-label" value="opt [Crear Sesión]" style="text;html=1;strokeColor=none;fillColor=#dae8fc;align=left;fontSize=9;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="65" y="402" width="100" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="am12" value="createSession(name, instrumentVersionId)" style="endArrow=classic;html=1;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="85" y="435" as="sourcePoint" /><mxPoint x="265" y="435" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="am13" value="INSERT sessions" style="endArrow=classic;html=1;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="265" y="455" as="sourcePoint" /><mxPoint x="675" y="455" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="am14" value="ok" style="endArrow=classic;html=1;strokeWidth=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="675" y="470" as="sourcePoint" /><mxPoint x="265" y="470" as="targetPoint" /></mxGeometry>
+        </mxCell>
+
+        <!-- View Session Detail -->
+        <mxCell id="box-detail" value="" style="rounded=0;html=1;fillColor=none;strokeColor=#6c8ebf;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="500" width="650" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="box-detail-label" value="opt [Ver Detalle Sesión]" style="text;html=1;strokeColor=none;fillColor=#dae8fc;align=left;fontSize=9;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="65" y="502" width="130" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="am15" value="GET /admin/sesiones/{id}" style="endArrow=classic;html=1;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="85" y="530" as="sourcePoint" /><mxPoint x="265" y="530" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="am16" value="SELECT session + respondents + responses" style="endArrow=classic;html=1;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="265" y="550" as="sourcePoint" /><mxPoint x="675" y="550" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="am17" value="data (radar + tabla + encuestados)" style="endArrow=classic;html=1;strokeWidth=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="675" y="570" as="sourcePoint" /><mxPoint x="85" y="570" as="targetPoint" /></mxGeometry>
+        </mxCell>
+
+        <!-- Generate AI Analysis -->
+        <mxCell id="box-ia" value="" style="rounded=0;html=1;fillColor=none;strokeColor=#d79b00;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="600" width="860" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="box-ia-label" value="opt [Generar Análisis IA]" style="text;html=1;strokeColor=none;fillColor=#ffe6cc;align=left;fontSize=9;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="65" y="602" width="130" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="am18" value="POST /api/analysis (sessionId, scores)" style="endArrow=classic;html=1;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="85" y="635" as="sourcePoint" /><mxPoint x="470" y="635" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="am19" value="Cargar expertise + scale_labels del instrumento" style="endArrow=classic;html=1;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="470" y="655" as="sourcePoint" /><mxPoint x="675" y="655" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="am20" value="generateContent(prompt dinámico)" style="endArrow=classic;html=1;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="470" y="675" as="sourcePoint" /><mxPoint x="880" y="675" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="am21" value="{ analysis_text }" style="endArrow=classic;html=1;strokeWidth=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="880" y="690" as="sourcePoint" /><mxPoint x="470" y="690" as="targetPoint" /></mxGeometry>
+        </mxCell>
+
+        <!-- Export Excel -->
+        <mxCell id="box-excel" value="" style="rounded=0;html=1;fillColor=none;strokeColor=#82b366;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="720" width="650" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="box-excel-label" value="opt [Exportar Excel]" style="text;html=1;strokeColor=none;fillColor=#d5e8d4;align=left;fontSize=9;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="65" y="722" width="110" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="am22" value="Click Exportar → SELECT all responses" style="endArrow=classic;html=1;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="265" y="750" as="sourcePoint" /><mxPoint x="675" y="750" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="am23" value="Generate .xlsx (ExcelJS) → Download" style="endArrow=classic;html=1;strokeWidth=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="265" y="770" as="sourcePoint" /><mxPoint x="85" y="770" as="targetPoint" /></mxGeometry>
+        </mxCell>
+
+        <!-- Instrument Management -->
+        <mxCell id="box-inst" value="" style="rounded=0;html=1;fillColor=none;strokeColor=#9673a6;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="800" width="650" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="box-inst-label" value="opt [Gestionar Instrumentos — CRUD + Import/Export + Editor Visual]" style="text;html=1;strokeColor=none;fillColor=#e1d5e7;align=left;fontSize=9;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="65" y="805" width="380" height="16" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
 </mxfile>
