@@ -91,14 +91,21 @@ export interface Response {
   created_at: string
 }
 
-// Escala de acuerdo
-export const AGREEMENT_SCALE = [
+/**
+ * Escala de acuerdo por defecto.
+ * Se usa como fallback cuando un instrumento NO tiene scale_labels configurados.
+ * Los instrumentos con scale_labels personalizados usan sus propias etiquetas.
+ */
+export const DEFAULT_SCALE_LABELS: ScaleLabel[] = [
   { value: 5, label: 'Totalmente de acuerdo' },
   { value: 4, label: 'De acuerdo' },
   { value: 3, label: 'Depende / Neutral' },
   { value: 2, label: 'En desacuerdo' },
   { value: 1, label: 'Totalmente en desacuerdo' },
-] as const
+]
+
+/** @deprecated Usar DEFAULT_SCALE_LABELS. Mantenido por retrocompatibilidad. */
+export const AGREEMENT_SCALE = DEFAULT_SCALE_LABELS
 
 // Nivel de madurez por dimensión (dinámico según cantidad de preguntas)
 export function getDimensionMaturityLevel(total: number, questionCount: number = 6): { level: string; color: string } {

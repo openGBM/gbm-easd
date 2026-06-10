@@ -69,11 +69,11 @@ El portal es una aplicación funcional en producción (Vercel + Supabase Cloud) 
 
 ### Deuda Técnica Identificada
 
-1. **Import Excel sin transacción**: si falla a mitad de la inserción, queda en estado parcial
-2. **`AGREEMENT_SCALE` hardcodeada**: sigue existiendo como constante aunque ya no es la única escala
-3. **`flags.ts` no se usa en runtime**: el flag se lee de env var directamente en los componentes, no del SDK
-4. **Middleware eliminado**: no hay protección server-side de rutas admin (solo client-side redirect)
-5. **Console.error en producción**: errores se logean pero no se reportan a un servicio de monitoreo
+1. ~~**Import Excel sin transacción**~~ → ✅ Resuelto: rollback manual si falla a mitad de inserción (revierte dimensiones/preguntas ya creadas)
+2. ~~**`AGREEMENT_SCALE` hardcodeada**~~ → ✅ Resuelto: renombrada a `DEFAULT_SCALE_LABELS` con deprecation notice, usada solo como fallback
+3. ~~**`flags.ts` no se usa en runtime**~~ → ✅ Resuelto: `isMultiInstrumentEnabled()` es la fuente de verdad usada por AdminLayout, AdminNav y AdminDashboard
+4. **Middleware eliminado**: no hay protección server-side de rutas admin (solo client-side redirect) — Evaluado como nice-to-have, no necesario con RLS + AdminLayout
+5. ~~**Console.error en producción**~~ → ✅ Resuelto: logger centralizado (`lib/logger.ts`) listo para conectar a Sentry/LogRocket
 
 ---
 
