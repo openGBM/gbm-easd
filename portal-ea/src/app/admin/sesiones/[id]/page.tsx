@@ -8,6 +8,7 @@ import RadarChart from '@/components/RadarChart'
 import ResultsTable from '@/components/ResultsTable'
 import InstrumentBadge from '@/components/InstrumentBadge'
 import ConfirmModal from '@/components/ConfirmModal'
+import { showToast } from '@/components/Toast'
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import * as ExcelJS from 'exceljs'
@@ -192,7 +193,7 @@ export default function SessionDetailPage() {
     // Obtener encuestados completados
     const completedRespondents = respondents.filter(r => r.completed)
     if (completedRespondents.length === 0) {
-      alert('No hay encuestados completados para exportar.')
+      showToast('warning', 'No hay encuestados completados para exportar')
       setExporting(false)
       return
     }
@@ -206,7 +207,7 @@ export default function SessionDetailPage() {
       .in('respondent_id', ids)
 
     if (!allResponses || allResponses.length === 0) {
-      alert('No hay respuestas para exportar.')
+      showToast('warning', 'No hay respuestas para exportar')
       setExporting(false)
       return
     }
@@ -595,7 +596,7 @@ export default function SessionDetailPage() {
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(analysisText!)
-                    alert('Análisis copiado al portapapeles')
+                    showToast('success', 'Análisis copiado al portapapeles')
                   }}
                   className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
                 >

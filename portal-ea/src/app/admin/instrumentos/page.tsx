@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { InstrumentWithVersion } from '@/types/database'
+import { showToast } from '@/components/Toast'
+import PromptModal from '@/components/PromptModal'
 import Link from 'next/link'
 
 export default function InstrumentosPage() {
@@ -15,6 +17,7 @@ export default function InstrumentosPage() {
   const [newDescription, setNewDescription] = useState('')
   const [newAiPrompt, setNewAiPrompt] = useState('')
   const [creating, setCreating] = useState(false)
+  const [duplicateModal, setDuplicateModal] = useState<(InstrumentWithVersion & { session_count: number }) | null>(null)
 
   useEffect(() => {
     checkAuth()
@@ -106,8 +109,13 @@ export default function InstrumentosPage() {
   }
 
   async function duplicateInstrument(inst: InstrumentWithVersion & { session_count: number }) {
-    const newName = prompt('Nombre del instrumento duplicado:', `${inst.name} (copia)`)
-    if (!newName) return
+    setDuplicateModal(inst)
+  }
+
+  async function confirmDuplicate(newName: string) {
+    const inst = duplicateModal
+    if (!inst) return
+    setDuplicateModal(null)
 
     // Crear nuevo instrumento
     const { data: newInst, error } = await supabase
@@ -121,7 +129,7 @@ export default function InstrumentosPage() {
       .single()
 
     if (error || !newInst) {
-      alert('Error al duplicar el instrumento.')
+      showToast('error', 'Error al duplicar el instrumento')
       return
     }
 
@@ -154,7 +162,7 @@ export default function InstrumentosPage() {
       .single()
 
     if (!newVersion) {
-      alert('Error al crear versión del instrumento duplicado.')
+      showToast('error', 'Error al crear versión del instrumento duplicado')
       return
     }
 
@@ -192,7 +200,7 @@ export default function InstrumentosPage() {
       }
     }
 
-    alert(`Instrumento "${newName}" duplicado exitosamente.`)
+    showToast('success', `Instrumento "${newName}" duplicado exitosamente`)
     await loadInstruments()
   }
 
@@ -310,6 +318,16 @@ export default function InstrumentosPage() {
           ))}
         </div>
       )}
+
+      {/* Modal para duplicar instrumento */}
+      <PromptModal
+        isOpen={!!duplicateModal}
+        title="Duplicar Instrumento"
+        placeholder="Nombre del instrumento duplicado"
+        defaultValue={duplicateModal ? `${duplicateModal.name} (copia)` : ''}
+        onConfirm={confirmDuplicate}
+        onCancel={() => setDuplicateModal(null)}
+      />
     </div>
   )
 }

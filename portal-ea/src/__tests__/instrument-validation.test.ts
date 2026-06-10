@@ -10,7 +10,7 @@ function validateMaturityLevels(levels: MaturityLevel[]): string[] {
     if (!lvl.label.trim()) errors.push(`Nivel ${idx + 1}: falta nombre.`)
     if (lvl.minAverage >= lvl.maxAverage) errors.push(`"${lvl.label}": mín (${lvl.minAverage}) debe ser menor que máx (${lvl.maxAverage}).`)
     if (lvl.color && !/^#[0-9a-fA-F]{6}$/.test(lvl.color)) errors.push(`"${lvl.label}": color inválido.`)
-    if (idx < sorted.length - 1 && lvl.maxAverage >= sorted[idx + 1].minAverage) {
+    if (idx < sorted.length - 1 && lvl.maxAverage > sorted[idx + 1].minAverage) {
       errors.push(`"${lvl.label}" y "${sorted[idx + 1].label}" se solapan.`)
     }
   })
@@ -84,6 +84,16 @@ describe('Validación de Niveles de Madurez', () => {
     ]
     const errors = validateMaturityLevels(levels)
     expect(errors.some(e => e.includes('se solapan'))).toBe(true)
+  })
+
+  it('acepta niveles contiguos que comparten borde (max == next.min)', () => {
+    const levels: MaturityLevel[] = [
+      { label: 'Bajo', color: '#EF4444', minAverage: 1.0, maxAverage: 2.5 },
+      { label: 'Medio', color: '#F59E0B', minAverage: 2.5, maxAverage: 3.5 },
+      { label: 'Alto', color: '#10B981', minAverage: 3.5, maxAverage: 5.0 },
+    ]
+    const errors = validateMaturityLevels(levels)
+    expect(errors).toEqual([])
   })
 
   it('rechaza si no cubre desde 1.0', () => {
