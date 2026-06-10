@@ -33,10 +33,12 @@ El portal es una aplicación funcional en producción (Vercel + Supabase Cloud) 
 |---------|-------|
 | Páginas/Rutas | 9 (5 públicas + 4 admin) |
 | API Routes | 1 (/api/analysis) |
-| Componentes | 7 |
-| Migraciones SQL | 6 |
+| Componentes | 9 |
+| Migraciones SQL | 7 |
 | Tablas en BD | 8 (sessions, dimensions, questions, respondents, responses, session_analyses, instruments, instrument_versions) |
-| Dependencias producción | ~15 |
+| Dependencias producción | ~18 |
+| Tests unitarios | 26 (Vitest) |
+| Tests E2E | 26 (Playwright — flujo encuesta, admin, concurrencia 10 usuarios) |
 | Vulnerabilidades conocidas | 4 moderadas (postcss en Next.js, uuid en exceljs) |
 
 ---
@@ -164,15 +166,20 @@ El portal es una aplicación funcional en producción (Vercel + Supabase Cloud) 
 ### v2.1 — Editor Visual y UX
 
 **Objetivo**: Reducir fricción operativa del admin  
-**Estimado**: 2-3 semanas
+**Estado**: ✅ Completado
 
-| Tarea | Tipo |
-|-------|------|
-| Editor visual de preguntas (sin depender de Excel) | UX |
-| Duplicar instrumento existente | Productividad |
-| Filtros y búsqueda en listado de sesiones | UX |
-| Error boundaries en páginas admin | UX |
-| Monitoreo de errores (Sentry o similar) | Observabilidad |
+| Tarea | Tipo | Estado |
+|-------|------|--------|
+| Editor visual de preguntas (editar texto, reordenar, agregar/eliminar) | UX | ✅ |
+| Editor visual de escala de valores (1-5) | UX | ✅ |
+| Editor visual de niveles de madurez (umbrales + labels configurables) | UX | ✅ |
+| Duplicar instrumento existente | Productividad | ✅ |
+| Filtros y búsqueda en listado de sesiones | UX | ✅ |
+| Tests unitarios (26 tests Vitest) | Calidad | ✅ |
+| Tests E2E flujo encuesta + admin (15 tests Playwright) | Calidad | ✅ |
+| Test de concurrencia 10 usuarios simultáneos | Calidad | ✅ |
+| Error boundaries en páginas admin | UX | Pendiente |
+| Monitoreo de errores (Sentry o similar) | Observabilidad | Pendiente |
 
 ---
 

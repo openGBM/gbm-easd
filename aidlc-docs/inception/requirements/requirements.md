@@ -144,6 +144,12 @@
 - Carga de encuesta < 3 segundos
 - Generación de gráfico de radar instantánea (client-side)
 
+### RNF-05: Calidad y Testing
+- Tests unitarios para lógica de negocio (niveles de madurez, validaciones)
+- Tests E2E para flujos críticos (encuesta completa, admin, instrumentos)
+- Test de concurrencia: 10 usuarios simultáneos sin conflictos de datos
+- Cobertura: 52 tests (26 unit + 26 E2E)
+
 ---
 
 ## Stack Tecnológico
