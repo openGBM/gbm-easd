@@ -213,9 +213,9 @@ El portal es una aplicación funcional en producción (Vercel + Supabase Cloud) 
 
 ---
 
-### v4.0 — Multi-tenant y Enterprise
+### v4.0 — Multi-tenant, Enterprise y Observabilidad
 
-**Objetivo**: Escalar a múltiples organizaciones  
+**Objetivo**: Escalar a múltiples organizaciones con visibilidad operacional  
 **Estimado**: 6-8 semanas
 
 | Tarea | Tipo |
@@ -226,6 +226,35 @@ El portal es una aplicación funcional en producción (Vercel + Supabase Cloud) 
 | Branding personalizado por organización | Personalización |
 | SLA y soporte dedicado | Operaciones |
 | Migración a infraestructura propia (AWS) | Infraestructura |
+| OpenTelemetry: traces, metrics, logs | Observabilidad |
+
+#### OpenTelemetry — Plan de Implementación (v4.0)
+
+**Justificación**: Con multi-tenant y múltiples usuarios concurrentes, se necesita visibilidad sobre performance, errores y uso del sistema para cumplir SLAs.
+
+**Instrumentación planificada:**
+
+| Punto | Señal | Valor |
+|-------|-------|-------|
+| `/api/analysis` | Traces | Latencia IA (Gemini vs Groq), rate de fallback |
+| Import Excel | Traces + Metrics | Tiempo de procesamiento, éxito/fallo |
+| Encuesta SSR | Traces | Tiempo de carga, queries a Supabase |
+| Supabase HTTP | Traces (auto) | Latencia de cada query |
+| Logger existente | Logs | Correlación con trace IDs |
+| Encuestas completadas | Metrics | Counter por instrumento/sesión |
+| Errores de RLS | Metrics | Rate de errores de permisos |
+
+**Implementación técnica:**
+- Archivo `src/instrumentation.ts` (hook nativo de Next.js)
+- Exportador: Vercel Observability (incluido) o Grafana Cloud (OSS)
+- Instrumentación automática de HTTP/fetch via `@opentelemetry/instrumentation-fetch`
+- Spans manuales en `/api/analysis` y import Excel
+- Conectar `lib/logger.ts` con OTel LoggerProvider
+
+**Prerrequisitos:**
+- Multi-tenant operativo (para segmentar métricas por organización)
+- Volumen de usuarios que justifique el costo de un backend de observabilidad
+- Definición de SLAs (p95 latencia, uptime)
 
 ---
 
