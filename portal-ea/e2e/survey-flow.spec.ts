@@ -23,7 +23,7 @@ test.describe('Flujo de Encuesta (Encuestado)', () => {
     // Necesitamos una sesión activa real — la obtenemos del admin
     // Primero verificamos que la landing carga
     await page.goto('/')
-    await expect(page.getByText('Portal de Evaluaciones')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Portal de Evaluaciones' })).toBeVisible()
 
     // Ir al admin para obtener una sesión
     await page.goto('/admin/login')
@@ -118,6 +118,6 @@ test.describe('Flujo de Encuesta (Encuestado)', () => {
     // Intentar con un email que ya existe requiere conocer una sesión y email previo
     // Lo validamos a nivel de UI: el mensaje de error aparece
     await page.goto('/')
-    await expect(page.getByText('Portal de Evaluaciones')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Portal de Evaluaciones' })).toBeVisible()
   })
 })

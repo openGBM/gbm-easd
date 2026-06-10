@@ -50,7 +50,7 @@ test.describe('Flujo Admin', () => {
   })
 
   test('filtrar sesiones por estado', async ({ page }) => {
-    const statusSelect = page.locator('select')
+    const statusSelect = page.locator('select').last()
     await statusSelect.selectOption('active')
     await page.waitForTimeout(300)
     // No debe crashear
