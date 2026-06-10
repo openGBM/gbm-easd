@@ -8,6 +8,7 @@ import { isMultiInstrumentEnabled } from '@/flags'
 import QRCodeDisplay from '@/components/QRCodeDisplay'
 import InstrumentBadge from '@/components/InstrumentBadge'
 import InstrumentSelector from '@/components/InstrumentSelector'
+import ConfirmModal from '@/components/ConfirmModal'
 import Link from 'next/link'
 
 export default function AdminDashboard() {
@@ -26,6 +27,8 @@ export default function AdminDashboard() {
   // Filtros
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all')
   const [filterSearch, setFilterSearch] = useState('')
+  // Modal confirmación
+  const [deleteModal, setDeleteModal] = useState<{ id: string; name: string } | null>(null)
 
   useEffect(() => {
     checkAuth()
@@ -189,11 +192,13 @@ export default function AdminDashboard() {
   }
 
   async function deleteSession(id: string, name: string) {
-    const confirmed = confirm(
-      `⚠️ ¿Eliminar la sesión "${name}" y todos sus encuestados y respuestas?\n\nEsta acción no se puede deshacer. Antes de eliminar una sesión asegúrese de haber exportado los datos a Excel y generado el análisis IA si lo requiere.`
-    )
-    if (!confirmed) return
+    setDeleteModal({ id, name })
+  }
 
+  async function confirmDeleteSession() {
+    if (!deleteModal) return
+    const { id } = deleteModal
+    setDeleteModal(null)
     setDeleting(id)
 
     // Obtener respondents de la sesión para eliminar sus respuestas
@@ -388,6 +393,17 @@ export default function AdminDashboard() {
           ))}
         </div>
       )}
+
+      {/* Modal de confirmación de borrado */}
+      <ConfirmModal
+        isOpen={!!deleteModal}
+        title="Eliminar Sesión"
+        message={`¿Eliminar la sesión "${deleteModal?.name}" y todos sus encuestados y respuestas?`}
+        warning="Esta acción no se puede deshacer. Antes de eliminar una sesión asegúrese de haber exportado los datos a Excel y generado el análisis IA si lo requiere."
+        confirmLabel="Sí, eliminar"
+        onConfirm={confirmDeleteSession}
+        onCancel={() => setDeleteModal(null)}
+      />
     </div>
   )
 }
