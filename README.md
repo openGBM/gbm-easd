@@ -137,7 +137,7 @@ gbm-easd/
 - [ ] v2.1 — Editor visual de preguntas (sin depender de Excel), filtros en listado de sesiones
 - [ ] v2.2 — Notificaciones por email, dashboard histórico con tendencias
 - [ ] v3.0 — Escalas configurables (no solo 1-5), tipos de pregunta variados
-- [ ] v4.0 — Multi-tenant, roles granulares, SSO, middleware server-side
+- [ ] v4.0 — Multi-tenant, roles granulares, SSO, OpenTelemetry, middleware server-side
 
 ## Licencia
 

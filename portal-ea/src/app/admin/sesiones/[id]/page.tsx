@@ -7,6 +7,7 @@ import { Session, Respondent } from '@/types/database'
 import RadarChart from '@/components/RadarChart'
 import ResultsTable from '@/components/ResultsTable'
 import InstrumentBadge from '@/components/InstrumentBadge'
+import ConfirmModal from '@/components/ConfirmModal'
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import * as ExcelJS from 'exceljs'
@@ -31,6 +32,8 @@ export default function SessionDetailPage() {
   const [analysisError, setAnalysisError] = useState('')
   const [instrumentInfo, setInstrumentInfo] = useState<{ name: string; versionTag: string } | null>(null)
   const [maturityLevels, setMaturityLevels] = useState<any[] | null>(null)
+  const [showDeleteSessionModal, setShowDeleteSessionModal] = useState(false)
+  const [showDeleteRespondentModal, setShowDeleteRespondentModal] = useState<string | null>(null)
 
   useEffect(() => {
     checkAuthAndLoad()
@@ -141,7 +144,13 @@ export default function SessionDetailPage() {
   }
 
   async function deleteRespondent(respondentId: string) {
-    if (!confirm('¿Eliminar este encuestado y todas sus respuestas?')) return
+    setShowDeleteRespondentModal(respondentId)
+  }
+
+  async function confirmDeleteRespondent() {
+    const respondentId = showDeleteRespondentModal
+    if (!respondentId) return
+    setShowDeleteRespondentModal(null)
 
     // Primero eliminar respuestas
     await supabase.from('responses').delete().eq('respondent_id', respondentId)
@@ -157,11 +166,11 @@ export default function SessionDetailPage() {
 
   async function deleteSession() {
     if (!session) return
-    const confirmed = confirm(
-      `¿Eliminar la sesión "${session.name}" y todos sus encuestados y respuestas?\n\nEsta acción no se puede deshacer.`
-    )
-    if (!confirmed) return
+    setShowDeleteSessionModal(true)
+  }
 
+  async function confirmDeleteSession() {
+    setShowDeleteSessionModal(false)
     setDeletingSession(true)
 
     // Eliminar respuestas de todos los encuestados
@@ -630,6 +639,26 @@ export default function SessionDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Modales de confirmación */}
+      <ConfirmModal
+        isOpen={showDeleteSessionModal}
+        title="Eliminar Sesión"
+        message={`¿Eliminar la sesión "${session?.name}" y todos sus encuestados y respuestas?`}
+        warning="Esta acción no se puede deshacer. Antes de eliminar una sesión asegúrese de haber exportado los datos a Excel y generado el análisis IA si lo requiere."
+        confirmLabel="Sí, eliminar"
+        onConfirm={confirmDeleteSession}
+        onCancel={() => setShowDeleteSessionModal(false)}
+      />
+      <ConfirmModal
+        isOpen={!!showDeleteRespondentModal}
+        title="Eliminar Encuestado"
+        message="¿Eliminar este encuestado y todas sus respuestas?"
+        warning="Esta acción no se puede deshacer. Las respuestas de este encuestado se perderán permanentemente."
+        confirmLabel="Sí, eliminar"
+        onConfirm={confirmDeleteRespondent}
+        onCancel={() => setShowDeleteRespondentModal(null)}
+      />
     </div>
   )
 }

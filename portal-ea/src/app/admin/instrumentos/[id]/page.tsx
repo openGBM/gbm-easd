@@ -137,7 +137,7 @@ export default function InstrumentDetailPage() {
   }
 
   async function deleteDimension(dimId: string) {
-    if (!confirm('¿Eliminar esta dimensión y todas sus preguntas?')) return
+    if (!confirm('⚠️ ¿Eliminar esta dimensión y todas sus preguntas?\n\nEsta acción no se puede deshacer. Todas las preguntas asociadas se perderán permanentemente.')) return
 
     await supabase.from('questions').delete().eq('dimension_id', dimId)
     await supabase.from('dimensions').delete().eq('id', dimId)
@@ -640,9 +640,10 @@ export default function InstrumentDetailPage() {
         }
       }
 
-      // Insertar dimensiones y preguntas
+      // Insertar dimensiones y preguntas (con rollback si falla)
       let insertedDims = 0
       let insertedQuestions = 0
+      const insertedDimIds: string[] = []
 
       for (const dim of dimsArray) {
         const { data: newDim, error: dimError } = await supabase
@@ -658,11 +659,19 @@ export default function InstrumentDetailPage() {
           .single()
 
         if (dimError) {
-          console.error('Error insertando dimensión:', dim.name, dimError)
-          continue
+          // Rollback: eliminar dimensiones ya insertadas
+          if (insertedDimIds.length > 0) {
+            await supabase.from('questions').delete().in('dimension_id', insertedDimIds)
+            await supabase.from('dimensions').delete().in('id', insertedDimIds)
+          }
+          alert(`Error insertando dimensión "${dim.name}". Se revirtieron los cambios.`)
+          setImporting(false)
+          await loadInstrument()
+          return
         }
 
         if (newDim) {
+          insertedDimIds.push(newDim.id)
           insertedDims++
           const questionsToInsert = dim.questions.map(q => ({
             dimension_id: newDim.id,
@@ -671,10 +680,15 @@ export default function InstrumentDetailPage() {
           }))
           const { error: qError } = await supabase.from('questions').insert(questionsToInsert)
           if (qError) {
-            console.error('Error insertando preguntas:', qError)
-          } else {
-            insertedQuestions += dim.questions.length
+            // Rollback completo
+            await supabase.from('questions').delete().in('dimension_id', insertedDimIds)
+            await supabase.from('dimensions').delete().in('id', insertedDimIds)
+            alert(`Error insertando preguntas de "${dim.name}". Se revirtieron los cambios.`)
+            setImporting(false)
+            await loadInstrument()
+            return
           }
+          insertedQuestions += dim.questions.length
         }
       }
 
@@ -685,7 +699,6 @@ export default function InstrumentDetailPage() {
       }
       await loadInstrument()
     } catch (err) {
-      console.error('Error importando:', err)
       alert('Error al procesar el archivo Excel.')
     }
 

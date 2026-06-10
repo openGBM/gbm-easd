@@ -71,7 +71,25 @@ Un **instrumento** es un tipo de evaluación con su propio banco de dimensiones,
 
 ### Configurar el banco de preguntas (Import Excel)
 
-El método más práctico para configurar un instrumento es mediante un archivo Excel:
+El método más práctico para configurar un instrumento masivamente es mediante un archivo Excel. También se puede editar visualmente desde la interfaz.
+
+#### Editor Visual (UI)
+
+Desde la página de gestión del instrumento:
+
+**Dimensiones:**
+- **Agregar**: botón "+ Agregar Dimensión" → ingresar nombre
+- **Editar nombre**: click en el texto del nombre → editar inline → se guarda al salir del campo
+- **Reordenar**: botones ▲/▼ para subir o bajar de posición
+- **Eliminar**: botón ✕ (elimina dimensión y todas sus preguntas)
+
+**Preguntas:**
+- **Agregar**: botón "+ Agregar pregunta" dentro de cada dimensión
+- **Editar texto**: click en el texto → editar inline → se guarda al salir del campo
+- **Reordenar**: botones ▲/▼ (visibles al pasar el mouse)
+- **Eliminar**: botón ✕ (visible al pasar el mouse)
+
+#### Import/Export Excel (masivo)
 
 1. Ir a **Instrumentos → [Instrumento] → Gestionar**
 2. Hacer clic en **"📥 Exportar Excel"** para obtener la plantilla (si el instrumento ya tiene datos) o preparar un Excel con el formato esperado
@@ -149,6 +167,36 @@ El archivo debe tener **dos hojas**:
 3. Escribir el rol/contexto que la IA debe asumir al analizar resultados
 4. Hacer clic en **"Guardar"**
 
+### Editar Escala de Valores (UI)
+
+1. En la página de gestión del instrumento, sección **"Escala de Valores (1-5)"**
+2. Editar la etiqueta y descripción de cada valor (1 a 5)
+3. Hacer clic en **"Guardar Escala"**
+
+> Si se dejan vacíos, se usan las etiquetas por defecto.
+
+### Editar Niveles de Madurez (UI)
+
+1. En la página de gestión del instrumento, sección **"Niveles de Madurez"**
+2. Editar nombre, color (#RRGGBB), promedio mínimo y máximo de cada nivel
+3. **Agregar nivel**: botón "+ Agregar Nivel"
+4. **Eliminar nivel**: botón "Eliminar" en la fila
+5. Hacer clic en **"Guardar Niveles"**
+
+**Validaciones al guardar:**
+- Los rangos no se pueden solapar
+- Deben cubrir de 1.0 a 5.0 sin huecos
+- El mínimo debe ser menor que el máximo
+- Los colores deben ser hex válidos (#RRGGBB)
+- Cada nivel debe tener nombre
+
+### Duplicar un instrumento
+
+1. En el catálogo de instrumentos, hacer clic en **"Duplicar"** en el instrumento deseado
+2. Ingresar el nuevo nombre
+3. Se copia completamente: dimensiones, preguntas, escala, niveles de madurez y expertise IA
+4. El duplicado es independiente del original
+
 **Ejemplos de expertise:**
 - *"Eres un consultor experto en Arquitectura Empresarial (EA). Evalúas la madurez y eficacia de los equipos de EA en organizaciones."*
 - *"Eres un experto en adopción de AI-DLC y transformación digital con herramientas de IA para equipos de desarrollo de software."*
@@ -183,6 +231,11 @@ Al acceder al panel admin, el dashboard muestra:
    - Ingresar el **nombre** de la sesión (ej: "Evaluación Banco XYZ - Junio 2026")
 2. Hacer clic en **"+ Crear Sesión"**
 3. La sesión se crea activa y lista para recibir respuestas
+
+### Filtrar sesiones
+
+- **Búsqueda por nombre**: campo de texto que filtra instantáneamente
+- **Filtro por estado**: dropdown con opciones Todas / Activas / Inactivas
 
 ### Compartir la sesión con participantes
 

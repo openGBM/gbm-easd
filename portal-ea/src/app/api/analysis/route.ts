@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import Groq from 'groq-sdk'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   // Verificar autenticación
@@ -130,7 +131,7 @@ El tono debe ser profesional pero accesible, orientado a líderes de negocio y T
       }, { onConflict: 'session_id' })
 
     if (saveError) {
-      console.error('Error guardando análisis:', saveError)
+      logger.error('Error guardando análisis', 'api/analysis', saveError)
       return NextResponse.json({
         analysis: analysisText,
         saveWarning: `Análisis generado pero no guardado: ${saveError.message}`
@@ -139,7 +140,7 @@ El tono debe ser profesional pero accesible, orientado a líderes de negocio y T
 
     return NextResponse.json({ analysis: analysisText, saved: true })
   } catch (error: any) {
-    console.error('Error generando análisis:', error)
+    logger.error('Error generando análisis', 'api/analysis', error)
     return NextResponse.json(
       { error: 'Error al generar el análisis. Intenta de nuevo.' },
       { status: 500 }
@@ -168,7 +169,7 @@ async function tryGemini(apiKey: string, prompt: string): Promise<string> {
     }
     return ''
   } catch (error) {
-    console.error('Gemini falló, intentando fallback:', error)
+    logger.warn('Gemini falló, intentando fallback', 'api/analysis', error)
     return ''
   }
 }
@@ -188,7 +189,7 @@ async function tryGroq(apiKey: string, prompt: string): Promise<string> {
 
     return completion.choices[0]?.message?.content || ''
   } catch (error) {
-    console.error('Groq falló:', error)
+    logger.error('Groq falló', 'api/analysis', error)
     return ''
   }
 }
