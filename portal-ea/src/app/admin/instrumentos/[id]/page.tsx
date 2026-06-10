@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Instrument, InstrumentVersion, DimensionWithQuestions } from '@/types/database'
+import { showToast } from '@/components/Toast'
+import PromptModal from '@/components/PromptModal'
 import * as ExcelJS from 'exceljs'
 import Link from 'next/link'
 
@@ -23,6 +25,7 @@ export default function InstrumentDetailPage() {
   const [editingPrompt, setEditingPrompt] = useState(false)
   const [promptValue, setPromptValue] = useState('')
   const [maturityLevelsEdit, setMaturityLevelsEdit] = useState<{ label: string; color: string; minAverage: number; maxAverage: number }[]>([])
+  const [promptModal, setPromptModal] = useState<{ type: 'dimension' | 'question'; dimId?: string; order?: number } | null>(null)
 
   useEffect(() => {
     checkAuthAndLoad()
@@ -116,21 +119,25 @@ export default function InstrumentDetailPage() {
   // ===================== EDITOR VISUAL =====================
   async function addDimension() {
     if (!currentVersion) return
-    const name = prompt('Nombre de la nueva dimensión:')
-    if (!name) return
+    setPromptModal({ type: 'dimension' })
+  }
+
+  async function confirmAddDimension(name: string) {
+    if (!currentVersion) return
+    setPromptModal(null)
 
     const newOrder = dimensions.length > 0 ? Math.max(...dimensions.map(d => d.display_order)) + 1 : 1
 
     const { error } = await supabase
       .from('dimensions')
       .insert({
-        name: name.trim(),
+        name,
         display_order: newOrder,
         instrument_version_id: currentVersion.id,
       })
 
     if (error) {
-      alert('Error al agregar dimensión.')
+      showToast('error', 'Error al agregar dimensión')
       return
     }
     await loadDimensions(currentVersion.id)
@@ -146,15 +153,20 @@ export default function InstrumentDetailPage() {
   }
 
   async function addQuestion(dimId: string, order: number) {
-    const text = prompt('Texto de la nueva pregunta:')
-    if (!text) return
+    setPromptModal({ type: 'question', dimId, order })
+  }
+
+  async function confirmAddQuestion(text: string) {
+    if (!promptModal || promptModal.type !== 'question') return
+    const { dimId, order } = promptModal
+    setPromptModal(null)
 
     const { error } = await supabase
       .from('questions')
-      .insert({ dimension_id: dimId, text: text.trim(), display_order: order })
+      .insert({ dimension_id: dimId, text, display_order: order || 1 })
 
     if (error) {
-      alert('Error al agregar pregunta.')
+      showToast('error', 'Error al agregar pregunta')
       return
     }
     if (currentVersion) await loadDimensions(currentVersion.id)
@@ -232,9 +244,9 @@ export default function InstrumentDetailPage() {
       .eq('id', currentVersion.id)
 
     if (error) {
-      alert('Error al guardar escala.')
+      showToast('error', 'Error al guardar escala')
     } else {
-      alert('Escala guardada exitosamente.')
+      showToast('success', 'Escala guardada exitosamente')
       await loadInstrument()
     }
   }
@@ -275,7 +287,7 @@ export default function InstrumentDetailPage() {
     }
 
     if (errors.length > 0) {
-      alert(`Errores en niveles:\n\n${errors.join('\n')}`)
+      showToast('error', 'Errores en niveles de madurez', errors.join('\n'))
       return
     }
 
@@ -285,9 +297,9 @@ export default function InstrumentDetailPage() {
       .eq('id', currentVersion.id)
 
     if (error) {
-      alert('Error al guardar niveles.')
+      showToast('error', 'Error al guardar niveles')
     } else {
-      alert('Niveles de madurez guardados exitosamente.')
+      showToast('success', 'Niveles de madurez guardados')
       await loadInstrument()
     }
   }
@@ -398,7 +410,7 @@ export default function InstrumentDetailPage() {
         || wb.worksheets.find(s => s.name.toLowerCase().includes('banco'))
         || wb.getWorksheet(1)
       if (!ws) {
-        alert('No se encontró una hoja con el banco de preguntas en el archivo.')
+        showToast('error', 'No se encontró una hoja con el banco de preguntas en el archivo')
         setImporting(false)
         return
       }
@@ -438,7 +450,7 @@ export default function InstrumentDetailPage() {
 
       const dimsArray = Object.values(parsedDimensions)
       if (dimsArray.length === 0) {
-        alert('No se encontraron datos válidos en el archivo.')
+        showToast('error', 'No se encontraron datos válidos en el archivo')
         setImporting(false)
         return
       }
@@ -493,7 +505,7 @@ export default function InstrumentDetailPage() {
 
       // Si hay errores, mostrar y abortar
       if (errors.length > 0) {
-        alert(`Errores de validación:\n\n${errors.join('\n')}`)
+        showToast('error', 'Errores de validación en el Excel', errors.join('\n'))
         setImporting(false)
         return
       }
@@ -582,7 +594,7 @@ export default function InstrumentDetailPage() {
           }
 
           if (levelErrors.length > 0) {
-            alert(`Errores en Niveles de Madurez:\n\n${levelErrors.join('\n')}`)
+            showToast('error', 'Errores en Niveles de Madurez', levelErrors.join('\n'))
             setImporting(false)
             return
           }
@@ -619,7 +631,7 @@ export default function InstrumentDetailPage() {
           .single()
 
         if (!newVersion) {
-          alert('Error al crear nueva versión.')
+          showToast('error', 'Error al crear nueva versión')
           setImporting(false)
           return
         }
@@ -664,7 +676,7 @@ export default function InstrumentDetailPage() {
             await supabase.from('questions').delete().in('dimension_id', insertedDimIds)
             await supabase.from('dimensions').delete().in('id', insertedDimIds)
           }
-          alert(`Error insertando dimensión "${dim.name}". Se revirtieron los cambios.`)
+          showToast('error', `Error insertando dimensión "${dim.name}"`, 'Se revirtieron los cambios.')
           setImporting(false)
           await loadInstrument()
           return
@@ -683,7 +695,7 @@ export default function InstrumentDetailPage() {
             // Rollback completo
             await supabase.from('questions').delete().in('dimension_id', insertedDimIds)
             await supabase.from('dimensions').delete().in('id', insertedDimIds)
-            alert(`Error insertando preguntas de "${dim.name}". Se revirtieron los cambios.`)
+            showToast('error', `Error insertando preguntas de "${dim.name}"`, 'Se revirtieron los cambios.')
             setImporting(false)
             await loadInstrument()
             return
@@ -693,13 +705,13 @@ export default function InstrumentDetailPage() {
       }
 
       if (insertedDims === 0) {
-        alert('Error: No se pudieron insertar las dimensiones. Verifica permisos de la base de datos.')
+        showToast('error', 'No se pudieron insertar las dimensiones', 'Verifica permisos de la base de datos.')
       } else {
-        alert(`Importación exitosa: ${insertedDims} dimensiones, ${insertedQuestions} preguntas.`)
+        showToast('success', `Importación exitosa: ${insertedDims} dimensiones, ${insertedQuestions} preguntas`)
       }
       await loadInstrument()
     } catch (err) {
-      alert('Error al procesar el archivo Excel.')
+      showToast('error', 'Error al procesar el archivo Excel')
     }
 
     setImporting(false)
@@ -1059,6 +1071,21 @@ export default function InstrumentDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Modal para agregar dimensión/pregunta */}
+      <PromptModal
+        isOpen={!!promptModal}
+        title={promptModal?.type === 'dimension' ? 'Nueva Dimensión' : 'Nueva Pregunta'}
+        placeholder={promptModal?.type === 'dimension' ? 'Nombre de la dimensión' : 'Texto de la pregunta'}
+        onConfirm={(value) => {
+          if (promptModal?.type === 'dimension') confirmAddDimension(value)
+          else confirmAddQuestion(value)
+        }}
+        onCancel={() => setPromptModal(null)}
+      />
     </div>
   )
 }
+
+
+
