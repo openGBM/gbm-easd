@@ -62,7 +62,7 @@ El portal es una aplicación funcional en producción (Vercel + Supabase Cloud) 
 |---------|----------|---------|---------------|
 | No hay capa de servicios | Toda la lógica está en los componentes de página | Dificulta testing y reutilización | Extraer servicios para operaciones complejas (versionamiento, import) |
 | Client-side heavy | Las páginas admin hacen muchas queries desde el browser | Performance en conexiones lentas | Considerar Server Components o API routes para queries pesadas |
-| Sin tests | No hay tests unitarios ni e2e | Riesgo en regresiones | Implementar tests para flujos críticos (encuesta, import, análisis IA) |
+| Sin tests | ~~No hay tests~~ → Resuelto: 52 tests (26 unit Vitest + 26 E2E Playwright + concurrencia) | ~~Riesgo en regresiones~~ Mitigado | Expandir cobertura a import Excel y más edge cases |
 | Sin validación server-side del import | El Excel se parsea y se inserta desde el client | Datos inconsistentes si el client falla mid-import | Mover lógica de import a un API Route con transacción |
 | Tipos `any` en queries Supabase | Varios casteos `as any` en JOINs | Falta de type safety | Generar tipos con `supabase gen types` y usar tipado estricto |
 | Feature flag via env var | `NEXT_PUBLIC_MULTI_INSTRUMENT` es público | No permite toggling sin redeploy | Migrar a Vercel Flags Dashboard (ya instalado, solo falta conectar) |
