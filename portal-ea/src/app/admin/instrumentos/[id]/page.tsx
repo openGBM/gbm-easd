@@ -276,7 +276,7 @@ export default function InstrumentDetailPage() {
       if (!lvl.label.trim()) errors.push(`Nivel ${idx + 1}: falta nombre.`)
       if (lvl.minAverage >= lvl.maxAverage) errors.push(`"${lvl.label}": mín (${lvl.minAverage}) debe ser menor que máx (${lvl.maxAverage}).`)
       if (lvl.color && !/^#[0-9a-fA-F]{6}$/.test(lvl.color)) errors.push(`"${lvl.label}": color inválido.`)
-      if (idx < sorted.length - 1 && lvl.maxAverage >= sorted[idx + 1].minAverage) {
+      if (idx < sorted.length - 1 && lvl.maxAverage > sorted[idx + 1].minAverage) {
         errors.push(`"${lvl.label}" y "${sorted[idx + 1].label}" se solapan.`)
       }
     })
@@ -284,6 +284,14 @@ export default function InstrumentDetailPage() {
     if (sorted.length > 0) {
       if (sorted[0].minAverage > 1.0) errors.push(`El primer nivel no cubre desde 1.0.`)
       if (sorted[sorted.length - 1].maxAverage < 5.0) errors.push(`El último nivel no cubre hasta 5.0.`)
+
+      // Validar huecos entre niveles
+      for (let i = 0; i < sorted.length - 1; i++) {
+        const gap = sorted[i + 1].minAverage - sorted[i].maxAverage
+        if (gap > 0.2) {
+          errors.push(`Hueco entre "${sorted[i].label}" (max ${sorted[i].maxAverage}) y "${sorted[i + 1].label}" (min ${sorted[i + 1].minAverage}).`)
+        }
+      }
     }
 
     if (errors.length > 0) {
@@ -569,10 +577,11 @@ export default function InstrumentDetailPage() {
               levelErrors.push(`Nivel "${lvl.label}": color "${lvl.color}" no es hex válido (#RRGGBB).`)
             }
             // Validar que no haya solapamiento con el siguiente nivel
+            // Se permite que maxAverage == next.minAverage (rangos contiguos compartiendo borde)
             if (idx < sorted.length - 1) {
               const next = sorted[idx + 1]
-              if (lvl.maxAverage >= next.minAverage) {
-                levelErrors.push(`Niveles "${lvl.label}" y "${next.label}" se solapan (${lvl.maxAverage} >= ${next.minAverage}).`)
+              if (lvl.maxAverage > next.minAverage) {
+                levelErrors.push(`Niveles "${lvl.label}" y "${next.label}" se solapan (${lvl.maxAverage} > ${next.minAverage}).`)
               }
             }
           })
@@ -585,10 +594,10 @@ export default function InstrumentDetailPage() {
             levelErrors.push(`El último nivel ("${sorted[sorted.length - 1].label}") no cubre hasta 5.0 (termina en ${sorted[sorted.length - 1].maxAverage}).`)
           }
 
-          // Validar huecos entre niveles
+          // Validar huecos entre niveles (permitir rangos contiguos donde max == next.min)
           for (let i = 0; i < sorted.length - 1; i++) {
             const gap = sorted[i + 1].minAverage - sorted[i].maxAverage
-            if (gap > 0.1) {
+            if (gap > 0.2) {
               levelErrors.push(`Hueco entre "${sorted[i].label}" (max ${sorted[i].maxAverage}) y "${sorted[i + 1].label}" (min ${sorted[i + 1].minAverage}).`)
             }
           }
