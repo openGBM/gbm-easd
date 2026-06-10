@@ -23,6 +23,7 @@ export interface InstrumentVersion {
   is_current: boolean
   notes: string | null
   scale_labels: ScaleLabel[] | null
+  maturity_levels: MaturityLevel[] | null
   created_at: string
 }
 
@@ -30,6 +31,13 @@ export interface ScaleLabel {
   value: number
   label: string
   description?: string
+}
+
+export interface MaturityLevel {
+  label: string
+  color: string
+  minAverage: number
+  maxAverage: number
 }
 
 export interface InstrumentWithVersion extends Instrument {

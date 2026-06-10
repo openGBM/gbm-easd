@@ -27,6 +27,7 @@ Portal web multi-instrumento para evaluaciones de autodiagnóstico organizaciona
 - Import/Export del banco de preguntas via Excel
 - Versionamiento automático del banco (solo si hay respuestas)
 - Etiquetas de escala personalizables por instrumento
+- Niveles de madurez configurables (umbrales, labels y colores editables por instrumento)
 - Expertise de IA configurable por instrumento
 
 ## Stack Tecnológico
@@ -64,6 +65,7 @@ cd portal-ea
 npm install
 
 # Configurar variables de entorno
+# Crear .env.local con las credenciales
 cp .env.local.example .env.local
 # Editar con credenciales de Supabase local
 
@@ -117,7 +119,7 @@ gbm-easd/
 | `responses` | Respuestas (valor 1-5) |
 | `session_analyses` | Análisis IA por sesión |
 | `instruments` | Instrumentos de evaluación |
-| `instrument_versions` | Versiones del banco de preguntas |
+| `instrument_versions` | Versiones del banco (scale_labels, maturity_levels) |
 
 ## Documentación
 
@@ -131,11 +133,11 @@ gbm-easd/
 
 - [x] v1.0 — MVP: Encuesta EA, radar, admin básico
 - [x] v1.1 — Análisis IA, export Excel, dashboards
-- [x] v1.2 — Multi-instrumento, versionamiento, import/export Excel, escalas personalizables
-- [ ] v2.1 — Estabilización: middleware, tests e2e, audit log
-- [ ] v2.2 — Editor visual de preguntas, notificaciones, dashboard histórico
+- [x] v1.2 — Multi-instrumento, versionamiento, import/export Excel, escalas y niveles configurables
+- [ ] v2.1 — Editor visual de preguntas (sin depender de Excel), filtros en listado de sesiones
+- [ ] v2.2 — Notificaciones por email, dashboard histórico con tendencias
 - [ ] v3.0 — Escalas configurables (no solo 1-5), tipos de pregunta variados
-- [ ] v4.0 — Multi-tenant, roles granulares, SSO
+- [ ] v4.0 — Multi-tenant, roles granulares, SSO, middleware server-side
 
 ## Licencia
 

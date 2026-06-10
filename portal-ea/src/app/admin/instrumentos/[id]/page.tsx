@@ -22,6 +22,7 @@ export default function InstrumentDetailPage() {
   const [hasResponses, setHasResponses] = useState(false)
   const [editingPrompt, setEditingPrompt] = useState(false)
   const [promptValue, setPromptValue] = useState('')
+  const [maturityLevelsEdit, setMaturityLevelsEdit] = useState<{ label: string; color: string; minAverage: number; maxAverage: number }[]>([])
 
   useEffect(() => {
     checkAuthAndLoad()
@@ -58,6 +59,13 @@ export default function InstrumentDetailPage() {
       const current = versionsData.find(v => v.is_current)
       if (current) {
         setCurrentVersion(current)
+        // Inicializar editor de niveles de madurez
+        const defaultLevels = [
+          { label: 'Naciente', color: '#EF4444', minAverage: 1.0, maxAverage: 2.3 },
+          { label: 'Base', color: '#F59E0B', minAverage: 2.4, maxAverage: 3.6 },
+          { label: 'Clase Mundial', color: '#10B981', minAverage: 3.7, maxAverage: 5.0 },
+        ]
+        setMaturityLevelsEdit((current.maturity_levels as any[]) || defaultLevels)
         await loadDimensions(current.id)
         await checkHasResponses(current.id)
       }
@@ -102,6 +110,185 @@ export default function InstrumentDetailPage() {
       setHasResponses((count || 0) > 0)
     } else {
       setHasResponses(false)
+    }
+  }
+
+  // ===================== EDITOR VISUAL =====================
+  async function addDimension() {
+    if (!currentVersion) return
+    const name = prompt('Nombre de la nueva dimensión:')
+    if (!name) return
+
+    const newOrder = dimensions.length > 0 ? Math.max(...dimensions.map(d => d.display_order)) + 1 : 1
+
+    const { error } = await supabase
+      .from('dimensions')
+      .insert({
+        name: name.trim(),
+        display_order: newOrder,
+        instrument_version_id: currentVersion.id,
+      })
+
+    if (error) {
+      alert('Error al agregar dimensión.')
+      return
+    }
+    await loadDimensions(currentVersion.id)
+  }
+
+  async function deleteDimension(dimId: string) {
+    if (!confirm('¿Eliminar esta dimensión y todas sus preguntas?')) return
+
+    await supabase.from('questions').delete().eq('dimension_id', dimId)
+    await supabase.from('dimensions').delete().eq('id', dimId)
+
+    if (currentVersion) await loadDimensions(currentVersion.id)
+  }
+
+  async function addQuestion(dimId: string, order: number) {
+    const text = prompt('Texto de la nueva pregunta:')
+    if (!text) return
+
+    const { error } = await supabase
+      .from('questions')
+      .insert({ dimension_id: dimId, text: text.trim(), display_order: order })
+
+    if (error) {
+      alert('Error al agregar pregunta.')
+      return
+    }
+    if (currentVersion) await loadDimensions(currentVersion.id)
+  }
+
+  async function deleteQuestion(questionId: string, dimId: string) {
+    await supabase.from('questions').delete().eq('id', questionId)
+    if (currentVersion) await loadDimensions(currentVersion.id)
+  }
+
+  async function updateDimensionName(dimId: string, newName: string) {
+    if (!newName.trim()) return
+    await supabase.from('dimensions').update({ name: newName.trim() }).eq('id', dimId)
+  }
+
+  async function updateQuestionText(questionId: string, newText: string) {
+    if (!newText.trim()) return
+    await supabase.from('questions').update({ text: newText.trim() }).eq('id', questionId)
+  }
+
+  async function moveDimension(dimId: string, direction: 'up' | 'down') {
+    const idx = dimensions.findIndex(d => d.id === dimId)
+    if (idx < 0) return
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+    if (swapIdx < 0 || swapIdx >= dimensions.length) return
+
+    const current = dimensions[idx]
+    const swap = dimensions[swapIdx]
+
+    // Usar valor temporal para evitar conflicto
+    const tempOrder = -999
+    await supabase.from('dimensions').update({ display_order: tempOrder }).eq('id', current.id)
+    await supabase.from('dimensions').update({ display_order: current.display_order }).eq('id', swap.id)
+    await supabase.from('dimensions').update({ display_order: swap.display_order }).eq('id', current.id)
+
+    if (currentVersion) await loadDimensions(currentVersion.id)
+  }
+
+  async function moveQuestion(questionId: string, dimId: string, direction: 'up' | 'down') {
+    const dim = dimensions.find(d => d.id === dimId)
+    if (!dim) return
+    const idx = dim.questions.findIndex(q => q.id === questionId)
+    if (idx < 0) return
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+    if (swapIdx < 0 || swapIdx >= dim.questions.length) return
+
+    const current = dim.questions[idx]
+    const swap = dim.questions[swapIdx]
+
+    // Usar valor temporal para evitar conflicto de constraint
+    const tempOrder = -999
+    await supabase.from('questions').update({ display_order: tempOrder }).eq('id', current.id)
+    await supabase.from('questions').update({ display_order: current.display_order }).eq('id', swap.id)
+    await supabase.from('questions').update({ display_order: swap.display_order }).eq('id', current.id)
+
+    if (currentVersion) await loadDimensions(currentVersion.id)
+  }
+
+  async function saveScaleLabels() {
+    if (!currentVersion) return
+    const labels: { value: number; label: string; description?: string }[] = []
+    for (let v = 1; v <= 5; v++) {
+      const labelEl = document.getElementById(`scale-label-${v}`) as HTMLInputElement
+      const descEl = document.getElementById(`scale-desc-${v}`) as HTMLInputElement
+      const label = labelEl?.value.trim() || ''
+      const description = descEl?.value.trim() || ''
+      if (label) {
+        labels.push({ value: v, label, ...(description ? { description } : {}) })
+      }
+    }
+
+    const { error } = await supabase
+      .from('instrument_versions')
+      .update({ scale_labels: labels.length > 0 ? labels : null })
+      .eq('id', currentVersion.id)
+
+    if (error) {
+      alert('Error al guardar escala.')
+    } else {
+      alert('Escala guardada exitosamente.')
+      await loadInstrument()
+    }
+  }
+
+  function updateMaturityLevel(idx: number, field: string, value: any) {
+    setMaturityLevelsEdit(prev => prev.map((lvl, i) => i === idx ? { ...lvl, [field]: value } : lvl))
+  }
+
+  function addMaturityLevel() {
+    const last = maturityLevelsEdit[maturityLevelsEdit.length - 1]
+    const newMin = last ? last.maxAverage + 0.1 : 1.0
+    setMaturityLevelsEdit(prev => [...prev, { label: '', color: '#666666', minAverage: Math.round(newMin * 10) / 10, maxAverage: 5.0 }])
+  }
+
+  function removeMaturityLevel(idx: number) {
+    setMaturityLevelsEdit(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  async function saveMaturityLevels() {
+    if (!currentVersion) return
+
+    // Validar
+    const sorted = [...maturityLevelsEdit].sort((a, b) => a.minAverage - b.minAverage)
+    const errors: string[] = []
+
+    sorted.forEach((lvl, idx) => {
+      if (!lvl.label.trim()) errors.push(`Nivel ${idx + 1}: falta nombre.`)
+      if (lvl.minAverage >= lvl.maxAverage) errors.push(`"${lvl.label}": mín (${lvl.minAverage}) debe ser menor que máx (${lvl.maxAverage}).`)
+      if (lvl.color && !/^#[0-9a-fA-F]{6}$/.test(lvl.color)) errors.push(`"${lvl.label}": color inválido.`)
+      if (idx < sorted.length - 1 && lvl.maxAverage >= sorted[idx + 1].minAverage) {
+        errors.push(`"${lvl.label}" y "${sorted[idx + 1].label}" se solapan.`)
+      }
+    })
+
+    if (sorted.length > 0) {
+      if (sorted[0].minAverage > 1.0) errors.push(`El primer nivel no cubre desde 1.0.`)
+      if (sorted[sorted.length - 1].maxAverage < 5.0) errors.push(`El último nivel no cubre hasta 5.0.`)
+    }
+
+    if (errors.length > 0) {
+      alert(`Errores en niveles:\n\n${errors.join('\n')}`)
+      return
+    }
+
+    const { error } = await supabase
+      .from('instrument_versions')
+      .update({ maturity_levels: maturityLevelsEdit.length > 0 ? maturityLevelsEdit : null })
+      .eq('id', currentVersion.id)
+
+    if (error) {
+      alert('Error al guardar niveles.')
+    } else {
+      alert('Niveles de madurez guardados exitosamente.')
+      await loadInstrument()
     }
   }
 
@@ -158,6 +345,28 @@ export default function InstrumentDetailPage() {
       .sort((a: any, b: any) => a.value - b.value)
       .forEach((s: any) => {
         wsScale.addRow({ value: s.value, label: s.label, description: s.description || '' })
+      })
+
+    // Hoja 3: Niveles de Madurez
+    const wsLevels = wb.addWorksheet('Niveles')
+    wsLevels.columns = [
+      { header: 'Nivel', key: 'label', width: 20 },
+      { header: 'Color', key: 'color', width: 10 },
+      { header: 'Promedio Mínimo', key: 'minAverage', width: 18 },
+      { header: 'Promedio Máximo', key: 'maxAverage', width: 18 },
+    ]
+    wsLevels.getRow(1).font = { bold: true }
+
+    const defaultLevels = [
+      { label: 'Naciente', color: '#EF4444', minAverage: 1.0, maxAverage: 2.3 },
+      { label: 'Base', color: '#F59E0B', minAverage: 2.4, maxAverage: 3.6 },
+      { label: 'Clase Mundial', color: '#10B981', minAverage: 3.7, maxAverage: 5.0 },
+    ]
+    const levelsData = (currentVersion.maturity_levels as any[]) || defaultLevels
+    levelsData
+      .sort((a: any, b: any) => a.minAverage - b.minAverage)
+      .forEach((lvl: any) => {
+        wsLevels.addRow({ label: lvl.label, color: lvl.color, minAverage: lvl.minAverage, maxAverage: lvl.maxAverage })
       })
 
     // Descargar
@@ -315,6 +524,71 @@ export default function InstrumentDetailPage() {
         if (scaleLabels.length === 0) scaleLabels = null
       }
 
+      // Parsear hoja de Niveles de Madurez (opcional)
+      let maturityLevels: { label: string; color: string; minAverage: number; maxAverage: number }[] | null = null
+      const wsLevels = wb.getWorksheet('Niveles')
+        || wb.worksheets.find(ws => ws.name.toLowerCase().includes('nivel'))
+      if (wsLevels) {
+        maturityLevels = []
+        wsLevels.eachRow((row, rowNumber) => {
+          if (rowNumber === 1) return
+          const label = row.getCell(1).value?.toString().trim() || ''
+          const color = row.getCell(2).value?.toString().trim() || ''
+          const minAvg = Number(row.getCell(3).value) || 0
+          const maxAvg = Number(row.getCell(4).value) || 0
+          if (label && maxAvg > 0) {
+            maturityLevels!.push({ label, color, minAverage: minAvg, maxAverage: maxAvg })
+          }
+        })
+        if (maturityLevels.length === 0) {
+          maturityLevels = null
+        } else {
+          // Validar niveles de madurez
+          const levelErrors: string[] = []
+          const sorted = [...maturityLevels].sort((a, b) => a.minAverage - b.minAverage)
+
+          sorted.forEach((lvl, idx) => {
+            // Validar que min < max
+            if (lvl.minAverage >= lvl.maxAverage) {
+              levelErrors.push(`Nivel "${lvl.label}": el promedio mínimo (${lvl.minAverage}) debe ser menor que el máximo (${lvl.maxAverage}).`)
+            }
+            // Validar color hex
+            if (lvl.color && !/^#[0-9a-fA-F]{6}$/.test(lvl.color)) {
+              levelErrors.push(`Nivel "${lvl.label}": color "${lvl.color}" no es hex válido (#RRGGBB).`)
+            }
+            // Validar que no haya solapamiento con el siguiente nivel
+            if (idx < sorted.length - 1) {
+              const next = sorted[idx + 1]
+              if (lvl.maxAverage >= next.minAverage) {
+                levelErrors.push(`Niveles "${lvl.label}" y "${next.label}" se solapan (${lvl.maxAverage} >= ${next.minAverage}).`)
+              }
+            }
+          })
+
+          // Validar que el rango cubra 1.0 a 5.0
+          if (sorted[0].minAverage > 1.0) {
+            levelErrors.push(`El primer nivel ("${sorted[0].label}") no cubre desde 1.0 (empieza en ${sorted[0].minAverage}).`)
+          }
+          if (sorted[sorted.length - 1].maxAverage < 5.0) {
+            levelErrors.push(`El último nivel ("${sorted[sorted.length - 1].label}") no cubre hasta 5.0 (termina en ${sorted[sorted.length - 1].maxAverage}).`)
+          }
+
+          // Validar huecos entre niveles
+          for (let i = 0; i < sorted.length - 1; i++) {
+            const gap = sorted[i + 1].minAverage - sorted[i].maxAverage
+            if (gap > 0.1) {
+              levelErrors.push(`Hueco entre "${sorted[i].label}" (max ${sorted[i].maxAverage}) y "${sorted[i + 1].label}" (min ${sorted[i + 1].minAverage}).`)
+            }
+          }
+
+          if (levelErrors.length > 0) {
+            alert(`Errores en Niveles de Madurez:\n\n${levelErrors.join('\n')}`)
+            setImporting(false)
+            return
+          }
+        }
+      }
+
       // Determinar si crear nueva versión o editar la actual
       let targetVersionId = currentVersion.id
 
@@ -339,6 +613,7 @@ export default function InstrumentDetailPage() {
             is_current: true,
             notes: `Importado desde Excel (${file.name})`,
             scale_labels: scaleLabels,
+            maturity_levels: maturityLevels,
           })
           .select('id')
           .single()
@@ -360,7 +635,7 @@ export default function InstrumentDetailPage() {
         if (scaleLabels !== undefined) {
           await supabase
             .from('instrument_versions')
-            .update({ scale_labels: scaleLabels })
+            .update({ scale_labels: scaleLabels, maturity_levels: maturityLevels })
             .eq('id', currentVersion.id)
         }
       }
@@ -540,35 +815,204 @@ export default function InstrumentDetailPage() {
           </label>
         </div>
 
-        {/* Vista previa del banco */}
+        {/* Vista previa del banco con edición inline */}
         {dimensions.length === 0 ? (
-          <p className="text-gray-400 text-sm">Sin dimensiones. Importa un Excel para configurar el banco.</p>
+          <p className="text-gray-400 text-sm">Sin dimensiones. Importa un Excel o agrega manualmente.</p>
         ) : (
           <div className="space-y-4">
-            {dimensions.map(dim => (
+            {dimensions.map((dim, dimIdx) => (
               <div key={dim.id} className="border rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
                   {dim.color && (
                     <span className="w-3 h-3 rounded-full" style={{ backgroundColor: dim.color }}></span>
                   )}
-                  <h3 className="font-bold text-gray-900">{dim.display_order}. {dim.name}</h3>
-                  <span className="text-xs text-gray-400">{dim.questions.length} preguntas</span>
+                  <span className="text-xs text-gray-400 font-mono w-5">{dim.display_order}.</span>
+                  <input
+                    type="text"
+                    defaultValue={dim.name}
+                    onBlur={e => updateDimensionName(dim.id, e.target.value)}
+                    className="font-bold text-gray-900 flex-1 px-2 py-0.5 border border-transparent hover:border-gray-300 focus:border-blue-400 rounded text-sm focus:outline-none"
+                  />
+                  <span className="text-xs text-gray-400">{dim.questions.length} preg.</span>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => moveDimension(dim.id, 'up')}
+                      disabled={dimIdx === 0}
+                      className="text-xs text-gray-400 hover:text-gray-700 disabled:opacity-30"
+                      title="Subir"
+                    >▲</button>
+                    <button
+                      onClick={() => moveDimension(dim.id, 'down')}
+                      disabled={dimIdx === dimensions.length - 1}
+                      className="text-xs text-gray-400 hover:text-gray-700 disabled:opacity-30"
+                      title="Bajar"
+                    >▼</button>
+                  </div>
+                  <button
+                    onClick={() => deleteDimension(dim.id)}
+                    className="text-xs text-red-400 hover:text-red-600"
+                    title="Eliminar dimensión"
+                  >
+                    ✕
+                  </button>
                 </div>
                 {dim.description && (
                   <p className="text-sm text-gray-500 mb-2">{dim.description}</p>
                 )}
                 <ul className="space-y-1 pl-4">
-                  {dim.questions.map(q => (
-                    <li key={q.id} className="text-sm text-gray-700">
-                      <span className="text-gray-400 mr-1">{q.display_order}.</span>
-                      {q.text}
+                  {dim.questions.map((q, qIdx) => (
+                    <li key={q.id} className="text-sm text-gray-700 flex items-center gap-1 group">
+                      <span className="text-gray-400 mr-1 font-mono text-xs w-4">{q.display_order}.</span>
+                      <input
+                        type="text"
+                        defaultValue={q.text}
+                        onBlur={e => updateQuestionText(q.id, e.target.value)}
+                        className="flex-1 px-2 py-0.5 border border-transparent hover:border-gray-300 focus:border-blue-400 rounded text-sm focus:outline-none"
+                      />
+                      <div className="opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
+                        <button
+                          onClick={() => moveQuestion(q.id, dim.id, 'up')}
+                          disabled={qIdx === 0}
+                          className="text-xs text-gray-400 hover:text-gray-700 disabled:opacity-30"
+                          title="Subir"
+                        >▲</button>
+                        <button
+                          onClick={() => moveQuestion(q.id, dim.id, 'down')}
+                          disabled={qIdx === dim.questions.length - 1}
+                          className="text-xs text-gray-400 hover:text-gray-700 disabled:opacity-30"
+                          title="Bajar"
+                        >▼</button>
+                        <button
+                          onClick={() => deleteQuestion(q.id, dim.id)}
+                          className="text-xs text-red-400 hover:text-red-600"
+                          title="Eliminar"
+                        >✕</button>
+                      </div>
                     </li>
                   ))}
                 </ul>
+                <button
+                  onClick={() => addQuestion(dim.id, dim.questions.length + 1)}
+                  className="mt-2 text-xs text-blue-500 hover:text-blue-700"
+                >
+                  + Agregar pregunta
+                </button>
               </div>
             ))}
           </div>
         )}
+
+        {/* Agregar nueva dimensión */}
+        <button
+          onClick={addDimension}
+          className="mt-4 px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
+        >
+          + Agregar Dimensión
+        </button>
+      </div>
+
+      {/* Editor de Escala */}
+      <div className="bg-white rounded-xl shadow-sm border p-6 mb-8">
+        <h2 className="text-lg font-medium mb-4">Escala de Valores (1-5)</h2>
+        <p className="text-xs text-gray-500 mb-4">Define las etiquetas que verá el encuestado para cada valor.</p>
+        <div className="space-y-2">
+          {[1, 2, 3, 4, 5].map(val => {
+            const current = currentVersion?.scale_labels as any[] | null
+            const existing = current?.find((s: any) => s.value === val)
+            return (
+              <div key={val} className="flex items-center gap-3">
+                <span className="w-6 text-center font-bold text-gray-700">{val}</span>
+                <input
+                  type="text"
+                  defaultValue={existing?.label || ''}
+                  placeholder={val === 1 ? 'Totalmente en desacuerdo' : val === 5 ? 'Totalmente de acuerdo' : `Nivel ${val}`}
+                  className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  id={`scale-label-${val}`}
+                />
+                <input
+                  type="text"
+                  defaultValue={existing?.description || ''}
+                  placeholder="Descripción (opcional)"
+                  className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  id={`scale-desc-${val}`}
+                />
+              </div>
+            )
+          })}
+        </div>
+        <button
+          onClick={saveScaleLabels}
+          className="mt-4 px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          Guardar Escala
+        </button>
+      </div>
+
+      {/* Editor de Niveles de Madurez */}
+      <div className="bg-white rounded-xl shadow-sm border p-6 mb-8">
+        <h2 className="text-lg font-medium mb-4">Niveles de Madurez</h2>
+        <p className="text-xs text-gray-500 mb-4">Define los umbrales y nombres de los niveles de evaluación.</p>
+        <div className="space-y-2">
+          <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-500 px-1">
+            <span className="col-span-4">Nivel</span>
+            <span className="col-span-2">Color</span>
+            <span className="col-span-2">Prom. Min</span>
+            <span className="col-span-2">Prom. Max</span>
+            <span className="col-span-2"></span>
+          </div>
+          {maturityLevelsEdit.map((lvl, idx) => (
+            <div key={idx} className="grid grid-cols-12 gap-2 items-center">
+              <input
+                type="text"
+                value={lvl.label}
+                onChange={e => updateMaturityLevel(idx, 'label', e.target.value)}
+                placeholder="Nombre"
+                className="col-span-4 px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
+              />
+              <input
+                type="text"
+                value={lvl.color}
+                onChange={e => updateMaturityLevel(idx, 'color', e.target.value)}
+                placeholder="#RRGGBB"
+                className="col-span-2 px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
+              />
+              <input
+                type="number"
+                step="0.1"
+                value={lvl.minAverage}
+                onChange={e => updateMaturityLevel(idx, 'minAverage', parseFloat(e.target.value) || 0)}
+                className="col-span-2 px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
+              />
+              <input
+                type="number"
+                step="0.1"
+                value={lvl.maxAverage}
+                onChange={e => updateMaturityLevel(idx, 'maxAverage', parseFloat(e.target.value) || 0)}
+                className="col-span-2 px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
+              />
+              <button
+                onClick={() => removeMaturityLevel(idx)}
+                className="col-span-2 text-xs text-red-400 hover:text-red-600"
+              >
+                Eliminar
+              </button>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2 mt-4">
+          <button
+            onClick={addMaturityLevel}
+            className="px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
+          >
+            + Agregar Nivel
+          </button>
+          <button
+            onClick={saveMaturityLevels}
+            className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Guardar Niveles
+          </button>
+        </div>
       </div>
 
       {/* Historial de versiones */}

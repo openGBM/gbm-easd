@@ -23,10 +23,10 @@ export default async function ResultadosPage({ params }: Props) {
     )
   }
 
-  // Cargar encuestado (solo si completó)
+  // Cargar encuestado (solo si completó) con info de sesión e instrumento
   const { data: respondent } = await supabase
     .from('respondents')
-    .select('*, sessions(name)')
+    .select('*, sessions(name, instrument_version_id)')
     .eq('id', respondentId)
     .eq('completed', true)
     .single()
@@ -43,6 +43,20 @@ export default async function ResultadosPage({ params }: Props) {
   }
 
   const sessionName = (respondent as any).sessions?.name || ''
+
+  // Cargar niveles de madurez del instrumento (si existe)
+  let maturityLevels = null
+  const instrumentVersionId = (respondent as any).sessions?.instrument_version_id
+  if (instrumentVersionId) {
+    const { data: versionData } = await supabase
+      .from('instrument_versions')
+      .select('maturity_levels')
+      .eq('id', instrumentVersionId)
+      .single()
+    if (versionData?.maturity_levels) {
+      maturityLevels = versionData.maturity_levels
+    }
+  }
 
   // Cargar respuestas con preguntas y dimensiones
   const { data: responses } = await supabase
@@ -120,7 +134,7 @@ export default async function ResultadosPage({ params }: Props) {
           <div className="bg-white rounded-xl shadow-sm border p-6">
             <h2 className="text-lg font-bold mb-4 text-center">Resumen por Dimensión</h2>
             <p className="text-xs text-gray-400 text-center mb-2">Suma de respuestas por dimensión (escala 1-5)</p>
-            <ResultsTable data={tableData} />
+            <ResultsTable data={tableData} maturityLevels={maturityLevels} />
           </div>
         </div>
       </div>
