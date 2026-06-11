@@ -108,15 +108,17 @@ export default function EncuestadosPage() {
       // Cargar info del instrumento si existe
       let instrumentName: string | undefined
       let versionTag: string | undefined
+      let maturityLevels: any[] | null = null
       if (session.instrument_version_id) {
         const { data: versionData } = await supabase
           .from('instrument_versions')
-          .select('version_tag, instruments(name)')
+          .select('version_tag, maturity_levels, instruments(name)')
           .eq('id', session.instrument_version_id)
           .single()
         if (versionData) {
           versionTag = versionData.version_tag
           instrumentName = (versionData as any).instruments?.name
+          maturityLevels = versionData.maturity_levels as any[] | null
         }
       }
 
@@ -155,6 +157,7 @@ export default function EncuestadosPage() {
             question_count: dimData.count,
             instrument_name: instrumentName,
             version_tag: versionTag,
+            maturity_levels: maturityLevels,
           })
         }
       })

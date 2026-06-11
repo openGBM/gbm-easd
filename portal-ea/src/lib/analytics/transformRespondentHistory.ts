@@ -17,6 +17,7 @@ export interface RawHistoryRow {
   question_count: number
   instrument_name?: string
   version_tag?: string
+  maturity_levels?: any[] | null
 }
 
 export interface RespondentSession {
@@ -59,6 +60,7 @@ export function transformRespondentHistory(rawData: RawHistoryRow[]): Respondent
     totalQuestions: number
     instrumentName?: string
     versionTag?: string
+    maturityLevels?: any[] | null
   }>()
 
   rawData.forEach(row => {
@@ -72,6 +74,7 @@ export function transformRespondentHistory(rawData: RawHistoryRow[]): Respondent
         totalQuestions: 0,
         instrumentName: row.instrument_name,
         versionTag: row.version_tag,
+        maturityLevels: row.maturity_levels,
       })
     }
     const entry = sessionMap.get(row.session_id)!
@@ -92,7 +95,29 @@ export function transformRespondentHistory(rawData: RawHistoryRow[]): Respondent
   // Generar tabla
   const table: RespondentSession[] = sortedSessions.map(session => {
     const maxScore = session.totalQuestions * 5
-    const { level, color } = getMaturityLevel(session.totalScore, session.totalQuestions)
+    // Usar niveles personalizados del instrumento si existen
+    let level: string
+    let color: string
+    if (session.maturityLevels && session.maturityLevels.length > 0) {
+      // Calcular promedio general para comparar contra rangos de promedio
+      const avg = session.totalQuestions > 0 ? session.totalScore / session.totalQuestions : 0
+      const matched = session.maturityLevels.find(
+        (ml: any) => avg >= ml.minAverage && avg <= ml.maxAverage
+      )
+      if (matched) {
+        level = matched.label
+        color = matched.color
+      } else {
+        // Fallback si no hay match (fuera de rango)
+        const fallback = getMaturityLevel(session.totalScore, session.totalQuestions)
+        level = fallback.level
+        color = fallback.color
+      }
+    } else {
+      const fallback = getMaturityLevel(session.totalScore, session.totalQuestions)
+      level = fallback.level
+      color = fallback.color
+    }
     return {
       sessionId: session.sessionId,
       sessionName: session.sessionName,
