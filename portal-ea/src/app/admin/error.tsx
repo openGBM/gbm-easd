@@ -1,52 +1,48 @@
 'use client'
 
 import { useEffect } from 'react'
-import { logger } from '@/lib/logger'
+import Link from 'next/link'
 
-export default function AdminError({
-  error,
-  reset,
-}: {
+interface ErrorProps {
   error: Error & { digest?: string }
   reset: () => void
-}) {
+}
+
+export default function AdminError({ error, reset }: ErrorProps) {
   useEffect(() => {
-    logger.error(error.message, 'admin/error-boundary', error)
+    console.error('[AdminError]', error.message, error.digest)
   }, [error])
 
   return (
-    <div className="min-h-[60vh] flex items-center justify-center">
-      <div className="bg-white rounded-xl shadow-sm border p-8 max-w-md text-center">
-        <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-          <span className="text-red-600 text-2xl">!</span>
-        </div>
-        <h2 className="text-lg font-bold text-gray-900 mb-2">
-          Algo salió mal
-        </h2>
-        <p className="text-gray-600 text-sm mb-4">
-          Ocurrió un error inesperado al cargar esta página. Puedes intentar de nuevo o volver al dashboard.
-        </p>
-        {process.env.NODE_ENV === 'development' && (
-          <details className="text-left mb-4 p-3 bg-red-50 rounded-lg text-xs text-red-800">
-            <summary className="cursor-pointer font-medium">Detalle del error</summary>
-            <pre className="mt-2 whitespace-pre-wrap break-all">{error.message}</pre>
-          </details>
-        )}
-        <div className="flex gap-3 justify-center">
-          <button
-            onClick={reset}
-            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Intentar de nuevo
-          </button>
-          <a
-            href="/admin"
-            className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            Ir al Dashboard
-          </a>
-        </div>
+    <div className="text-center py-12 max-w-md mx-auto">
+      <div className="text-5xl mb-4">🔧</div>
+      <h2 className="text-xl font-bold text-gray-900 mb-2">
+        Error en el panel
+      </h2>
+      <p className="text-gray-600 mb-6">
+        Ocurrió un error al cargar esta sección. Esto puede ser temporal.
+      </p>
+      <div className="flex gap-3 justify-center">
+        <button
+          onClick={reset}
+          className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+        >
+          Reintentar
+        </button>
+        <Link
+          href="/admin"
+          className="px-5 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm"
+        >
+          Ir al Dashboard
+        </Link>
       </div>
+      {process.env.NODE_ENV === 'development' && (
+        <pre className="mt-6 text-left text-xs bg-red-50 text-red-800 p-4 rounded-lg overflow-auto max-h-48">
+          {error.message}
+          {'\n'}
+          {error.stack}
+        </pre>
+      )}
     </div>
   )
 }
