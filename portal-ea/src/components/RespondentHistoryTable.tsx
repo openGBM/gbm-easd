@@ -24,7 +24,7 @@ export default function RespondentHistoryTable({ history }: RespondentHistoryTab
               <th className="text-center px-3 py-2 border-b font-medium text-gray-700">Instrumento</th>
             )}
             <th className="text-center px-3 py-2 border-b font-medium text-gray-700">Fecha</th>
-            <th className="text-center px-3 py-2 border-b font-medium text-gray-700">Puntaje</th>
+            <th className="text-center px-3 py-2 border-b font-medium text-gray-700">Promedio</th>
             <th className="text-center px-3 py-2 border-b font-medium text-gray-700">Nivel</th>
           </tr>
         </thead>
@@ -50,7 +50,7 @@ export default function RespondentHistoryTable({ history }: RespondentHistoryTab
                 {new Date(session.date).toLocaleDateString('es-MX')}
               </td>
               <td className="px-3 py-2 border-b text-center font-bold">
-                {session.totalScore}/{session.maxScore}
+                {session.averageScore} / 5.0
               </td>
               <td className="px-3 py-2 border-b text-center">
                 <span

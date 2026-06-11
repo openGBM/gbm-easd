@@ -26,6 +26,7 @@ export interface RespondentSession {
   date: string
   totalScore: number
   maxScore: number
+  averageScore: number
   questionCount: number
   maturityLevel: string
   maturityColor: string
@@ -124,6 +125,9 @@ export function transformRespondentHistory(rawData: RawHistoryRow[]): Respondent
       date: session.date,
       totalScore: session.totalScore,
       maxScore,
+      averageScore: session.totalQuestions > 0
+        ? Math.round((session.totalScore / session.totalQuestions) * 10) / 10
+        : 0,
       questionCount: session.totalQuestions,
       maturityLevel: level,
       maturityColor: color,
