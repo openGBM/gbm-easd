@@ -17,7 +17,9 @@ El Portal de Evaluaciones de Autodiagnóstico es una herramienta web que permite
 | Análisis IA | Interpretación ejecutiva automatizada de los resultados |
 | Multi-instrumento | Gestionar distintos tipos de evaluación desde un solo portal |
 | Sesiones con QR | Cada sesión genera un código QR para acceso rápido desde móvil |
-| Exportar datos | Descarga de resultados en formato Excel |
+| Exportar datos | Descarga de resultados en formato Excel y PDF |
+| Tendencias | Visualización de la evolución de resultados entre sesiones de un instrumento |
+| Historial de encuestados | Consolidación de participaciones de un mismo encuestado en múltiples sesiones |
 
 ### Roles del sistema
 
@@ -36,7 +38,9 @@ El Portal de Evaluaciones de Autodiagnóstico es una herramienta web que permite
 4. Los participantes responden la encuesta desde su dispositivo
 5. Admin consulta resultados individuales o consolidados
 6. Admin genera análisis IA interpretativo
-7. Admin exporta los datos a Excel si es necesario
+7. Admin exporta los datos a Excel o descarga PDF de resultados
+8. Admin consulta tendencias del instrumento entre sesiones
+9. Admin busca el historial de un encuestado en múltiples sesiones
 ```
 
 ---
@@ -332,6 +336,84 @@ Los resultados se clasifican en niveles configurables por instrumento. Cada inst
 | Optimizado | 3.9 – 5.0 | Verde |
 
 Los niveles se configuran en la hoja "Niveles" del Excel de cada instrumento. Si no se definen, se usan tercios automáticos.
+
+---
+
+## Exportar Resultados a PDF
+
+El portal permite descargar los resultados como archivo PDF con gráfico de radar y tabla de madurez.
+
+### Desde la vista del encuestado
+
+1. El encuestado completa la evaluación
+2. En la página de resultados (`/resultados/{id}`), hacer clic en **"📄 Descargar PDF"**
+3. Se genera un PDF con el gráfico de radar y la tabla de resumen
+
+### Desde el panel admin (detalle de sesión)
+
+1. En el detalle de una sesión, seleccionar un encuestado (o la vista consolidada)
+2. Hacer clic en **"📄 Descargar PDF"** en la esquina superior del panel de resultados
+3. El PDF incluye:
+   - Título con nombre del instrumento y versión
+   - Gráfico de radar
+   - Tabla de resumen por dimensión con niveles de madurez
+
+> El PDF se genera en formato A4 y pesa aproximadamente 1-2 MB.
+
+---
+
+## Tendencias por Instrumento
+
+La vista de tendencias muestra la evolución de resultados de un instrumento a lo largo de todas sus sesiones.
+
+### Acceder
+
+1. Ir a **Instrumentos** desde la navegación
+2. Hacer clic en **"📊 Tendencias"** en el instrumento deseado
+
+### Visualización
+
+Se muestran dos gráficos de barras agrupadas:
+
+- **Promedio General por Sesión**: una barra por sesión mostrando el promedio global (escala 1-5)
+- **Promedio por Dimensión**: un grupo de barras por sesión con una barra por cada dimensión (con colores)
+
+Debajo de los gráficos se muestra una **tabla de datos** con los valores numéricos.
+
+### Filtros disponibles
+
+| Filtro | Descripción |
+|--------|-------------|
+| **Rango de fechas** | Desde/hasta para acotar el período de análisis |
+| **Sesiones específicas** | Checkboxes para incluir/excluir sesiones individuales |
+| **Todas / Ninguna** | Botones rápidos para seleccionar o deseleccionar todas |
+
+> Solo se consideran encuestados que completaron la evaluación.
+
+---
+
+## Historial de Encuestados
+
+Permite buscar un encuestado y ver su historial de participación en todas las sesiones donde ha respondido.
+
+### Acceder
+
+1. En la barra de navegación, hacer clic en **"Encuestados"**
+
+### Buscar un encuestado
+
+1. Ingresar email o nombre en el buscador (mínimo 2 caracteres)
+2. Hacer clic en **"🔍 Buscar"**
+3. Se muestran los resultados con cantidad de sesiones completadas por cada encuestado
+
+### Ver historial
+
+1. Hacer clic en un encuestado de la lista
+2. Se muestra:
+   - **Tabla cronológica**: sesión, instrumento (badge), fecha, puntaje total, nivel de madurez
+   - **Radares independientes**: un gráfico de radar por cada sesión en la que participó (ordenados cronológicamente)
+
+> La identificación del encuestado se hace por email exacto. Si un participante usó distintos correos en distintas sesiones, aparecerán como registros separados.
 
 ---
 
