@@ -3,6 +3,21 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import Groq from 'groq-sdk'
 import { logger } from '@/lib/logger'
+import { checkAnalysisRateLimit } from '@/lib/rate-limit'
+import { z } from 'zod'
+
+// Schema de validación para el request body
+const AnalysisRequestSchema = z.object({
+  sessionId: z.string().uuid('sessionId debe ser un UUID válido'),
+  dimensionScores: z.array(
+    z.object({
+      dimension: z.string().min(1).max(200),
+      value: z.number().min(0).max(5),
+    })
+  ).min(1, 'Debe haber al menos una dimensión').max(50, 'Máximo 50 dimensiones'),
+  sessionName: z.string().min(1).max(200).optional().default('Sesión'),
+  totalRespondents: z.number().int().min(1).max(10000).optional().default(1),
+})
 
 export async function POST(request: NextRequest) {
   // Verificar autenticación
@@ -19,6 +34,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
   }
 
+  // Rate limiting
+  const rateLimitResult = await checkAnalysisRateLimit(user.email || user.id)
+  if (!rateLimitResult.success) {
+    return NextResponse.json(
+      { error: 'Demasiadas solicitudes. Intenta de nuevo en un minuto.' },
+      { status: 429, headers: { 'Retry-After': '60' } }
+    )
+  }
+
   // Verificar que al menos una API key esté configurada
   const geminiKey = process.env.GEMINI_API_KEY
   const groqKey = process.env.GROQ_API_KEY
@@ -28,11 +52,18 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { sessionId, dimensionScores, sessionName, totalRespondents } = await request.json()
+    const body = await request.json()
 
-    if (!sessionId || !dimensionScores || !Array.isArray(dimensionScores)) {
-      return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 })
+    // Validar con Zod
+    const parseResult = AnalysisRequestSchema.safeParse(body)
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: 'Datos inválidos', details: parseResult.error.flatten().fieldErrors },
+        { status: 400 }
+      )
     }
+
+    const { sessionId, dimensionScores, sessionName, totalRespondents } = parseResult.data
 
     // Cargar contexto del instrumento asociado a la sesión
     let expertisePrompt = 'Eres un consultor experto. Analiza los resultados de esta evaluación.'
