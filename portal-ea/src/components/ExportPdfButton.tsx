@@ -22,17 +22,16 @@ export default function ExportPdfButton({ targetId, fileName = 'resultados' }: E
         return
       }
 
-      const html2canvas = (await import('html2canvas')).default
+      const html2canvas = (await import('html2canvas-pro')).default
       const { jsPDF } = await import('jspdf')
 
       // Capturar el contenido como imagen
       const canvas = await html2canvas(element, {
+        scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
-        windowWidth: element.scrollWidth,
-        windowHeight: element.scrollHeight,
-      } as any)
+      })
 
       const imgData = canvas.toDataURL('image/png')
       const imgWidth = canvas.width
