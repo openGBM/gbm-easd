@@ -384,10 +384,12 @@ export default function AdminDashboard() {
                     </button>
                   </div>
                 </div>
-                {/* QR Code */}
-                <div className="ml-6">
-                  <QRCodeDisplay url={getSurveyUrl(session.id)} size={120} />
-                </div>
+                {/* QR Code — solo si la sesión está activa */}
+                {session.is_active && (
+                  <div className="ml-6">
+                    <QRCodeDisplay url={getSurveyUrl(session.id)} size={120} />
+                  </div>
+                )}
               </div>
             </div>
           ))}
