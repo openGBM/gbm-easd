@@ -342,8 +342,8 @@ export default function EncuestadosPage() {
                 <p>Selecciona un encuestado para ver su historial.</p>
               </div>
             )}
-          </div>
         </div>
+      </div>
     </div>
   )
 }
