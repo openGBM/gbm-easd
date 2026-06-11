@@ -267,50 +267,53 @@ export default function InstrumentosPage() {
         <div className="grid gap-4">
           {instruments.map(inst => (
             <div key={inst.id} className="bg-white rounded-xl shadow-sm border p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-3 mb-1">
-                    <h3 className="text-lg font-bold text-gray-900">{inst.name}</h3>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                      inst.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                    }`}>
-                      {inst.is_active ? 'Activo' : 'Inactivo'}
-                    </span>
-                    {inst.current_version && (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
-                        v{inst.current_version.version_tag}
-                      </span>
-                    )}
-                  </div>
-                  {inst.description && (
-                    <p className="text-sm text-gray-500 mb-2">{inst.description}</p>
-                  )}
-                  <p className="text-xs text-gray-400">
-                    {inst.session_count} sesión(es) · Creado: {new Date(inst.created_at).toLocaleDateString('es-MX')}
-                  </p>
-                </div>
-                <div className="flex gap-2">
+              {/* Header: nombre + badges */}
+              <div className="flex items-center gap-3 mb-2">
+                <h3 className="text-lg font-bold text-gray-900">{inst.name}</h3>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${
+                  inst.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                }`}>
+                  {inst.is_active ? 'Activo' : 'Inactivo'}
+                </span>
+                {inst.current_version && (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0">
+                    v{inst.current_version.version_tag}
+                  </span>
+                )}
+              </div>
+
+              {/* Descripción (truncada a 2 líneas) */}
+              {inst.description && (
+                <p className="text-sm text-gray-500 mb-2 line-clamp-2">{inst.description}</p>
+              )}
+
+              {/* Meta + acciones en una fila */}
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                <p className="text-xs text-gray-400">
+                  {inst.session_count} sesión(es) · Creado: {new Date(inst.created_at).toLocaleDateString('es-MX')}
+                </p>
+                <div className="flex gap-2 shrink-0">
                   <Link
                     href={`/admin/instrumentos/${inst.id}/tendencias`}
-                    className="px-4 py-1.5 rounded-lg text-sm font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
                   >
                     📊 Tendencias
                   </Link>
                   <Link
                     href={`/admin/instrumentos/${inst.id}`}
-                    className="px-4 py-1.5 rounded-lg text-sm font-medium bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors"
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors"
                   >
                     Gestionar
                   </Link>
                   <button
                     onClick={() => duplicateInstrument(inst)}
-                    className="px-4 py-1.5 rounded-lg text-sm font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
                   >
                     Duplicar
                   </button>
                   <button
                     onClick={() => toggleInstrument(inst.id, inst.is_active)}
-                    className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                       inst.is_active
                         ? 'bg-red-50 text-red-600 hover:bg-red-100'
                         : 'bg-green-50 text-green-600 hover:bg-green-100'
