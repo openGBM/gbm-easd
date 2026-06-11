@@ -7,6 +7,7 @@ import { Session, Respondent } from '@/types/database'
 import RadarChart from '@/components/RadarChart'
 import ResultsTable from '@/components/ResultsTable'
 import InstrumentBadge from '@/components/InstrumentBadge'
+import ExportPdfButton from '@/components/ExportPdfButton'
 import ConfirmModal from '@/components/ConfirmModal'
 import { showToast } from '@/components/Toast'
 import Link from 'next/link'
@@ -559,23 +560,31 @@ export default function SessionDetailPage() {
         <div className="lg:col-span-2">
           {chartData.length > 0 ? (
             <div className="space-y-6">
-              <div className="bg-white rounded-xl shadow-sm border p-6">
-                <h2 className="text-lg font-bold mb-1 text-center">
-                  {viewMode === 'consolidated'
-                    ? 'Resultados Consolidados'
-                    : `Resultados — ${respondents.find(r => r.id === selectedRespondent)?.name || ''}`
-                  }
-                </h2>
-                {viewMode === 'consolidated' && (
-                  <p className="text-sm text-gray-500 text-center mb-4">
-                    Promedio de {respondents.filter(r => r.completed).length} encuestado(s) completado(s)
-                  </p>
-                )}
-                <RadarChart data={chartData} />
-              </div>
-              <div className="bg-white rounded-xl shadow-sm border p-6">
-                <h2 className="text-lg font-bold mb-4 text-center">Resumen</h2>
-                <ResultsTable data={chartData} mode="average" maturityLevels={maturityLevels} />
+              <div id="admin-results-content">
+                <div className="bg-white rounded-xl shadow-sm border p-6">
+                  <div className="flex items-center justify-between mb-1">
+                    <h2 className="text-lg font-bold text-center flex-1">
+                      {viewMode === 'consolidated'
+                        ? 'Resultados Consolidados'
+                        : `Resultados — ${respondents.find(r => r.id === selectedRespondent)?.name || ''}`
+                      }
+                    </h2>
+                    <ExportPdfButton
+                      targetId="admin-results-content"
+                      fileName={`resultados-${viewMode === 'consolidated' ? 'consolidado' : respondents.find(r => r.id === selectedRespondent)?.name?.replace(/\s+/g, '-').toLowerCase() || 'encuestado'}-${session.name.replace(/\s+/g, '-').toLowerCase()}`}
+                    />
+                  </div>
+                  {viewMode === 'consolidated' && (
+                    <p className="text-sm text-gray-500 text-center mb-4">
+                      Promedio de {respondents.filter(r => r.completed).length} encuestado(s) completado(s)
+                    </p>
+                  )}
+                  <RadarChart data={chartData} />
+                </div>
+                <div className="bg-white rounded-xl shadow-sm border p-6 mt-6">
+                  <h2 className="text-lg font-bold mb-4 text-center">Resumen</h2>
+                  <ResultsTable data={chartData} mode="average" maturityLevels={maturityLevels} />
+                </div>
               </div>
             </div>
           ) : (
