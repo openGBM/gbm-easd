@@ -7,9 +7,18 @@ interface ExportPdfButtonProps {
   targetId: string
   /** Nombre del archivo PDF generado */
   fileName?: string
+  /** Título que aparece en el header del PDF */
+  pdfTitle?: string
+  /** Subtítulo opcional (ej: nombre del encuestado, fecha) */
+  pdfSubtitle?: string
 }
 
-export default function ExportPdfButton({ targetId, fileName = 'resultados' }: ExportPdfButtonProps) {
+export default function ExportPdfButton({
+  targetId,
+  fileName = 'resultados',
+  pdfTitle,
+  pdfSubtitle,
+}: ExportPdfButtonProps) {
   const [exporting, setExporting] = useState(false)
 
   async function handleExport() {
@@ -25,63 +34,106 @@ export default function ExportPdfButton({ targetId, fileName = 'resultados' }: E
       const html2canvas = (await import('html2canvas-pro')).default
       const { jsPDF } = await import('jspdf')
 
+      // Ocultar elementos marcados con data-pdf-hide antes de capturar
+      const hiddenElements = element.querySelectorAll('[data-pdf-hide]')
+      hiddenElements.forEach(el => (el as HTMLElement).style.display = 'none')
+
+      // Mostrar elementos marcados con data-pdf-only
+      const pdfOnlyElements = element.querySelectorAll('[data-pdf-only]')
+      pdfOnlyElements.forEach(el => (el as HTMLElement).style.display = 'block')
+
       // Capturar el contenido como imagen
       const canvas = await html2canvas(element, {
-        scale: 2,
+        scale: 1.5,
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
       })
 
-      const imgData = canvas.toDataURL('image/png')
+      // Restaurar elementos ocultos
+      hiddenElements.forEach(el => (el as HTMLElement).style.display = '')
+      pdfOnlyElements.forEach(el => (el as HTMLElement).style.display = 'none')
+
+      // Usar JPEG para reducir tamaño (~80% más liviano que PNG)
+      const imgData = canvas.toDataURL('image/jpeg', 0.85)
       const imgWidth = canvas.width
       const imgHeight = canvas.height
 
-      // Crear PDF en orientación adecuada
+      // Crear PDF
       const pdfWidth = 210 // A4 width in mm
       const pdfHeight = 297 // A4 height in mm
       const margin = 10
 
-      const contentWidth = pdfWidth - margin * 2
-      const contentHeight = (imgHeight * contentWidth) / imgWidth
-
       const pdf = new jsPDF({
-        orientation: contentHeight > pdfHeight - margin * 2 ? 'portrait' : 'portrait',
+        orientation: 'portrait',
         unit: 'mm',
         format: 'a4',
       })
 
-      // Si el contenido es más alto que una página, dividir en múltiples páginas
-      const pageContentHeight = pdfHeight - margin * 2
-      let remainingHeight = contentHeight
-      let srcY = 0
+      let currentY = margin
 
-      while (remainingHeight > 0) {
-        const sliceHeight = Math.min(pageContentHeight, remainingHeight)
-        const sliceRatio = sliceHeight / contentHeight
+      // Header del PDF con título
+      if (pdfTitle) {
+        pdf.setFontSize(16)
+        pdf.setFont('helvetica', 'bold')
+        pdf.text(pdfTitle, pdfWidth / 2, currentY + 6, { align: 'center' })
+        currentY += 10
 
-        // Crear canvas temporal con el slice
-        const sliceCanvas = document.createElement('canvas')
-        sliceCanvas.width = imgWidth
-        sliceCanvas.height = Math.round(imgHeight * sliceRatio)
-
-        const ctx = sliceCanvas.getContext('2d')
-        if (ctx) {
-          ctx.drawImage(
-            canvas,
-            0, srcY, imgWidth, Math.round(imgHeight * sliceRatio),
-            0, 0, imgWidth, Math.round(imgHeight * sliceRatio)
-          )
+        if (pdfSubtitle) {
+          pdf.setFontSize(10)
+          pdf.setFont('helvetica', 'normal')
+          pdf.setTextColor(100, 100, 100)
+          pdf.text(pdfSubtitle, pdfWidth / 2, currentY + 4, { align: 'center' })
+          currentY += 8
+          pdf.setTextColor(0, 0, 0)
         }
 
-        const sliceData = sliceCanvas.toDataURL('image/png')
-        pdf.addImage(sliceData, 'PNG', margin, margin, contentWidth, sliceHeight)
+        currentY += 4
+      }
 
-        remainingHeight -= pageContentHeight
-        srcY += Math.round(imgHeight * sliceRatio)
+      const contentWidth = pdfWidth - margin * 2
+      const contentHeight = (imgHeight * contentWidth) / imgWidth
 
-        if (remainingHeight > 0) {
-          pdf.addPage()
+      // Si el contenido cabe en una página (considerando header)
+      const availableHeight = pdfHeight - currentY - margin
+      
+      if (contentHeight <= availableHeight) {
+        pdf.addImage(imgData, 'JPEG', margin, currentY, contentWidth, contentHeight)
+      } else {
+        // Multipágina: dividir imagen en slices
+        let remainingHeight = contentHeight
+        let srcY = 0
+        let isFirstPage = true
+
+        while (remainingHeight > 0) {
+          const pageAvailable = isFirstPage ? availableHeight : pdfHeight - margin * 2
+          const sliceHeight = Math.min(pageAvailable, remainingHeight)
+          const sliceRatio = sliceHeight / contentHeight
+
+          const sliceCanvas = document.createElement('canvas')
+          sliceCanvas.width = imgWidth
+          sliceCanvas.height = Math.round(imgHeight * sliceRatio)
+
+          const ctx = sliceCanvas.getContext('2d')
+          if (ctx) {
+            ctx.drawImage(
+              canvas,
+              0, srcY, imgWidth, Math.round(imgHeight * sliceRatio),
+              0, 0, imgWidth, Math.round(imgHeight * sliceRatio)
+            )
+          }
+
+          const sliceData = sliceCanvas.toDataURL('image/jpeg', 0.85)
+          const yPos = isFirstPage ? currentY : margin
+          pdf.addImage(sliceData, 'JPEG', margin, yPos, contentWidth, sliceHeight)
+
+          remainingHeight -= pageAvailable
+          srcY += Math.round(imgHeight * sliceRatio)
+
+          if (remainingHeight > 0) {
+            pdf.addPage()
+          }
+          isFirstPage = false
         }
       }
 
@@ -97,7 +149,8 @@ export default function ExportPdfButton({ targetId, fileName = 'resultados' }: E
     <button
       onClick={handleExport}
       disabled={exporting}
-      className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 text-sm"
+      data-pdf-hide
+      className="inline-flex items-center gap-2 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium disabled:opacity-50 text-sm"
     >
       {exporting ? (
         <>

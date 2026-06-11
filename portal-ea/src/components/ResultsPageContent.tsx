@@ -43,17 +43,16 @@ export default function ResultsPageContent({
 
         {/* Botón de exportación */}
         <div className="flex justify-center mb-6">
-          <ExportPdfButton targetId="results-content" fileName={fileName} />
+          <ExportPdfButton
+            targetId="results-content"
+            fileName={fileName}
+            pdfTitle="Resultados de Evaluación"
+            pdfSubtitle={`${sessionName} · ${respondentName} · ${respondentDate}`}
+          />
         </div>
 
         {/* Contenido capturable para PDF */}
         <div id="results-content">
-          {/* Header dentro del PDF */}
-          <div className="text-center mb-6 hidden print:block" aria-hidden="true">
-            <h1 className="text-2xl font-bold text-gray-900">Resultados de Evaluación</h1>
-            <p className="text-gray-600">{sessionName} — {respondentName} — {respondentDate}</p>
-          </div>
-
           <div className="grid md:grid-cols-2 gap-8">
             {/* Gráfico de Radar */}
             <div className="bg-white rounded-xl shadow-sm border p-6">

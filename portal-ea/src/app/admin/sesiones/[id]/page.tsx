@@ -572,6 +572,8 @@ export default function SessionDetailPage() {
                     <ExportPdfButton
                       targetId="admin-results-content"
                       fileName={`resultados-${viewMode === 'consolidated' ? 'consolidado' : respondents.find(r => r.id === selectedRespondent)?.name?.replace(/\s+/g, '-').toLowerCase() || 'encuestado'}-${session.name.replace(/\s+/g, '-').toLowerCase()}`}
+                      pdfTitle={viewMode === 'consolidated' ? 'Resultados Consolidados' : `Resultados — ${respondents.find(r => r.id === selectedRespondent)?.name || ''}`}
+                      pdfSubtitle={`${session.name}${instrumentInfo ? ` · ${instrumentInfo.name} v${instrumentInfo.versionTag}` : ''}`}
                     />
                   </div>
                   {viewMode === 'consolidated' && (
