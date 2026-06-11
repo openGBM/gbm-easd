@@ -13,8 +13,6 @@
  * 3. Descomentar las líneas de Sentry abajo
  */
 
-import { headers } from 'next/headers'
-
 type LogLevel = 'info' | 'warn' | 'error'
 
 interface LogEntry {
