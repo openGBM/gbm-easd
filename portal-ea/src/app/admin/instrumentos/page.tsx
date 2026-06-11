@@ -291,6 +291,12 @@ export default function InstrumentosPage() {
                 </div>
                 <div className="flex gap-2">
                   <Link
+                    href={`/admin/instrumentos/${inst.id}/tendencias`}
+                    className="px-4 py-1.5 rounded-lg text-sm font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                  >
+                    📊 Tendencias
+                  </Link>
+                  <Link
                     href={`/admin/instrumentos/${inst.id}`}
                     className="px-4 py-1.5 rounded-lg text-sm font-medium bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors"
                   >
