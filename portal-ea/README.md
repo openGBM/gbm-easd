@@ -14,9 +14,9 @@ Permite aplicar distintos instrumentos de evaluación, gestionar sesiones con pa
 | Framework | Next.js 16 (App Router) |
 | Lenguaje | TypeScript |
 | UI | React 19 + Tailwind CSS 4 |
-| Visualización | Recharts (radar chart) |
+| Visualización | Recharts (radar chart, bar chart) |
 | QR | qrcode.react |
-| Exportación | ExcelJS |
+| Exportación | ExcelJS, jsPDF + html2canvas-pro |
 | IA/Análisis | Google Gemini 2.0 Flash + Groq Llama 3.3 70B (fallback) |
 | Backend/DB | Supabase (PostgreSQL + Auth + RLS) |
 | Auth | Supabase Auth (email/password) |
@@ -38,16 +38,32 @@ portal-ea/
 │   │       ├── login/page.tsx               # Login admin
 │   │       ├── page.tsx                     # Dashboard sesiones
 │   │       ├── AdminNav.tsx                 # Navegación admin
-│   │       └── sesiones/[id]/page.tsx       # Detalle de sesión
+│   │       ├── sesiones/[id]/page.tsx       # Detalle de sesión
+│   │       ├── instrumentos/page.tsx        # Catálogo de instrumentos
+│   │       ├── instrumentos/[id]/page.tsx   # Gestión de instrumento
+│   │       ├── instrumentos/[id]/tendencias/page.tsx # Tendencias
+│   │       └── encuestados/page.tsx         # Historial de encuestados
 │   ├── components/
 │   │   ├── SurveyForm.tsx                   # Wizard de encuesta (registro + stepper)
 │   │   ├── RadarChart.tsx                   # Gráfico de radar (Recharts)
 │   │   ├── ResultsTable.tsx                 # Tabla resumen con nivel de madurez
-│   │   └── QRCodeDisplay.tsx                # Generador de código QR
+│   │   ├── QRCodeDisplay.tsx                # Generador de código QR (con fullscreen)
+│   │   ├── TrendBarChart.tsx                # Gráfico de barras para tendencias
+│   │   ├── TrendTable.tsx                   # Tabla de datos de tendencias
+│   │   ├── TrendFilters.tsx                 # Filtros de fecha y sesiones
+│   │   ├── RespondentSearchBar.tsx          # Buscador de encuestados
+│   │   ├── RespondentHistoryTable.tsx       # Tabla cronológica de historial
+│   │   ├── RespondentRadarGrid.tsx          # Grid de radares por sesión
+│   │   ├── ExportPdfButton.tsx              # Exportación a PDF
+│   │   └── ResultsPageContent.tsx           # Wrapper de resultados con PDF
 │   ├── lib/
-│   │   └── supabase/
-│   │       ├── client.ts                    # Cliente Supabase (browser)
-│   │       └── server.ts                    # Cliente Supabase (server)
+│   │   ├── supabase/
+│   │   │   ├── client.ts                    # Cliente Supabase (browser)
+│   │   │   └── server.ts                    # Cliente Supabase (server)
+│   │   └── analytics/
+│   │       ├── transformTrendData.ts        # Transformación datos tendencias
+│   │       ├── transformRespondentHistory.ts # Transformación historial encuestado
+│   │       └── filterTrendData.ts           # Filtros de tendencias
 │   └── types/
 │       └── database.ts                      # Tipos, escala de acuerdo, niveles de madurez
 ├── public/
@@ -109,7 +125,10 @@ dimensions (1) ──── (N) questions (1) ───────────�
 - Vista consolidada (promedio de todos los encuestados completados)
 - Análisis IA (Gemini/Groq): interpretación ejecutiva de resultados bajo demanda, con formato markdown y opción de copiar
 - Exportar respuestas a Excel (.xlsx) con 2 hojas: Resumen y Detalle
+- Exportar resultados a PDF (radar + tabla con título del instrumento)
 - Eliminar encuestados y sus respuestas
+- Tendencias por instrumento: gráfico de barras con evolución entre sesiones + filtros
+- Historial de encuestados: búsqueda por email/nombre + tabla cronológica + radares por sesión
 
 ### Seguridad
 - Supabase Auth con verificación de email autorizado
@@ -186,6 +205,10 @@ La aplicación estará disponible en [http://localhost:3000](http://localhost:30
 | `/admin/login` | Público | Login de administrador |
 | `/admin` | Protegido | Dashboard de sesiones |
 | `/admin/sesiones/[id]` | Protegido | Detalle de sesión |
+| `/admin/instrumentos` | Protegido | Catálogo de instrumentos |
+| `/admin/instrumentos/[id]` | Protegido | Gestión de instrumento |
+| `/admin/instrumentos/[id]/tendencias` | Protegido | Tendencias del instrumento |
+| `/admin/encuestados` | Protegido | Historial de encuestados |
 
 ---
 
@@ -197,10 +220,13 @@ La aplicación estará disponible en [http://localhost:3000](http://localhost:30
 
 ---
 
-## Futuras Mejoras (Fuera de Alcance MVP)
+## Futuras Mejoras (Fuera de Alcance Actual)
 
-- Despliegue en AWS (producción)
-- Comparación histórica entre sesiones
-- Exportación PDF de resultados
+- Comparación entre instrumentos
 - Multi-idioma
-- Notificaciones por correo al completar encuesta
+- Notificaciones por correo al completar encuesta (v3.0)
+- Escalas configurables (no solo 1-5)
+- Tipos de pregunta variados (texto libre, boolean)
+- Multi-tenant (organizaciones aisladas)
+- Roles granulares (admin, viewer, editor)
+- SSO (SAML, OAuth corporativo)

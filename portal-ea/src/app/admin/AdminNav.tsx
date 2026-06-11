@@ -38,6 +38,9 @@ export default function AdminNav({ userEmail, multiInstrument }: AdminNavProps) 
                 Instrumentos
               </Link>
             )}
+            <Link href="/admin/encuestados" className="text-gray-600 hover:text-gray-900">
+              Encuestados
+            </Link>
           </div>
         </div>
         <div className="flex items-center gap-4">

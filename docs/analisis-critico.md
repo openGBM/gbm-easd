@@ -143,7 +143,7 @@ El portal es una aplicación funcional en producción (Vercel + Supabase Cloud) 
 | 9 | Dark mode (cuando se requiera) | 2h | Accesibilidad visual |
 | 10 | Internacionalización (i18n) | 4-6h | Soporte multi-idioma |
 | 11 | PWA con soporte offline para encuestas | 6-8h | Funciona sin internet estable |
-| 12 | Notificaciones por email al completar | 2-3h | Admin informado en tiempo real |
+| 12 | Notificaciones por email al completar | 2-3h | Admin informado en tiempo real (→ v3.0) |
 
 ---
 
@@ -183,14 +183,13 @@ El portal es una aplicación funcional en producción (Vercel + Supabase Cloud) 
 
 ---
 
-### v2.2 — Comunicación y Analytics
+### v2.2 — Analytics y Visibilidad
 
-**Objetivo**: Mejorar visibilidad y comunicación  
+**Objetivo**: Mejorar visibilidad y seguimiento de datos  
 **Estimado**: 2-3 semanas
 
 | Tarea | Tipo |
 |-------|------|
-| Notificaciones por email al completar encuesta | Comunicación |
 | Dashboard con gráficos históricos (tendencias) | Analytics |
 | Comparación entre versiones de un instrumento | Visibilidad |
 | Exportación PDF de resultados con branding | Output |
@@ -208,6 +207,7 @@ El portal es una aplicación funcional en producción (Vercel + Supabase Cloud) 
 | Tipos de pregunta variados (opción múltiple, texto libre) | Core |
 | Lógica condicional entre preguntas | Core |
 | Templates de instrumento (pre-configurados) | Productividad |
+| Notificaciones por email al completar encuesta | Comunicación |
 | Exportación PDF de resultados con branding | Output |
 | API pública para integración con otros sistemas | Integración |
 
