@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { InstrumentWithVersion } from '@/types/database'
+import { showToast } from '@/components/Toast'
+import PromptModal from '@/components/PromptModal'
 import Link from 'next/link'
 
 export default function InstrumentosPage() {
@@ -15,6 +17,7 @@ export default function InstrumentosPage() {
   const [newDescription, setNewDescription] = useState('')
   const [newAiPrompt, setNewAiPrompt] = useState('')
   const [creating, setCreating] = useState(false)
+  const [duplicateModal, setDuplicateModal] = useState<(InstrumentWithVersion & { session_count: number }) | null>(null)
 
   useEffect(() => {
     checkAuth()
@@ -105,6 +108,102 @@ export default function InstrumentosPage() {
     await loadInstruments()
   }
 
+  async function duplicateInstrument(inst: InstrumentWithVersion & { session_count: number }) {
+    setDuplicateModal(inst)
+  }
+
+  async function confirmDuplicate(newName: string) {
+    const inst = duplicateModal
+    if (!inst) return
+    setDuplicateModal(null)
+
+    // Crear nuevo instrumento
+    const { data: newInst, error } = await supabase
+      .from('instruments')
+      .insert({
+        name: newName,
+        description: inst.description,
+        ai_expertise_prompt: inst.ai_expertise_prompt,
+      })
+      .select('id')
+      .single()
+
+    if (error || !newInst) {
+      showToast('error', 'Error al duplicar el instrumento')
+      return
+    }
+
+    // Crear versión 1 con los mismos datos que la versión current del original
+    const versionData: any = {
+      instrument_id: newInst.id,
+      version_number: 1,
+      version_tag: '1',
+      is_current: true,
+    }
+
+    if (inst.current_version) {
+      // Copiar scale_labels y maturity_levels de la versión original
+      const { data: origVersion } = await supabase
+        .from('instrument_versions')
+        .select('scale_labels, maturity_levels')
+        .eq('id', inst.current_version.id)
+        .single()
+
+      if (origVersion) {
+        versionData.scale_labels = origVersion.scale_labels
+        versionData.maturity_levels = origVersion.maturity_levels
+      }
+    }
+
+    const { data: newVersion } = await supabase
+      .from('instrument_versions')
+      .insert(versionData)
+      .select('id')
+      .single()
+
+    if (!newVersion) {
+      showToast('error', 'Error al crear versión del instrumento duplicado')
+      return
+    }
+
+    // Copiar dimensiones y preguntas de la versión current del original
+    if (inst.current_version) {
+      const { data: origDims } = await supabase
+        .from('dimensions')
+        .select('*, questions(*)')
+        .eq('instrument_version_id', inst.current_version.id)
+        .order('display_order')
+
+      if (origDims) {
+        for (const dim of origDims) {
+          const { data: newDim } = await supabase
+            .from('dimensions')
+            .insert({
+              name: dim.name,
+              description: dim.description,
+              color: dim.color,
+              display_order: dim.display_order,
+              instrument_version_id: newVersion.id,
+            })
+            .select('id')
+            .single()
+
+          if (newDim && dim.questions) {
+            const questions = (dim.questions as any[]).map(q => ({
+              dimension_id: newDim.id,
+              text: q.text,
+              display_order: q.display_order,
+            }))
+            await supabase.from('questions').insert(questions)
+          }
+        }
+      }
+    }
+
+    showToast('success', `Instrumento "${newName}" duplicado exitosamente`)
+    await loadInstruments()
+  }
+
   if (loading) {
     return (
       <div className="text-center py-12">
@@ -168,38 +267,53 @@ export default function InstrumentosPage() {
         <div className="grid gap-4">
           {instruments.map(inst => (
             <div key={inst.id} className="bg-white rounded-xl shadow-sm border p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-3 mb-1">
-                    <h3 className="text-lg font-bold text-gray-900">{inst.name}</h3>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                      inst.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                    }`}>
-                      {inst.is_active ? 'Activo' : 'Inactivo'}
-                    </span>
-                    {inst.current_version && (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
-                        v{inst.current_version.version_tag}
-                      </span>
-                    )}
-                  </div>
-                  {inst.description && (
-                    <p className="text-sm text-gray-500 mb-2">{inst.description}</p>
-                  )}
-                  <p className="text-xs text-gray-400">
-                    {inst.session_count} sesión(es) · Creado: {new Date(inst.created_at).toLocaleDateString('es-MX')}
-                  </p>
-                </div>
-                <div className="flex gap-2">
+              {/* Header: nombre + badges */}
+              <div className="flex items-center gap-3 mb-2">
+                <h3 className="text-lg font-bold text-gray-900">{inst.name}</h3>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${
+                  inst.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                }`}>
+                  {inst.is_active ? 'Activo' : 'Inactivo'}
+                </span>
+                {inst.current_version && (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0">
+                    v{inst.current_version.version_tag}
+                  </span>
+                )}
+              </div>
+
+              {/* Descripción (truncada a 2 líneas) */}
+              {inst.description && (
+                <p className="text-sm text-gray-500 mb-2 line-clamp-2">{inst.description}</p>
+              )}
+
+              {/* Meta + acciones en una fila */}
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                <p className="text-xs text-gray-400">
+                  {inst.session_count} sesión(es) · Creado: {new Date(inst.created_at).toLocaleDateString('es-MX')}
+                </p>
+                <div className="flex gap-2 shrink-0">
+                  <Link
+                    href={`/admin/instrumentos/${inst.id}/tendencias`}
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                  >
+                    📊 Tendencias
+                  </Link>
                   <Link
                     href={`/admin/instrumentos/${inst.id}`}
-                    className="px-4 py-1.5 rounded-lg text-sm font-medium bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors"
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors"
                   >
                     Gestionar
                   </Link>
                   <button
+                    onClick={() => duplicateInstrument(inst)}
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
+                  >
+                    Duplicar
+                  </button>
+                  <button
                     onClick={() => toggleInstrument(inst.id, inst.is_active)}
-                    className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                       inst.is_active
                         ? 'bg-red-50 text-red-600 hover:bg-red-100'
                         : 'bg-green-50 text-green-600 hover:bg-green-100'
@@ -213,6 +327,16 @@ export default function InstrumentosPage() {
           ))}
         </div>
       )}
+
+      {/* Modal para duplicar instrumento */}
+      <PromptModal
+        isOpen={!!duplicateModal}
+        title="Duplicar Instrumento"
+        placeholder="Nombre del instrumento duplicado"
+        defaultValue={duplicateModal ? `${duplicateModal.name} (copia)` : ''}
+        onConfirm={confirmDuplicate}
+        onCancel={() => setDuplicateModal(null)}
+      />
     </div>
   )
 }

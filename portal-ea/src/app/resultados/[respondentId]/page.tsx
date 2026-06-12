@@ -1,6 +1,5 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import RadarChart from '@/components/RadarChart'
-import ResultsTable from '@/components/ResultsTable'
+import ResultsPageContent from '@/components/ResultsPageContent'
 
 interface Props {
   params: Promise<{ respondentId: string }>
@@ -23,10 +22,10 @@ export default async function ResultadosPage({ params }: Props) {
     )
   }
 
-  // Cargar encuestado (solo si completó)
+  // Cargar encuestado (solo si completó) con info de sesión e instrumento
   const { data: respondent } = await supabase
     .from('respondents')
-    .select('*, sessions(name)')
+    .select('*, sessions(name, instrument_version_id)')
     .eq('id', respondentId)
     .eq('completed', true)
     .single()
@@ -43,6 +42,20 @@ export default async function ResultadosPage({ params }: Props) {
   }
 
   const sessionName = (respondent as any).sessions?.name || ''
+
+  // Cargar niveles de madurez del instrumento (si existe)
+  let maturityLevels = null
+  const instrumentVersionId = (respondent as any).sessions?.instrument_version_id
+  if (instrumentVersionId) {
+    const { data: versionData } = await supabase
+      .from('instrument_versions')
+      .select('maturity_levels')
+      .eq('id', instrumentVersionId)
+      .single()
+    if (versionData?.maturity_levels) {
+      maturityLevels = versionData.maturity_levels
+    }
+  }
 
   // Cargar respuestas con preguntas y dimensiones
   const { data: responses } = await supabase
@@ -83,7 +96,6 @@ export default async function ResultadosPage({ params }: Props) {
       value: Math.round((d.total / d.count) * 10) / 10,
     }))
 
-  // Datos para la tabla: suma por dimensión
   const tableData = Object.values(dimensionScores)
     .sort((a, b) => a.order - b.order)
     .map(d => ({
@@ -93,37 +105,13 @@ export default async function ResultadosPage({ params }: Props) {
     }))
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
-      <div className="max-w-5xl mx-auto">
-        <div className="text-center mb-8">
-          <img src="/logo-gbm.png" alt="GBM" className="h-10 mx-auto mb-4" />
-          <h1 className="text-3xl font-bold text-gray-900">
-            Resultados de Evaluación
-          </h1>
-          {sessionName && (
-            <p className="text-lg text-gray-700 mt-1">{sessionName}</p>
-          )}
-          <p className="text-gray-600 mt-2">
-            Encuestado: {respondent.name} — {new Date(respondent.created_at).toLocaleDateString('es-MX')}
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-8">
-          {/* Gráfico de Radar (promedio por dimensión, escala 1-5) */}
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h2 className="text-lg font-bold mb-4 text-center">Gráfico de Radar</h2>
-            <p className="text-xs text-gray-400 text-center mb-2">Promedio por dimensión (escala 1-5)</p>
-            <RadarChart data={chartData} />
-          </div>
-
-          {/* Tabla de Resultados (suma por dimensión) */}
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h2 className="text-lg font-bold mb-4 text-center">Resumen por Dimensión</h2>
-            <p className="text-xs text-gray-400 text-center mb-2">Suma de respuestas por dimensión (escala 1-5)</p>
-            <ResultsTable data={tableData} />
-          </div>
-        </div>
-      </div>
-    </div>
+    <ResultsPageContent
+      respondentName={respondent.name}
+      respondentDate={new Date(respondent.created_at).toLocaleDateString('es-MX')}
+      sessionName={sessionName}
+      chartData={chartData}
+      tableData={tableData}
+      maturityLevels={maturityLevels}
+    />
   )
 }

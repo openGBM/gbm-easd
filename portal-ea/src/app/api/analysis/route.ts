@@ -2,6 +2,22 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import Groq from 'groq-sdk'
+import { logger } from '@/lib/logger'
+import { checkAnalysisRateLimit } from '@/lib/rate-limit'
+import { z } from 'zod'
+
+// Schema de validación para el request body
+const AnalysisRequestSchema = z.object({
+  sessionId: z.string().uuid('sessionId debe ser un UUID válido'),
+  dimensionScores: z.array(
+    z.object({
+      dimension: z.string().min(1).max(200),
+      value: z.number().min(0).max(5),
+    })
+  ).min(1, 'Debe haber al menos una dimensión').max(50, 'Máximo 50 dimensiones'),
+  sessionName: z.string().min(1).max(200).optional().default('Sesión'),
+  totalRespondents: z.number().int().min(1).max(10000).optional().default(1),
+})
 
 export async function POST(request: NextRequest) {
   // Verificar autenticación
@@ -18,6 +34,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
   }
 
+  // Rate limiting
+  const rateLimitResult = await checkAnalysisRateLimit(user.email || user.id)
+  if (!rateLimitResult.success) {
+    return NextResponse.json(
+      { error: 'Demasiadas solicitudes. Intenta de nuevo en un minuto.' },
+      { status: 429, headers: { 'Retry-After': '60' } }
+    )
+  }
+
   // Verificar que al menos una API key esté configurada
   const geminiKey = process.env.GEMINI_API_KEY
   const groqKey = process.env.GROQ_API_KEY
@@ -27,11 +52,18 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { sessionId, dimensionScores, sessionName, totalRespondents } = await request.json()
+    const body = await request.json()
 
-    if (!sessionId || !dimensionScores || !Array.isArray(dimensionScores)) {
-      return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 })
+    // Validar con Zod
+    const parseResult = AnalysisRequestSchema.safeParse(body)
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: 'Datos inválidos', details: parseResult.error.flatten().fieldErrors },
+        { status: 400 }
+      )
     }
+
+    const { sessionId, dimensionScores, sessionName, totalRespondents } = parseResult.data
 
     // Cargar contexto del instrumento asociado a la sesión
     let expertisePrompt = 'Eres un consultor experto. Analiza los resultados de esta evaluación.'
@@ -130,7 +162,7 @@ El tono debe ser profesional pero accesible, orientado a líderes de negocio y T
       }, { onConflict: 'session_id' })
 
     if (saveError) {
-      console.error('Error guardando análisis:', saveError)
+      logger.error('Error guardando análisis', 'api/analysis', saveError)
       return NextResponse.json({
         analysis: analysisText,
         saveWarning: `Análisis generado pero no guardado: ${saveError.message}`
@@ -139,7 +171,7 @@ El tono debe ser profesional pero accesible, orientado a líderes de negocio y T
 
     return NextResponse.json({ analysis: analysisText, saved: true })
   } catch (error: any) {
-    console.error('Error generando análisis:', error)
+    logger.error('Error generando análisis', 'api/analysis', error)
     return NextResponse.json(
       { error: 'Error al generar el análisis. Intenta de nuevo.' },
       { status: 500 }
@@ -168,7 +200,7 @@ async function tryGemini(apiKey: string, prompt: string): Promise<string> {
     }
     return ''
   } catch (error) {
-    console.error('Gemini falló, intentando fallback:', error)
+    logger.warn('Gemini falló, intentando fallback', 'api/analysis', error)
     return ''
   }
 }
@@ -188,7 +220,7 @@ async function tryGroq(apiKey: string, prompt: string): Promise<string> {
 
     return completion.choices[0]?.message?.content || ''
   } catch (error) {
-    console.error('Groq falló:', error)
+    logger.error('Groq falló', 'api/analysis', error)
     return ''
   }
 }

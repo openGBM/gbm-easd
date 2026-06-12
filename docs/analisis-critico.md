@@ -33,10 +33,12 @@ El portal es una aplicación funcional en producción (Vercel + Supabase Cloud) 
 |---------|-------|
 | Páginas/Rutas | 9 (5 públicas + 4 admin) |
 | API Routes | 1 (/api/analysis) |
-| Componentes | 7 |
-| Migraciones SQL | 6 |
+| Componentes | 9 |
+| Migraciones SQL | 7 |
 | Tablas en BD | 8 (sessions, dimensions, questions, respondents, responses, session_analyses, instruments, instrument_versions) |
-| Dependencias producción | ~15 |
+| Dependencias producción | ~18 |
+| Tests unitarios | 26 (Vitest) |
+| Tests E2E | 26 (Playwright — flujo encuesta, admin, concurrencia 10 usuarios) |
 | Vulnerabilidades conocidas | 4 moderadas (postcss en Next.js, uuid en exceljs) |
 
 ---
@@ -60,18 +62,18 @@ El portal es una aplicación funcional en producción (Vercel + Supabase Cloud) 
 |---------|----------|---------|---------------|
 | No hay capa de servicios | Toda la lógica está en los componentes de página | Dificulta testing y reutilización | Extraer servicios para operaciones complejas (versionamiento, import) |
 | Client-side heavy | Las páginas admin hacen muchas queries desde el browser | Performance en conexiones lentas | Considerar Server Components o API routes para queries pesadas |
-| Sin tests | No hay tests unitarios ni e2e | Riesgo en regresiones | Implementar tests para flujos críticos (encuesta, import, análisis IA) |
+| Sin tests | ~~No hay tests~~ → Resuelto: 52 tests (26 unit Vitest + 26 E2E Playwright + concurrencia) | ~~Riesgo en regresiones~~ Mitigado | Expandir cobertura a import Excel y más edge cases |
 | Sin validación server-side del import | El Excel se parsea y se inserta desde el client | Datos inconsistentes si el client falla mid-import | Mover lógica de import a un API Route con transacción |
 | Tipos `any` en queries Supabase | Varios casteos `as any` en JOINs | Falta de type safety | Generar tipos con `supabase gen types` y usar tipado estricto |
 | Feature flag via env var | `NEXT_PUBLIC_MULTI_INSTRUMENT` es público | No permite toggling sin redeploy | Migrar a Vercel Flags Dashboard (ya instalado, solo falta conectar) |
 
 ### Deuda Técnica Identificada
 
-1. **Import Excel sin transacción**: si falla a mitad de la inserción, queda en estado parcial
-2. **`AGREEMENT_SCALE` hardcodeada**: sigue existiendo como constante aunque ya no es la única escala
-3. **`flags.ts` no se usa en runtime**: el flag se lee de env var directamente en los componentes, no del SDK
-4. **Middleware eliminado**: no hay protección server-side de rutas admin (solo client-side redirect)
-5. **Console.error en producción**: errores se logean pero no se reportan a un servicio de monitoreo
+1. ~~**Import Excel sin transacción**~~ → ✅ Resuelto: rollback manual si falla a mitad de inserción (revierte dimensiones/preguntas ya creadas)
+2. ~~**`AGREEMENT_SCALE` hardcodeada**~~ → ✅ Resuelto: renombrada a `DEFAULT_SCALE_LABELS` con deprecation notice, usada solo como fallback
+3. ~~**`flags.ts` no se usa en runtime**~~ → ✅ Resuelto: `isMultiInstrumentEnabled()` es la fuente de verdad usada por AdminLayout, AdminNav y AdminDashboard
+4. **Middleware eliminado**: no hay protección server-side de rutas admin (solo client-side redirect) — Evaluado como nice-to-have, no necesario con RLS + AdminLayout
+5. ~~**Console.error en producción**~~ → ✅ Resuelto: logger centralizado (`lib/logger.ts`) listo para conectar a Sentry/LogRocket
 
 ---
 
@@ -141,7 +143,7 @@ El portal es una aplicación funcional en producción (Vercel + Supabase Cloud) 
 | 9 | Dark mode (cuando se requiera) | 2h | Accesibilidad visual |
 | 10 | Internacionalización (i18n) | 4-6h | Soporte multi-idioma |
 | 11 | PWA con soporte offline para encuestas | 6-8h | Funciona sin internet estable |
-| 12 | Notificaciones por email al completar | 2-3h | Admin informado en tiempo real |
+| 12 | Notificaciones por email al completar | 2-3h | Admin informado en tiempo real (→ v3.0) |
 
 ---
 
@@ -161,36 +163,36 @@ El portal es una aplicación funcional en producción (Vercel + Supabase Cloud) 
 
 ---
 
-### v2.1 — Estabilización y Seguridad
+### v2.1 — Editor Visual y UX
 
-**Objetivo**: Hardening del sistema para uso corporativo  
-**Estimado**: 1-2 semanas
+**Objetivo**: Reducir fricción operativa del admin  
+**Estado**: ✅ Completado
 
-| Tarea | Tipo |
-|-------|------|
-| Reimplementar middleware Next.js | Seguridad |
-| Import Excel via API Route con transacción | Confiabilidad |
-| Generar tipos Supabase estrictos | Mantenibilidad |
-| Agregar audit log de acciones admin | Seguridad |
-| Rate limiting en login (visual) | Seguridad |
-| Tests e2e flujo encuesta + import | Calidad |
-| Error boundaries en páginas admin | UX |
+| Tarea | Tipo | Estado |
+|-------|------|--------|
+| Editor visual de preguntas (editar texto, reordenar, agregar/eliminar) | UX | ✅ |
+| Editor visual de escala de valores (1-5) | UX | ✅ |
+| Editor visual de niveles de madurez (umbrales + labels configurables) | UX | ✅ |
+| Duplicar instrumento existente | Productividad | ✅ |
+| Filtros y búsqueda en listado de sesiones | UX | ✅ |
+| Tests unitarios (26 tests Vitest) | Calidad | ✅ |
+| Tests E2E flujo encuesta + admin (15 tests Playwright) | Calidad | ✅ |
+| Test de concurrencia 10 usuarios simultáneos | Calidad | ✅ |
+| Error boundaries en páginas admin | UX | Pendiente |
+| Monitoreo de errores (Sentry o similar) | Observabilidad | Pendiente |
 
 ---
 
-### v2.2 — Experiencia del Administrador
+### v2.2 — Analytics y Visibilidad
 
-**Objetivo**: Mejorar la productividad del admin  
+**Objetivo**: Mejorar visibilidad y seguimiento de datos  
 **Estimado**: 2-3 semanas
 
 | Tarea | Tipo |
 |-------|------|
-| Editor visual de preguntas (sin Excel) | UX |
-| Duplicar instrumento existente | Productividad |
-| Comparación entre versiones de un instrumento | Visibilidad |
-| Filtros y búsqueda en listado de sesiones | UX |
 | Dashboard con gráficos históricos (tendencias) | Analytics |
-| Notificaciones por email al completar encuesta | Comunicación |
+| Comparación entre versiones de un instrumento | Visibilidad |
+| Exportación PDF de resultados con branding | Output |
 
 ---
 
@@ -205,14 +207,15 @@ El portal es una aplicación funcional en producción (Vercel + Supabase Cloud) 
 | Tipos de pregunta variados (opción múltiple, texto libre) | Core |
 | Lógica condicional entre preguntas | Core |
 | Templates de instrumento (pre-configurados) | Productividad |
+| Notificaciones por email al completar encuesta | Comunicación |
 | Exportación PDF de resultados con branding | Output |
 | API pública para integración con otros sistemas | Integración |
 
 ---
 
-### v4.0 — Multi-tenant y Enterprise
+### v4.0 — Multi-tenant, Enterprise y Observabilidad
 
-**Objetivo**: Escalar a múltiples organizaciones  
+**Objetivo**: Escalar a múltiples organizaciones con visibilidad operacional  
 **Estimado**: 6-8 semanas
 
 | Tarea | Tipo |
@@ -223,6 +226,35 @@ El portal es una aplicación funcional en producción (Vercel + Supabase Cloud) 
 | Branding personalizado por organización | Personalización |
 | SLA y soporte dedicado | Operaciones |
 | Migración a infraestructura propia (AWS) | Infraestructura |
+| OpenTelemetry: traces, metrics, logs | Observabilidad |
+
+#### OpenTelemetry — Plan de Implementación (v4.0)
+
+**Justificación**: Con multi-tenant y múltiples usuarios concurrentes, se necesita visibilidad sobre performance, errores y uso del sistema para cumplir SLAs.
+
+**Instrumentación planificada:**
+
+| Punto | Señal | Valor |
+|-------|-------|-------|
+| `/api/analysis` | Traces | Latencia IA (Gemini vs Groq), rate de fallback |
+| Import Excel | Traces + Metrics | Tiempo de procesamiento, éxito/fallo |
+| Encuesta SSR | Traces | Tiempo de carga, queries a Supabase |
+| Supabase HTTP | Traces (auto) | Latencia de cada query |
+| Logger existente | Logs | Correlación con trace IDs |
+| Encuestas completadas | Metrics | Counter por instrumento/sesión |
+| Errores de RLS | Metrics | Rate de errores de permisos |
+
+**Implementación técnica:**
+- Archivo `src/instrumentation.ts` (hook nativo de Next.js)
+- Exportador: Vercel Observability (incluido) o Grafana Cloud (OSS)
+- Instrumentación automática de HTTP/fetch via `@opentelemetry/instrumentation-fetch`
+- Spans manuales en `/api/analysis` y import Excel
+- Conectar `lib/logger.ts` con OTel LoggerProvider
+
+**Prerrequisitos:**
+- Multi-tenant operativo (para segmentar métricas por organización)
+- Volumen de usuarios que justifique el costo de un backend de observabilidad
+- Definición de SLAs (p95 latencia, uptime)
 
 ---
 

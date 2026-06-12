@@ -8,6 +8,7 @@ import { isMultiInstrumentEnabled } from '@/flags'
 import QRCodeDisplay from '@/components/QRCodeDisplay'
 import InstrumentBadge from '@/components/InstrumentBadge'
 import InstrumentSelector from '@/components/InstrumentSelector'
+import ConfirmModal from '@/components/ConfirmModal'
 import Link from 'next/link'
 
 export default function AdminDashboard() {
@@ -23,6 +24,11 @@ export default function AdminDashboard() {
   const [multiInstrumentEnabled, setMultiInstrumentEnabled] = useState(false)
   const [instruments, setInstruments] = useState<InstrumentWithVersion[]>([])
   const [selectedInstrumentId, setSelectedInstrumentId] = useState('')
+  // Filtros
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all')
+  const [filterSearch, setFilterSearch] = useState('')
+  // Modal confirmación
+  const [deleteModal, setDeleteModal] = useState<{ id: string; name: string } | null>(null)
 
   useEffect(() => {
     checkAuth()
@@ -186,11 +192,13 @@ export default function AdminDashboard() {
   }
 
   async function deleteSession(id: string, name: string) {
-    const confirmed = confirm(
-      `¿Eliminar la sesión "${name}" y todos sus encuestados y respuestas?\n\nEsta acción no se puede deshacer.`
-    )
-    if (!confirmed) return
+    setDeleteModal({ id, name })
+  }
 
+  async function confirmDeleteSession() {
+    if (!deleteModal) return
+    const { id } = deleteModal
+    setDeleteModal(null)
     setDeleting(id)
 
     // Obtener respondents de la sesión para eliminar sus respuestas
@@ -229,6 +237,13 @@ export default function AdminDashboard() {
       </div>
     )
   }
+
+  // Filtrar sesiones
+  const filteredSessions = sessions.filter(s => {
+    const matchesStatus = filterStatus === 'all' || (filterStatus === 'active' ? s.is_active : !s.is_active)
+    const matchesSearch = !filterSearch || s.name.toLowerCase().includes(filterSearch.toLowerCase())
+    return matchesStatus && matchesSearch
+  })
 
   return (
     <div>
@@ -291,15 +306,35 @@ export default function AdminDashboard() {
         </form>
       </div>
 
+      {/* Filtros de sesiones */}
+      <div className="flex gap-4 mb-6 items-center">
+        <input
+          type="text"
+          value={filterSearch}
+          onChange={e => setFilterSearch(e.target.value)}
+          placeholder="Buscar por nombre..."
+          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+        />
+        <select
+          value={filterStatus}
+          onChange={e => setFilterStatus(e.target.value as 'all' | 'active' | 'inactive')}
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+        >
+          <option value="all">Todas</option>
+          <option value="active">Activas</option>
+          <option value="inactive">Inactivas</option>
+        </select>
+      </div>
+
       {/* Lista de sesiones */}
-      {sessions.length === 0 ? (
+      {filteredSessions.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           <p>No hay sesiones creadas aún.</p>
           <p className="text-sm mt-1">Crea una sesión para comenzar.</p>
         </div>
       ) : (
         <div className="grid gap-6">
-          {sessions.map(session => (
+          {filteredSessions.map(session => (
             <div key={session.id} className="bg-white rounded-xl shadow-sm border p-6">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -349,15 +384,28 @@ export default function AdminDashboard() {
                     </button>
                   </div>
                 </div>
-                {/* QR Code */}
-                <div className="ml-6">
-                  <QRCodeDisplay url={getSurveyUrl(session.id)} size={120} />
-                </div>
+                {/* QR Code — solo si la sesión está activa */}
+                {session.is_active && (
+                  <div className="ml-6">
+                    <QRCodeDisplay url={getSurveyUrl(session.id)} size={120} />
+                  </div>
+                )}
               </div>
             </div>
           ))}
         </div>
       )}
+
+      {/* Modal de confirmación de borrado */}
+      <ConfirmModal
+        isOpen={!!deleteModal}
+        title="Eliminar Sesión"
+        message={`¿Eliminar la sesión "${deleteModal?.name}" y todos sus encuestados y respuestas?`}
+        warning="Esta acción no se puede deshacer. Antes de eliminar una sesión asegúrese de haber exportado los datos a Excel y generado el análisis IA si lo requiere."
+        confirmLabel="Sí, eliminar"
+        onConfirm={confirmDeleteSession}
+        onCancel={() => setDeleteModal(null)}
+      />
     </div>
   )
 }

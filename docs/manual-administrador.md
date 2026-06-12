@@ -17,7 +17,9 @@ El Portal de Evaluaciones de Autodiagnóstico es una herramienta web que permite
 | Análisis IA | Interpretación ejecutiva automatizada de los resultados |
 | Multi-instrumento | Gestionar distintos tipos de evaluación desde un solo portal |
 | Sesiones con QR | Cada sesión genera un código QR para acceso rápido desde móvil |
-| Exportar datos | Descarga de resultados en formato Excel |
+| Exportar datos | Descarga de resultados en formato Excel y PDF |
+| Tendencias | Visualización de la evolución de resultados entre sesiones de un instrumento |
+| Historial de encuestados | Consolidación de participaciones de un mismo encuestado en múltiples sesiones |
 
 ### Roles del sistema
 
@@ -36,7 +38,9 @@ El Portal de Evaluaciones de Autodiagnóstico es una herramienta web que permite
 4. Los participantes responden la encuesta desde su dispositivo
 5. Admin consulta resultados individuales o consolidados
 6. Admin genera análisis IA interpretativo
-7. Admin exporta los datos a Excel si es necesario
+7. Admin exporta los datos a Excel o descarga PDF de resultados
+8. Admin consulta tendencias del instrumento entre sesiones
+9. Admin busca el historial de un encuestado en múltiples sesiones
 ```
 
 ---
@@ -71,7 +75,25 @@ Un **instrumento** es un tipo de evaluación con su propio banco de dimensiones,
 
 ### Configurar el banco de preguntas (Import Excel)
 
-El método más práctico para configurar un instrumento es mediante un archivo Excel:
+El método más práctico para configurar un instrumento masivamente es mediante un archivo Excel. También se puede editar visualmente desde la interfaz.
+
+#### Editor Visual (UI)
+
+Desde la página de gestión del instrumento:
+
+**Dimensiones:**
+- **Agregar**: botón "+ Agregar Dimensión" → ingresar nombre
+- **Editar nombre**: click en el texto del nombre → editar inline → se guarda al salir del campo
+- **Reordenar**: botones ▲/▼ para subir o bajar de posición
+- **Eliminar**: botón ✕ (elimina dimensión y todas sus preguntas)
+
+**Preguntas:**
+- **Agregar**: botón "+ Agregar pregunta" dentro de cada dimensión
+- **Editar texto**: click en el texto → editar inline → se guarda al salir del campo
+- **Reordenar**: botones ▲/▼ (visibles al pasar el mouse)
+- **Eliminar**: botón ✕ (visible al pasar el mouse)
+
+#### Import/Export Excel (masivo)
 
 1. Ir a **Instrumentos → [Instrumento] → Gestionar**
 2. Hacer clic en **"📥 Exportar Excel"** para obtener la plantilla (si el instrumento ya tiene datos) o preparar un Excel con el formato esperado
@@ -107,6 +129,21 @@ El archivo debe tener **dos hojas**:
 
 > Si no se incluye la hoja de Escala, se usan las etiquetas por defecto (Totalmente en desacuerdo → Totalmente de acuerdo).
 
+**Hoja 3: "Niveles"** (o cualquier nombre que contenga "nivel") — opcional
+
+| Nivel | Color | Promedio Mínimo | Promedio Máximo |
+|-------|-------|-----------------|-----------------|
+| Inicial | #EF4444 | 1.0 | 2.0 |
+| En progreso | #F59E0B | 2.1 | 3.5 |
+| Avanzado | #10B981 | 3.6 | 5.0 |
+
+- **Nivel**: nombre del nivel de madurez (libre, ej: "Naciente", "Inicial", "Crítico")
+- **Color**: código hexadecimal para la UI (formato #RRGGBB)
+- **Promedio Mínimo**: desde qué promedio (inclusive) aplica este nivel
+- **Promedio Máximo**: hasta qué promedio (inclusive) aplica este nivel
+
+> Se pueden definir 2, 3, 5 o cualquier cantidad de niveles. Los rangos deben cubrir de 1.0 a 5.0 sin huecos. Si no se incluye la hoja de Niveles, se calculan automáticamente por tercios (1.0–2.3 Naciente, 2.4–3.6 Base, 3.7–5.0 Clase Mundial).
+
 #### Importar el Excel
 
 1. En la página de gestión del instrumento, hacer clic en **"📤 Importar Excel"**
@@ -133,6 +170,36 @@ El archivo debe tener **dos hojas**:
 2. Hacer clic en **"Editar"** (o "Agregar" si no está definido)
 3. Escribir el rol/contexto que la IA debe asumir al analizar resultados
 4. Hacer clic en **"Guardar"**
+
+### Editar Escala de Valores (UI)
+
+1. En la página de gestión del instrumento, sección **"Escala de Valores (1-5)"**
+2. Editar la etiqueta y descripción de cada valor (1 a 5)
+3. Hacer clic en **"Guardar Escala"**
+
+> Si se dejan vacíos, se usan las etiquetas por defecto.
+
+### Editar Niveles de Madurez (UI)
+
+1. En la página de gestión del instrumento, sección **"Niveles de Madurez"**
+2. Editar nombre, color (#RRGGBB), promedio mínimo y máximo de cada nivel
+3. **Agregar nivel**: botón "+ Agregar Nivel"
+4. **Eliminar nivel**: botón "Eliminar" en la fila
+5. Hacer clic en **"Guardar Niveles"**
+
+**Validaciones al guardar:**
+- Los rangos no se pueden solapar
+- Deben cubrir de 1.0 a 5.0 sin huecos
+- El mínimo debe ser menor que el máximo
+- Los colores deben ser hex válidos (#RRGGBB)
+- Cada nivel debe tener nombre
+
+### Duplicar un instrumento
+
+1. En el catálogo de instrumentos, hacer clic en **"Duplicar"** en el instrumento deseado
+2. Ingresar el nuevo nombre
+3. Se copia completamente: dimensiones, preguntas, escala, niveles de madurez y expertise IA
+4. El duplicado es independiente del original
 
 **Ejemplos de expertise:**
 - *"Eres un consultor experto en Arquitectura Empresarial (EA). Evalúas la madurez y eficacia de los equipos de EA en organizaciones."*
@@ -168,6 +235,11 @@ Al acceder al panel admin, el dashboard muestra:
    - Ingresar el **nombre** de la sesión (ej: "Evaluación Banco XYZ - Junio 2026")
 2. Hacer clic en **"+ Crear Sesión"**
 3. La sesión se crea activa y lista para recibir respuestas
+
+### Filtrar sesiones
+
+- **Búsqueda por nombre**: campo de texto que filtra instantáneamente
+- **Filtro por estado**: dropdown con opciones Todas / Activas / Inactivas
 
 ### Compartir la sesión con participantes
 
@@ -244,15 +316,104 @@ El participante accede al enlace de la sesión (sin necesidad de login):
 
 ## Niveles de Madurez
 
-Los resultados se clasifican en tres niveles calculados automáticamente según la cantidad de preguntas de cada dimensión:
+Los resultados se clasifican en niveles configurables por instrumento. Cada instrumento puede definir sus propios niveles con rangos y nombres personalizados.
 
-| Nivel | Rango | Significado |
-|-------|-------|-------------|
-| 🔴 Naciente | Tercio inferior | Capacidad no desarrollada o incipiente |
-| 🟡 Base | Tercio medio | Capacidad en desarrollo con avances parciales |
-| 🟢 Clase Mundial | Tercio superior | Capacidad madura e institucionalizada |
+**Ejemplo de configuración por defecto:**
 
-El cálculo se adapta automáticamente: si una dimensión tiene 5 preguntas (máx 25 puntos), los rangos se dividen en tercios de ese máximo. Si tiene 6 preguntas (máx 30), se ajusta proporcionalmente.
+| Nivel | Rango (promedio) | Significado |
+|-------|------------------|-------------|
+| 🔴 Naciente | 1.0 – 2.3 | Capacidad no desarrollada o incipiente |
+| 🟡 Base | 2.4 – 3.6 | Capacidad en desarrollo con avances parciales |
+| 🟢 Clase Mundial | 3.7 – 5.0 | Capacidad madura e institucionalizada |
+
+**Ejemplo personalizado (4 niveles):**
+
+| Nivel | Rango | Color |
+|-------|-------|-------|
+| Crítico | 1.0 – 1.5 | Rojo |
+| Inicial | 1.6 – 2.5 | Naranja |
+| En progreso | 2.6 – 3.8 | Amarillo |
+| Optimizado | 3.9 – 5.0 | Verde |
+
+Los niveles se configuran en la hoja "Niveles" del Excel de cada instrumento. Si no se definen, se usan tercios automáticos.
+
+---
+
+## Exportar Resultados a PDF
+
+El portal permite descargar los resultados como archivo PDF con gráfico de radar y tabla de madurez.
+
+### Desde la vista del encuestado
+
+1. El encuestado completa la evaluación
+2. En la página de resultados (`/resultados/{id}`), hacer clic en **"📄 Descargar PDF"**
+3. Se genera un PDF con el gráfico de radar y la tabla de resumen
+
+### Desde el panel admin (detalle de sesión)
+
+1. En el detalle de una sesión, seleccionar un encuestado (o la vista consolidada)
+2. Hacer clic en **"📄 Descargar PDF"** en la esquina superior del panel de resultados
+3. El PDF incluye:
+   - Título con nombre del instrumento y versión
+   - Gráfico de radar
+   - Tabla de resumen por dimensión con niveles de madurez
+
+> El PDF se genera en formato A4 y pesa aproximadamente 1-2 MB.
+
+---
+
+## Tendencias por Instrumento
+
+La vista de tendencias muestra la evolución de resultados de un instrumento a lo largo de todas sus sesiones.
+
+### Acceder
+
+1. Ir a **Instrumentos** desde la navegación
+2. Hacer clic en **"📊 Tendencias"** en el instrumento deseado
+
+### Visualización
+
+Se muestran dos gráficos de barras agrupadas:
+
+- **Promedio General por Sesión**: una barra por sesión mostrando el promedio global (escala 1-5)
+- **Promedio por Dimensión**: un grupo de barras por sesión con una barra por cada dimensión (con colores)
+
+Debajo de los gráficos se muestra una **tabla de datos** con los valores numéricos.
+
+### Filtros disponibles
+
+| Filtro | Descripción |
+|--------|-------------|
+| **Rango de fechas** | Desde/hasta para acotar el período de análisis |
+| **Sesiones específicas** | Checkboxes para incluir/excluir sesiones individuales |
+| **Todas / Ninguna** | Botones rápidos para seleccionar o deseleccionar todas |
+
+> Solo se consideran encuestados que completaron la evaluación.
+
+---
+
+## Historial de Encuestados
+
+Permite buscar un encuestado y ver su historial de participación en todas las sesiones donde ha respondido.
+
+### Acceder
+
+1. En la barra de navegación, hacer clic en **"Encuestados"**
+
+### Buscar un encuestado
+
+1. Ingresar email o nombre en el buscador (mínimo 2 caracteres)
+2. Hacer clic en **"🔍 Buscar"**
+3. Se muestran los resultados con cantidad de sesiones completadas por cada encuestado
+
+### Ver historial
+
+1. Hacer clic en un encuestado de la lista
+2. Se muestra:
+   - **Tabla cronológica**: sesión, instrumento (badge), fecha, puntaje total, nivel de madurez
+   - **Radares independientes**: un gráfico de radar por cada sesión en la que participó (ordenados cronológicamente)
+
+> La identificación del encuestado se hace por email exacto. Si un participante usó distintos correos en distintas sesiones, aparecerán como registros separados.
 
 ---
 
@@ -274,4 +435,7 @@ Sí. Cada sesión es independiente. Crea una sesión por cliente/evento usando e
 El análisis usa servicios gratuitos con límites de uso. Para uso corporativo intensivo se pueden configurar API keys con planes pagados.
 
 **¿Puedo personalizar la escala de valores?**
-Sí. Cada instrumento puede tener sus propias etiquetas para los valores 1-5, configurables desde el Excel de importación.
+Sí. Cada instrumento puede tener sus propias etiquetas para los valores 1-5, configurables desde el Excel de importación (hoja "Escala").
+
+**¿Puedo personalizar los niveles de madurez?**
+Sí. Cada instrumento puede tener sus propios niveles con nombres, colores y rangos de promedio personalizados, configurables desde el Excel de importación (hoja "Niveles"). Se pueden definir 2, 3, 5 o cualquier cantidad de niveles.

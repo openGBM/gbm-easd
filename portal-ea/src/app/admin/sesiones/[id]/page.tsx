@@ -7,6 +7,9 @@ import { Session, Respondent } from '@/types/database'
 import RadarChart from '@/components/RadarChart'
 import ResultsTable from '@/components/ResultsTable'
 import InstrumentBadge from '@/components/InstrumentBadge'
+import ExportPdfButton from '@/components/ExportPdfButton'
+import ConfirmModal from '@/components/ConfirmModal'
+import { showToast } from '@/components/Toast'
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import * as ExcelJS from 'exceljs'
@@ -30,6 +33,9 @@ export default function SessionDetailPage() {
   const [generatingAnalysis, setGeneratingAnalysis] = useState(false)
   const [analysisError, setAnalysisError] = useState('')
   const [instrumentInfo, setInstrumentInfo] = useState<{ name: string; versionTag: string } | null>(null)
+  const [maturityLevels, setMaturityLevels] = useState<any[] | null>(null)
+  const [showDeleteSessionModal, setShowDeleteSessionModal] = useState(false)
+  const [showDeleteRespondentModal, setShowDeleteRespondentModal] = useState<string | null>(null)
 
   useEffect(() => {
     checkAuthAndLoad()
@@ -47,7 +53,7 @@ export default function SessionDetailPage() {
   async function loadSession() {
     const { data: sessionData } = await supabase
       .from('sessions')
-      .select('*, instrument_versions(version_tag, instruments(name))')
+      .select('*, instrument_versions(version_tag, maturity_levels, instruments(name))')
       .eq('id', sessionId)
       .single()
 
@@ -59,6 +65,9 @@ export default function SessionDetailPage() {
           name: (sessionData.instrument_versions as any).instruments.name,
           versionTag: (sessionData.instrument_versions as any).version_tag,
         })
+        if ((sessionData.instrument_versions as any).maturity_levels) {
+          setMaturityLevels((sessionData.instrument_versions as any).maturity_levels)
+        }
       }
     }
 
@@ -137,7 +146,13 @@ export default function SessionDetailPage() {
   }
 
   async function deleteRespondent(respondentId: string) {
-    if (!confirm('¿Eliminar este encuestado y todas sus respuestas?')) return
+    setShowDeleteRespondentModal(respondentId)
+  }
+
+  async function confirmDeleteRespondent() {
+    const respondentId = showDeleteRespondentModal
+    if (!respondentId) return
+    setShowDeleteRespondentModal(null)
 
     // Primero eliminar respuestas
     await supabase.from('responses').delete().eq('respondent_id', respondentId)
@@ -153,11 +168,11 @@ export default function SessionDetailPage() {
 
   async function deleteSession() {
     if (!session) return
-    const confirmed = confirm(
-      `¿Eliminar la sesión "${session.name}" y todos sus encuestados y respuestas?\n\nEsta acción no se puede deshacer.`
-    )
-    if (!confirmed) return
+    setShowDeleteSessionModal(true)
+  }
 
+  async function confirmDeleteSession() {
+    setShowDeleteSessionModal(false)
     setDeletingSession(true)
 
     // Eliminar respuestas de todos los encuestados
@@ -179,7 +194,7 @@ export default function SessionDetailPage() {
     // Obtener encuestados completados
     const completedRespondents = respondents.filter(r => r.completed)
     if (completedRespondents.length === 0) {
-      alert('No hay encuestados completados para exportar.')
+      showToast('warning', 'No hay encuestados completados para exportar')
       setExporting(false)
       return
     }
@@ -193,7 +208,7 @@ export default function SessionDetailPage() {
       .in('respondent_id', ids)
 
     if (!allResponses || allResponses.length === 0) {
-      alert('No hay respuestas para exportar.')
+      showToast('warning', 'No hay respuestas para exportar')
       setExporting(false)
       return
     }
@@ -545,23 +560,33 @@ export default function SessionDetailPage() {
         <div className="lg:col-span-2">
           {chartData.length > 0 ? (
             <div className="space-y-6">
-              <div className="bg-white rounded-xl shadow-sm border p-6">
-                <h2 className="text-lg font-bold mb-1 text-center">
-                  {viewMode === 'consolidated'
-                    ? 'Resultados Consolidados'
-                    : `Resultados — ${respondents.find(r => r.id === selectedRespondent)?.name || ''}`
-                  }
-                </h2>
-                {viewMode === 'consolidated' && (
-                  <p className="text-sm text-gray-500 text-center mb-4">
-                    Promedio de {respondents.filter(r => r.completed).length} encuestado(s) completado(s)
-                  </p>
-                )}
-                <RadarChart data={chartData} />
-              </div>
-              <div className="bg-white rounded-xl shadow-sm border p-6">
-                <h2 className="text-lg font-bold mb-4 text-center">Resumen</h2>
-                <ResultsTable data={chartData} mode="average" />
+              <div id="admin-results-content">
+                <div className="bg-white rounded-xl shadow-sm border p-6">
+                  <div className="flex items-center justify-between mb-1">
+                    <h2 className="text-lg font-bold text-center flex-1">
+                      {viewMode === 'consolidated'
+                        ? 'Resultados Consolidados'
+                        : `Resultados — ${respondents.find(r => r.id === selectedRespondent)?.name || ''}`
+                      }
+                    </h2>
+                    <ExportPdfButton
+                      targetId="admin-results-content"
+                      fileName={`resultados-${viewMode === 'consolidated' ? 'consolidado' : respondents.find(r => r.id === selectedRespondent)?.name?.replace(/\s+/g, '-').toLowerCase() || 'encuestado'}-${session.name.replace(/\s+/g, '-').toLowerCase()}`}
+                      pdfTitle={viewMode === 'consolidated' ? 'Resultados Consolidados' : `Resultados — ${respondents.find(r => r.id === selectedRespondent)?.name || ''}`}
+                      pdfSubtitle={`${session.name}${instrumentInfo ? ` · ${instrumentInfo.name} v${instrumentInfo.versionTag}` : ''}`}
+                    />
+                  </div>
+                  {viewMode === 'consolidated' && (
+                    <p className="text-sm text-gray-500 text-center mb-4">
+                      Promedio de {respondents.filter(r => r.completed).length} encuestado(s) completado(s)
+                    </p>
+                  )}
+                  <RadarChart data={chartData} />
+                </div>
+                <div className="bg-white rounded-xl shadow-sm border p-6 mt-6">
+                  <h2 className="text-lg font-bold mb-4 text-center">Resumen</h2>
+                  <ResultsTable data={chartData} mode="average" maturityLevels={maturityLevels} />
+                </div>
               </div>
             </div>
           ) : (
@@ -582,7 +607,7 @@ export default function SessionDetailPage() {
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(analysisText!)
-                    alert('Análisis copiado al portapapeles')
+                    showToast('success', 'Análisis copiado al portapapeles')
                   }}
                   className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
                 >
@@ -626,6 +651,26 @@ export default function SessionDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Modales de confirmación */}
+      <ConfirmModal
+        isOpen={showDeleteSessionModal}
+        title="Eliminar Sesión"
+        message={`¿Eliminar la sesión "${session?.name}" y todos sus encuestados y respuestas?`}
+        warning="Esta acción no se puede deshacer. Antes de eliminar una sesión asegúrese de haber exportado los datos a Excel y generado el análisis IA si lo requiere."
+        confirmLabel="Sí, eliminar"
+        onConfirm={confirmDeleteSession}
+        onCancel={() => setShowDeleteSessionModal(false)}
+      />
+      <ConfirmModal
+        isOpen={!!showDeleteRespondentModal}
+        title="Eliminar Encuestado"
+        message="¿Eliminar este encuestado y todas sus respuestas?"
+        warning="Esta acción no se puede deshacer. Las respuestas de este encuestado se perderán permanentemente."
+        confirmLabel="Sí, eliminar"
+        onConfirm={confirmDeleteRespondent}
+        onCancel={() => setShowDeleteRespondentModal(null)}
+      />
     </div>
   )
 }
