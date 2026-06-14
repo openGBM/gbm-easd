@@ -86,8 +86,8 @@ export async function POST(request: NextRequest) {
       if (versionData) {
         const inst = (versionData as any).instruments
         if (inst?.ai_expertise_prompt) {
-          // Sanitizar: limitar longitud a 4000 chars y eliminar intentos de override
-          let sanitized = inst.ai_expertise_prompt.slice(0, 4000)
+          // Sanitizar: limitar longitud a 5000 chars y eliminar intentos de override
+          let sanitized = inst.ai_expertise_prompt.slice(0, 5000)
           // Remover patrones comunes de prompt injection
           sanitized = sanitized
             .replace(/ignore.*previous.*instructions/gi, '')
