@@ -7,6 +7,7 @@ import { Instrument, InstrumentVersion, DimensionWithQuestions } from '@/types/d
 import { showToast } from '@/components/Toast'
 import PromptModal from '@/components/PromptModal'
 import * as ExcelJS from 'exceljs'
+import ReactMarkdown from 'react-markdown'
 import Link from 'next/link'
 
 export default function InstrumentDetailPage() {
@@ -24,6 +25,7 @@ export default function InstrumentDetailPage() {
   const [hasResponses, setHasResponses] = useState(false)
   const [editingPrompt, setEditingPrompt] = useState(false)
   const [promptValue, setPromptValue] = useState('')
+  const [promptExpanded, setPromptExpanded] = useState(false)
   const [maturityLevelsEdit, setMaturityLevelsEdit] = useState<{ label: string; color: string; minAverage: number; maxAverage: number }[]>([])
   const [promptModal, setPromptModal] = useState<{ type: 'dimension' | 'question'; dimId?: string; order?: number } | null>(null)
 
@@ -763,14 +765,28 @@ export default function InstrumentDetailPage() {
         <div className="mb-6 p-4 bg-indigo-50 border border-indigo-100 rounded-lg">
           <div className="flex items-center justify-between mb-1">
             <p className="text-xs font-medium text-indigo-600">🤖 Expertise IA</p>
-            <button
-              onClick={() => { setEditingPrompt(true); setPromptValue(instrument.ai_expertise_prompt || '') }}
-              className="text-xs text-indigo-600 hover:text-indigo-800"
-            >
-              Editar
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPromptExpanded(!promptExpanded)}
+                className="text-xs text-indigo-600 hover:text-indigo-800"
+              >
+                {promptExpanded ? 'Colapsar' : 'Expandir'}
+              </button>
+              <button
+                onClick={() => { setEditingPrompt(true); setPromptValue(instrument.ai_expertise_prompt || '') }}
+                className="text-xs text-indigo-600 hover:text-indigo-800"
+              >
+                Editar
+              </button>
+            </div>
           </div>
-          <p className="text-sm text-indigo-900">{instrument.ai_expertise_prompt}</p>
+          {promptExpanded ? (
+            <div className="max-w-none text-indigo-900 text-sm [&_h1]:text-base [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2 [&_h2]:text-sm [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-1 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-2 [&_h3]:mb-1 [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-2 [&_li]:mb-0.5 [&_strong]:font-bold [&_hr]:my-3 [&_hr]:border-indigo-200">
+              <ReactMarkdown>{instrument.ai_expertise_prompt}</ReactMarkdown>
+            </div>
+          ) : (
+            <p className="text-sm text-indigo-900 line-clamp-3">{instrument.ai_expertise_prompt}</p>
+          )}
         </div>
       )}
 
@@ -791,9 +807,9 @@ export default function InstrumentDetailPage() {
           <textarea
             value={promptValue}
             onChange={e => setPromptValue(e.target.value)}
-            rows={3}
+            rows={12}
             placeholder="Ej: Eres un consultor experto en transformación digital y adopción de IA..."
-            className="w-full px-3 py-2 border border-indigo-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-indigo-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           />
           <div className="flex gap-2 mt-2">
             <button
@@ -802,8 +818,9 @@ export default function InstrumentDetailPage() {
                   .from('instruments')
                   .update({ ai_expertise_prompt: promptValue.trim() || null })
                   .eq('id', instrumentId)
-                setEditingPrompt(false)
                 await loadInstrument()
+                setEditingPrompt(false)
+                setPromptExpanded(true)
               }}
               className="px-3 py-1 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
             >
