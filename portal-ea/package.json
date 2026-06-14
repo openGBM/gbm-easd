@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "sbom": "cyclonedx-npm --output-file sbom.json --spec-version 1.5",
     "test:e2e:concurrency": "playwright test e2e/concurrency.spec.ts --workers=10"
   },
   "dependencies": {
@@ -33,6 +34,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@cyclonedx/cyclonedx-npm": "^4.2.1",
     "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
