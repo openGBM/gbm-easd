@@ -73,6 +73,19 @@ async function main() {
         'Operamos en un sector con exigencias de cumplimiento o gobernanza que el software debe satisfacer.',
       ],
     },
+    {
+      name: 'Caso de Uso y Viabilidad',
+      description: 'Evalúa si existe un caso de uso concreto identificado y las condiciones técnicas mínimas para ejecutarlo.',
+      color: '#E85D04',
+      order: 5,
+      questions: [
+        'Tenemos identificado al menos un caso de uso concreto que queremos llevar a producción con AI-DLC.',
+        'El caso de uso tiene un dueño de negocio que puede definir criterios de aceptación.',
+        'Conocemos las restricciones regulatorias o de seguridad que el caso debe cumplir.',
+        'Contamos con infraestructura cloud (AWS u otra) disponible para soportar el desarrollo.',
+        'Podemos proveer acceso a herramientas de desarrollo modernas (IDE, repositorios, CI/CD) sin restricciones corporativas bloqueantes.',
+      ],
+    },
   ]
 
   dimensions.forEach(dim => {
@@ -131,7 +144,7 @@ async function main() {
   await wb.xlsx.writeFile(outputPath)
   console.log(`✅ Excel generado exitosamente: ${outputPath}`)
   console.log(`\n📋 Contenido:`)
-  console.log(`   • 4 dimensiones, 17 preguntas`)
+  console.log(`   • 5 dimensiones, 22 preguntas`)
   console.log(`   • Escala: Ausente → Consolidado (1-5)`)
   console.log(`   • Niveles: Exploratorio → Acelerable`)
   console.log(`\n🚀 Para importar:`)
