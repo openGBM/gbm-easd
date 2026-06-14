@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Portal de Autodiagnóstico EA",
-  description: "Evalúa la madurez de tu arquitectura empresarial",
+  title: "Portal de Evaluación GBM",
+  description: "Diagnóstico de preparación para adopción de AI-DLC y desarrollo asistido por IA",
 };
 
 export default function RootLayout({
