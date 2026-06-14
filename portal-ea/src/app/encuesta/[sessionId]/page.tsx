@@ -1,9 +1,48 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import SurveyForm from '@/components/SurveyForm'
 import { DimensionWithQuestions } from '@/types/database'
+import type { Metadata } from 'next'
 
 interface Props {
   params: Promise<{ sessionId: string }>
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { sessionId } = await params
+  const supabase = await createServerSupabaseClient()
+
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  if (!uuidRegex.test(sessionId)) {
+    return { title: 'Evaluación GBM' }
+  }
+
+  const { data: session } = await supabase
+    .from('sessions')
+    .select('name, instrument_version_id')
+    .eq('id', sessionId)
+    .single()
+
+  if (!session) {
+    return { title: 'Evaluación GBM' }
+  }
+
+  let instrumentName = 'Evaluación'
+  if (session.instrument_version_id) {
+    const { data: versionData } = await supabase
+      .from('instrument_versions')
+      .select('instruments(name, description)')
+      .eq('id', session.instrument_version_id)
+      .single()
+
+    if ((versionData as any)?.instruments?.name) {
+      instrumentName = (versionData as any).instruments.name
+    }
+  }
+
+  return {
+    title: `${instrumentName} — GBM`,
+    description: `Sesión: ${session.name}. Completa esta evaluación para conocer tu nivel de preparación.`,
+  }
 }
 
 export default async function EncuestaPage({ params }: Props) {
