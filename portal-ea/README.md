@@ -119,16 +119,22 @@ dimensions (1) ──── (N) questions (1) ───────────�
 - Crear nuevas sesiones
 - Habilitar/deshabilitar sesiones
 - Eliminar sesiones con confirmación (cascade)
-- Código QR generado para cada sesión
+- Código QR generado para cada sesión con botones para copiar URL y copiar QR como imagen PNG
 - Detalle de sesión con dashboard específico (respuestas y tiempo promedio de la sesión)
 - Vista de resultados por encuestado individual
 - Vista consolidada (promedio de todos los encuestados completados)
 - Análisis IA (Gemini/Groq): interpretación ejecutiva de resultados bajo demanda, con formato markdown y opción de copiar
+- Prompt de expertise IA con vista previa markdown (expand/collapse), textarea ampliado (12 rows, monospace) y límite de 6000 caracteres
+- Prompts personalizados (>200 chars) usan su propio formato de respuesta en lugar de la plantilla genérica
+- Detalle por pregunta enviado a la IA cuando el instrumento tiene prompt personalizado
+- Editor visual de dimensiones: color editable vía color picker, descripción editable inline
+- Versionamiento automático al agregar/eliminar dimensiones (si ya existen respuestas)
 - Exportar respuestas a Excel (.xlsx) con 2 hojas: Resumen y Detalle
 - Exportar resultados a PDF (radar + tabla con título del instrumento)
 - Eliminar encuestados y sus respuestas
 - Tendencias por instrumento: gráfico de barras con evolución entre sesiones + filtros
 - Historial de encuestados: búsqueda por email/nombre + tabla cronológica + radares por sesión
+- Metadata dinámica en URLs de encuesta: OG tags muestran nombre del instrumento y sesión
 
 ### Seguridad
 - Supabase Auth con verificación de email autorizado
@@ -140,14 +146,22 @@ dimensions (1) ──── (N) questions (1) ───────────�
 
 ## Niveles de Madurez
 
-| Rango (por dimensión) | Nivel | Color |
-|------------------------|-------|-------|
-| 6–13 puntos | Naciente | 🔴 Rojo |
-| 14–23 puntos | Base | 🟡 Amarillo |
-| 24–30 puntos | Clase Mundial | 🟢 Verde |
+Los niveles de madurez son **configurables por instrumento**. Cada instrumento define sus propios niveles con:
+- Nombre personalizado (ej: "Naciente", "En progreso", "Optimizado")
+- Color en formato hexadecimal (#RRGGBB)
+- Rango de promedio mínimo y máximo (escala 1.0–5.0)
 
-Cada dimensión tiene 6 preguntas × escala 1–5 = máximo 30 puntos por dimensión.  
-El nivel global se calcula sobre la suma total (8 dimensiones × 30 = 240 máximo).
+Se pueden definir 2, 3, 5 o cualquier cantidad de niveles. Los rangos deben cubrir de 1.0 a 5.0 sin huecos ni solapamientos.
+
+Si un instrumento no define niveles explícitos, se calculan automáticamente por tercios:
+
+| Rango (promedio) | Nivel | Color |
+|------------------|-------|-------|
+| 1.0 – 2.3 | Naciente | 🔴 Rojo |
+| 2.4 – 3.6 | Base | 🟡 Amarillo |
+| 3.7 – 5.0 | Clase Mundial | 🟢 Verde |
+
+Los niveles se configuran desde el editor visual (sección "Niveles de Madurez") o mediante la hoja "Niveles" del Excel de importación.
 
 ---
 
@@ -225,7 +239,6 @@ La aplicación estará disponible en [http://localhost:3000](http://localhost:30
 - Comparación entre instrumentos
 - Multi-idioma
 - Notificaciones por correo al completar encuesta (v3.0)
-- Escalas configurables (no solo 1-5)
 - Tipos de pregunta variados (texto libre, boolean)
 - Multi-tenant (organizaciones aisladas)
 - Roles granulares (admin, viewer, editor)

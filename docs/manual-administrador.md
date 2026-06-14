@@ -84,8 +84,12 @@ Desde la página de gestión del instrumento:
 **Dimensiones:**
 - **Agregar**: botón "+ Agregar Dimensión" → ingresar nombre
 - **Editar nombre**: click en el texto del nombre → editar inline → se guarda al salir del campo
+- **Editar descripción**: click en el texto de la descripción → editar inline → se guarda al salir del campo
+- **Cambiar color**: click en el cuadro de color → se abre un color picker para seleccionar el nuevo color (#RRGGBB)
 - **Reordenar**: botones ▲/▼ para subir o bajar de posición
 - **Eliminar**: botón ✕ (elimina dimensión y todas sus preguntas)
+
+> **Nota sobre versionamiento**: Si el instrumento ya tiene respuestas registradas, agregar o eliminar una dimensión crea automáticamente una nueva versión (misma regla que la importación Excel). Las sesiones existentes permanecen ligadas a su versión original.
 
 **Preguntas:**
 - **Agregar**: botón "+ Agregar pregunta" dentro de cada dimensión
@@ -169,7 +173,16 @@ El archivo debe tener **dos hojas**:
 1. En la página de gestión del instrumento, buscar la sección **"🤖 Expertise IA"**
 2. Hacer clic en **"Editar"** (o "Agregar" si no está definido)
 3. Escribir el rol/contexto que la IA debe asumir al analizar resultados
+   - El campo de texto es ampliado (12 filas, fuente monospace) para facilitar la edición de prompts largos
+   - Límite máximo: **6000 caracteres**
 4. Hacer clic en **"Guardar"**
+
+**Vista previa con markdown**: Una vez guardado, el prompt se muestra con formato markdown renderizado (negritas, listas, encabezados, etc.) con un toggle para expandir/colapsar el contenido completo.
+
+**Comportamiento del prompt personalizado**:
+- Si el prompt tiene más de 200 caracteres, se considera un **prompt personalizado** y la IA usará su propio formato de respuesta en lugar de la plantilla genérica del sistema.
+- Cuando un instrumento tiene prompt personalizado, el sistema envía a la IA el **detalle por pregunta** (promedios individuales por pregunta, no solo por dimensión), permitiendo cálculos y análisis más granulares.
+- Esto permite crear lógicas de negocio específicas dentro del prompt (ej: compuertas, arquetipos, reglas de clasificación) que la IA ejecutará con datos de alta resolución.
 
 ### Editar Escala de Valores (UI)
 
@@ -248,8 +261,11 @@ Cada sesión genera automáticamente:
 - Un **código QR** visible en la tarjeta de la sesión
 
 Para compartir:
-- Copiar el enlace y enviarlo por correo/chat
+- **Copiar URL**: botón dedicado que copia el enlace al portapapeles con un clic
+- **Copiar QR como imagen**: botón que copia el código QR como imagen PNG al portapapeles (ideal para pegar en presentaciones, correos o documentos)
 - Proyectar o imprimir el QR para que los participantes escaneen con su celular
+
+**Metadata dinámica**: Cuando un participante recibe el enlace y lo previsualiza (en WhatsApp, Slack, Teams, etc.), la vista previa muestra el **nombre del instrumento** y el **nombre de la sesión** en lugar de texto genérico. Esto facilita la identificación del enlace compartido.
 
 ### Habilitar/Deshabilitar sesiones
 
