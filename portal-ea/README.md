@@ -234,12 +234,21 @@ La aplicación estará disponible en [http://localhost:3000](http://localhost:30
 
 ---
 
-## Futuras Mejoras (Fuera de Alcance Actual)
+## Roadmap
 
-- Comparación entre instrumentos
-- Multi-idioma
-- Notificaciones por correo al completar encuesta (v3.0)
-- Tipos de pregunta variados (texto libre, boolean)
-- Multi-tenant (organizaciones aisladas)
-- Roles granulares (admin, viewer, editor)
-- SSO (SAML, OAuth corporativo)
+### Corto plazo (próxima iteración)
+
+- **Administración de usuarios y roles** — Gestión de usuarios desde el panel (crear, editar, desactivar). Roles: admin (gestión completa), editor (instrumentos y sesiones), viewer (solo lectura de resultados y análisis).
+- **Notificaciones por correo** — Admin recibe aviso al completar un encuestado; encuestado recibe enlace a sus resultados.
+- **Exportar análisis IA a PDF** — Descargar el análisis interpretativo como PDF con branding GBM para entregar al cliente.
+
+### Mediano plazo
+
+- **Landing page del instrumento** — Página intermedia con nombre, descripción e instrucciones antes de comenzar la evaluación.
+- **Tipos de pregunta variados** (texto libre, boolean, selección múltiple) — Capturar contexto cualitativo además del Likert 1-5.
+- **SSO** (SAML, OAuth corporativo) — Login empresarial para clientes grandes.
+
+### Largo plazo (postergado)
+
+- Multi-idioma (inglés, portugués)
+- Multi-tenant (organizaciones aisladas con datos separados)
