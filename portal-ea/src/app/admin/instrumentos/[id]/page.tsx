@@ -119,6 +119,86 @@ export default function InstrumentDetailPage() {
   }
 
   // ===================== EDITOR VISUAL =====================
+
+  /**
+   * Si la versión actual tiene respuestas, crea una nueva versión duplicando
+   * dimensiones y preguntas, y retorna el ID de la versión editable.
+   * Si no tiene respuestas, retorna el ID de la versión actual.
+   */
+  async function ensureEditableVersion(): Promise<string | null> {
+    if (!currentVersion) return null
+
+    if (!hasResponses) return currentVersion.id
+
+    // Crear nueva versión
+    const newVersionNumber = Math.max(...versions.map(v => v.version_number)) + 1
+    const newTag = String(newVersionNumber)
+
+    // Desmarcar la versión actual
+    await supabase
+      .from('instrument_versions')
+      .update({ is_current: false })
+      .eq('id', currentVersion.id)
+
+    // Crear nueva versión
+    const { data: newVersion } = await supabase
+      .from('instrument_versions')
+      .insert({
+        instrument_id: instrumentId,
+        version_number: newVersionNumber,
+        version_tag: newTag,
+        is_current: true,
+        notes: 'Creada por edición visual del banco de preguntas',
+        scale_labels: currentVersion.scale_labels,
+        maturity_levels: currentVersion.maturity_levels,
+      })
+      .select('id')
+      .single()
+
+    if (!newVersion) {
+      showToast('error', 'Error al crear nueva versión')
+      return null
+    }
+
+    // Duplicar dimensiones y preguntas de la versión anterior
+    const { data: origDims } = await supabase
+      .from('dimensions')
+      .select('*, questions(*)')
+      .eq('instrument_version_id', currentVersion.id)
+      .order('display_order')
+
+    if (origDims) {
+      for (const dim of origDims) {
+        const { data: newDim } = await supabase
+          .from('dimensions')
+          .insert({
+            name: dim.name,
+            description: dim.description,
+            color: dim.color,
+            display_order: dim.display_order,
+            instrument_version_id: newVersion.id,
+          })
+          .select('id')
+          .single()
+
+        if (newDim && dim.questions) {
+          const questions = (dim.questions as any[]).map(q => ({
+            dimension_id: newDim.id,
+            text: q.text,
+            display_order: q.display_order,
+          }))
+          if (questions.length > 0) {
+            await supabase.from('questions').insert(questions)
+          }
+        }
+      }
+    }
+
+    showToast('success', `Nueva versión v${newTag} creada`)
+    await loadInstrument()
+    return newVersion.id
+  }
+
   async function addDimension() {
     if (!currentVersion) return
     setPromptModal({ type: 'dimension' })
@@ -128,6 +208,9 @@ export default function InstrumentDetailPage() {
     if (!currentVersion) return
     setPromptModal(null)
 
+    const targetVersionId = await ensureEditableVersion()
+    if (!targetVersionId) return
+
     const newOrder = dimensions.length > 0 ? Math.max(...dimensions.map(d => d.display_order)) + 1 : 1
 
     const { error } = await supabase
@@ -135,23 +218,46 @@ export default function InstrumentDetailPage() {
       .insert({
         name,
         display_order: newOrder,
-        instrument_version_id: currentVersion.id,
+        instrument_version_id: targetVersionId,
       })
 
     if (error) {
       showToast('error', 'Error al agregar dimensión')
       return
     }
-    await loadDimensions(currentVersion.id)
+    await loadDimensions(targetVersionId)
   }
 
   async function deleteDimension(dimId: string) {
     if (!confirm('⚠️ ¿Eliminar esta dimensión y todas sus preguntas?\n\nEsta acción no se puede deshacer. Todas las preguntas asociadas se perderán permanentemente.')) return
 
-    await supabase.from('questions').delete().eq('dimension_id', dimId)
-    await supabase.from('dimensions').delete().eq('id', dimId)
+    const targetVersionId = await ensureEditableVersion()
+    if (!targetVersionId) return
 
-    if (currentVersion) await loadDimensions(currentVersion.id)
+    // Si se creó una nueva versión, necesitamos encontrar la dimensión equivalente en la nueva versión
+    // (la dimensión original ya fue duplicada en la nueva versión por ensureEditableVersion)
+    if (targetVersionId !== currentVersion?.id) {
+      // Buscar la dimensión duplicada por nombre y orden en la nueva versión
+      const dim = dimensions.find(d => d.id === dimId)
+      if (!dim) return
+
+      const { data: newDim } = await supabase
+        .from('dimensions')
+        .select('id')
+        .eq('instrument_version_id', targetVersionId)
+        .eq('display_order', dim.display_order)
+        .single()
+
+      if (newDim) {
+        await supabase.from('questions').delete().eq('dimension_id', newDim.id)
+        await supabase.from('dimensions').delete().eq('id', newDim.id)
+      }
+    } else {
+      await supabase.from('questions').delete().eq('dimension_id', dimId)
+      await supabase.from('dimensions').delete().eq('id', dimId)
+    }
+
+    await loadDimensions(targetVersionId)
   }
 
   async function addQuestion(dimId: string, order: number) {
@@ -186,6 +292,10 @@ export default function InstrumentDetailPage() {
 
   async function updateDimensionDescription(dimId: string, newDescription: string) {
     await supabase.from('dimensions').update({ description: newDescription.trim() || null }).eq('id', dimId)
+  }
+
+  async function updateDimensionColor(dimId: string, newColor: string) {
+    await supabase.from('dimensions').update({ color: newColor }).eq('id', dimId)
   }
 
   async function updateQuestionText(questionId: string, newText: string) {
@@ -878,9 +988,14 @@ export default function InstrumentDetailPage() {
             {dimensions.map((dim, dimIdx) => (
               <div key={dim.id} className="border rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  {dim.color && (
-                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: dim.color }}></span>
-                  )}
+                  <input
+                    type="color"
+                    defaultValue={dim.color || '#6B7280'}
+                    onBlur={e => updateDimensionColor(dim.id, e.target.value)}
+                    className="w-5 h-5 rounded-full border border-gray-300 cursor-pointer p-0 overflow-hidden"
+                    title="Cambiar color"
+                    style={{ appearance: 'none', WebkitAppearance: 'none' }}
+                  />
                   <span className="text-xs text-gray-400 font-mono w-5">{dim.display_order}.</span>
                   <input
                     type="text"
