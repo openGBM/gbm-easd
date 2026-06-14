@@ -818,8 +818,9 @@ export default function InstrumentDetailPage() {
                   .from('instruments')
                   .update({ ai_expertise_prompt: promptValue.trim() || null })
                   .eq('id', instrumentId)
-                setEditingPrompt(false)
                 await loadInstrument()
+                setEditingPrompt(false)
+                setPromptExpanded(true)
               }}
               className="px-3 py-1 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
             >
