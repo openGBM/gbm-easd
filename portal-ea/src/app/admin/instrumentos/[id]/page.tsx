@@ -184,6 +184,10 @@ export default function InstrumentDetailPage() {
     await supabase.from('dimensions').update({ name: newName.trim() }).eq('id', dimId)
   }
 
+  async function updateDimensionDescription(dimId: string, newDescription: string) {
+    await supabase.from('dimensions').update({ description: newDescription.trim() || null }).eq('id', dimId)
+  }
+
   async function updateQuestionText(questionId: string, newText: string) {
     if (!newText.trim()) return
     await supabase.from('questions').update({ text: newText.trim() }).eq('id', questionId)
@@ -907,8 +911,14 @@ export default function InstrumentDetailPage() {
                     ✕
                   </button>
                 </div>
-                {dim.description && (
-                  <p className="text-sm text-gray-500 mb-2">{dim.description}</p>
+                {dim.description !== undefined && (
+                  <input
+                    type="text"
+                    defaultValue={dim.description || ''}
+                    onBlur={e => updateDimensionDescription(dim.id, e.target.value)}
+                    placeholder="Descripción de la dimensión (opcional)"
+                    className="text-sm text-gray-500 mb-2 w-full px-2 py-0.5 border border-transparent hover:border-gray-300 focus:border-blue-400 rounded focus:outline-none"
+                  />
                 )}
                 <ul className="space-y-1 pl-4">
                   {dim.questions.map((q, qIdx) => (
