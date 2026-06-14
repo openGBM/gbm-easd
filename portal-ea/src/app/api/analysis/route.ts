@@ -66,8 +66,9 @@ export async function POST(request: NextRequest) {
     const { sessionId, dimensionScores, sessionName, totalRespondents } = parseResult.data
 
     // Cargar contexto del instrumento asociado a la sesión
-    let expertisePrompt = 'Eres un consultor experto. Analiza los resultados de esta evaluación.'
+    let expertisePrompt = ''
     let scaleDescription = 'escala 1-5, donde 1 = Totalmente en desacuerdo y 5 = Totalmente de acuerdo'
+    let hasCustomPrompt = false
 
     const { data: sessionData } = await supabase
       .from('sessions')
@@ -85,15 +86,18 @@ export async function POST(request: NextRequest) {
       if (versionData) {
         const inst = (versionData as any).instruments
         if (inst?.ai_expertise_prompt) {
-          // Sanitizar: limitar longitud y eliminar intentos de override del prompt
-          let sanitized = inst.ai_expertise_prompt.slice(0, 500)
+          // Sanitizar: limitar longitud a 4000 chars y eliminar intentos de override
+          let sanitized = inst.ai_expertise_prompt.slice(0, 4000)
           // Remover patrones comunes de prompt injection
           sanitized = sanitized
             .replace(/ignore.*previous.*instructions/gi, '')
             .replace(/forget.*everything/gi, '')
             .replace(/you are now/gi, '')
             .replace(/new instructions:/gi, '')
-          expertisePrompt = sanitized.trim() || expertisePrompt
+          expertisePrompt = sanitized.trim()
+          // Si el prompt tiene más de 200 chars, se considera un prompt completo
+          // que define su propio formato de respuesta (no usar template genérico)
+          hasCustomPrompt = expertisePrompt.length > 200
         }
         if (versionData.scale_labels && Array.isArray(versionData.scale_labels)) {
           const labels = (versionData.scale_labels as any[])
@@ -110,7 +114,90 @@ export async function POST(request: NextRequest) {
       .map((d: { dimension: string; value: number }) => `- ${d.dimension}: ${d.value}/5.0`)
       .join('\n')
 
-    const prompt = `${expertisePrompt}
+    // Si el instrumento tiene un prompt personalizado completo, usarlo como base
+    // sin el template genérico, para respetar su formato de respuesta.
+    // Además, cargar detalle por pregunta para que la IA pueda aplicar reglas granulares.
+    let prompt: string
+
+    if (hasCustomPrompt) {
+      // Cargar detalle por pregunta para prompts personalizados que necesitan datos granulares
+      let questionDetail = ''
+      if (sessionData?.instrument_version_id) {
+        const { data: respondentsData } = await supabase
+          .from('respondents')
+          .select('id')
+          .eq('session_id', sessionId)
+          .eq('completed', true)
+
+        if (respondentsData && respondentsData.length > 0) {
+          const respondentIds = respondentsData.map(r => r.id)
+          const { data: detailedResponses } = await supabase
+            .from('responses')
+            .select('value, questions(text, display_order, dimensions(name, display_order))')
+            .in('respondent_id', respondentIds)
+
+          if (detailedResponses && detailedResponses.length > 0) {
+            // Agrupar por dimensión → pregunta con promedio
+            const questionScores: Record<string, { dimName: string; dimOrder: number; qText: string; qOrder: number; total: number; count: number }> = {}
+
+            detailedResponses.forEach((r: any) => {
+              const dim = r.questions?.dimensions
+              const q = r.questions
+              if (!dim || !q) return
+              const key = `${dim.name}|${q.display_order}`
+              if (!questionScores[key]) {
+                questionScores[key] = {
+                  dimName: dim.name,
+                  dimOrder: dim.display_order,
+                  qText: q.text,
+                  qOrder: q.display_order,
+                  total: 0,
+                  count: 0,
+                }
+              }
+              questionScores[key].total += r.value
+              questionScores[key].count += 1
+            })
+
+            // Formatear como texto agrupado por dimensión
+            const grouped = Object.values(questionScores)
+              .sort((a, b) => a.dimOrder - b.dimOrder || a.qOrder - b.qOrder)
+
+            let currentDim = ''
+            const lines: string[] = []
+            grouped.forEach(q => {
+              if (q.dimName !== currentDim) {
+                currentDim = q.dimName
+                lines.push(`\n### ${q.dimName}`)
+              }
+              const avg = Math.round((q.total / q.count) * 10) / 10
+              lines.push(`  ${q.qOrder}. "${q.qText}" → ${avg}/5.0`)
+            })
+
+            questionDetail = `\n\nDetalle por pregunta (promedio de ${respondentsData.length} participante(s)):\n${lines.join('\n')}`
+          }
+        }
+      }
+
+      prompt = `${expertisePrompt}
+
+---
+## DATOS DE LA EVALUACIÓN
+
+Sesión: "${sessionName}"
+Participantes: ${totalRespondents}
+Escala: ${scaleDescription}
+
+Resultados consolidados (promedio por dimensión):
+
+${scoresText}
+${questionDetail}
+
+---
+Genera tu análisis completo en español siguiendo el formato definido arriba.`
+    } else {
+      const fallbackExpertise = expertisePrompt || 'Eres un consultor experto. Analiza los resultados de esta evaluación.'
+      prompt = `${fallbackExpertise}
 
 Analiza los siguientes resultados de una evaluación realizada a ${totalRespondents} participante(s) de la sesión "${sessionName}".
 
@@ -131,6 +218,7 @@ Genera un análisis ejecutivo en español que incluya:
 5. **Hoja de Ruta Sugerida**: Una secuencia lógica de mejora a corto (1-3 meses), mediano (3-6 meses) y largo plazo (6-12 meses).
 
 El tono debe ser profesional pero accesible, orientado a líderes de negocio y TI.`
+    }
 
     let analysisText = ''
 
