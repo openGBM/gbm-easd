@@ -51,6 +51,9 @@ export default function AdminNav({ userEmail, multiInstrument }: AdminNavProps) 
           <Link href="/admin/encuestados" className="text-gray-600 hover:text-gray-900 whitespace-nowrap">
             Encuestados
           </Link>
+          <Link href="/admin/consumo" className="text-gray-600 hover:text-gray-900 whitespace-nowrap">
+            Consumo
+          </Link>
         </div>
       </div>
     </nav>

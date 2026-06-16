@@ -221,14 +221,17 @@ El tono debe ser profesional pero accesible, orientado a líderes de negocio y T
     }
 
     let analysisText = ''
+    let aiResult: AIResult | null = null
 
     // Intentar con Gemini primero, fallback a Groq
     if (geminiKey) {
-      analysisText = await tryGemini(geminiKey, prompt)
+      aiResult = await tryGemini(geminiKey, prompt)
+      if (aiResult) analysisText = aiResult.text
     }
 
     if (!analysisText && groqKey) {
-      analysisText = await tryGroq(groqKey, prompt)
+      aiResult = await tryGroq(groqKey, prompt)
+      if (aiResult) analysisText = aiResult.text
     }
 
     if (!analysisText) {
@@ -236,6 +239,18 @@ El tono debe ser profesional pero accesible, orientado a líderes de negocio y T
         { error: 'No se pudo generar el análisis. Ambos proveedores fallaron. Intenta de nuevo en unos minutos.' },
         { status: 503 }
       )
+    }
+
+    // Registrar consumo de IA (usage log)
+    if (aiResult) {
+      await supabase.from('usage_logs').insert({
+        user_email: user.email,
+        action: 'analysis',
+        model: aiResult.model,
+        input_tokens: aiResult.inputTokens,
+        output_tokens: aiResult.outputTokens,
+        metadata: { session_id: sessionId, session_name: sessionName },
+      }).then(() => {}, () => {}) // No bloquear si falla el log
     }
 
     // Guardar el análisis en la base de datos
@@ -267,7 +282,14 @@ El tono debe ser profesional pero accesible, orientado a líderes de negocio y T
   }
 }
 
-async function tryGemini(apiKey: string, prompt: string): Promise<string> {
+interface AIResult {
+  text: string
+  model: string
+  inputTokens: number
+  outputTokens: number
+}
+
+async function tryGemini(apiKey: string, prompt: string): Promise<AIResult | null> {
   try {
     const genAI = new GoogleGenerativeAI(apiKey)
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
@@ -276,7 +298,13 @@ async function tryGemini(apiKey: string, prompt: string): Promise<string> {
     while (attempts < 2) {
       try {
         const result = await model.generateContent(prompt)
-        return result.response.text()
+        const usage = result.response.usageMetadata
+        return {
+          text: result.response.text(),
+          model: 'gemini-2.0-flash',
+          inputTokens: usage?.promptTokenCount || 0,
+          outputTokens: usage?.candidatesTokenCount || 0,
+        }
       } catch (err: any) {
         attempts++
         if (err?.status === 429 && attempts < 2) {
@@ -286,14 +314,14 @@ async function tryGemini(apiKey: string, prompt: string): Promise<string> {
         throw err
       }
     }
-    return ''
+    return null
   } catch (error) {
     logger.warn('Gemini falló, intentando fallback', 'api/analysis', error)
-    return ''
+    return null
   }
 }
 
-async function tryGroq(apiKey: string, prompt: string): Promise<string> {
+async function tryGroq(apiKey: string, prompt: string): Promise<AIResult | null> {
   try {
     const groq = new Groq({ apiKey })
     const completion = await groq.chat.completions.create({
@@ -306,9 +334,15 @@ async function tryGroq(apiKey: string, prompt: string): Promise<string> {
       max_tokens: 3000,
     })
 
-    return completion.choices[0]?.message?.content || ''
+    const text = completion.choices[0]?.message?.content || ''
+    return {
+      text,
+      model: 'llama-3.3-70b-versatile',
+      inputTokens: completion.usage?.prompt_tokens || 0,
+      outputTokens: completion.usage?.completion_tokens || 0,
+    }
   } catch (error) {
     logger.error('Groq falló', 'api/analysis', error)
-    return ''
+    return null
   }
 }
