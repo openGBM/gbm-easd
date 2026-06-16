@@ -19,8 +19,8 @@ export default async function AdminLayout({
   }
 
   // Verificar que el usuario tiene rol de admin (server-side enforcement)
-  const allowedAdmins = (process.env.ADMIN_EMAILS || 'admin@gbm.net').split(',').map(e => e.trim())
-  if (!allowedAdmins.includes(user.email || '')) {
+  const allowedAdmins = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean)
+  if (allowedAdmins.length === 0 || !allowedAdmins.includes(user.email || '')) {
     redirect('/admin/login')
   }
 

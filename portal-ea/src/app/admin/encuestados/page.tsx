@@ -87,12 +87,15 @@ export default function EncuestadosPage() {
     setHistoryTable([])
     setHistoryRadars([])
 
+    // Sanitizar query: escapar caracteres especiales de PostgREST filters
+    const sanitized = query.replace(/[%_().,'"\\]/g, '')
+
     // Buscar encuestados por email o nombre
     const { data } = await supabase
       .from('respondents')
       .select('email, name, session_id')
       .eq('completed', true)
-      .or(`email.ilike.%${query}%,name.ilike.%${query}%`)
+      .or(`email.ilike.%${sanitized}%,name.ilike.%${sanitized}%`)
       .order('email')
 
     if (data && data.length > 0) {

@@ -48,25 +48,42 @@ export default function LoginPage() {
 
     setLoading(true)
 
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    // Usar API route con rate limiting server-side
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
 
-    if (authError) {
-      const newAttempts = attempts + 1
-      setAttempts(newAttempts)
-
-      if (newAttempts >= MAX_ATTEMPTS) {
-        const lockUntil = Date.now() + LOCKOUT_DURATION_MS
-        setLockedUntil(lockUntil)
-        setCountdown(Math.ceil(LOCKOUT_DURATION_MS / 1000))
-        setError(`Demasiados intentos fallidos. Cuenta bloqueada por 60 segundos.`)
-      } else {
-        const remaining = MAX_ATTEMPTS - newAttempts
-        setError(`Credenciales inválidas. ${remaining} intento(s) restante(s).`)
+      if (res.status === 429) {
+        setError('Demasiados intentos. Espera un minuto antes de volver a intentar.')
+        setLoading(false)
+        return
       }
 
+      if (!res.ok) {
+        const newAttempts = attempts + 1
+        setAttempts(newAttempts)
+
+        if (newAttempts >= MAX_ATTEMPTS) {
+          const lockUntil = Date.now() + LOCKOUT_DURATION_MS
+          setLockedUntil(lockUntil)
+          setCountdown(Math.ceil(LOCKOUT_DURATION_MS / 1000))
+          setError(`Demasiados intentos fallidos. Cuenta bloqueada por 60 segundos.`)
+        } else {
+          const remaining = MAX_ATTEMPTS - newAttempts
+          setError(`Credenciales inválidas. ${remaining} intento(s) restante(s).`)
+        }
+
+        setLoading(false)
+        return
+      }
+
+      // Login exitoso server-side — ahora hacer sign-in client-side para setear cookies
+      await supabase.auth.signInWithPassword({ email, password })
+    } catch {
+      setError('Error de conexión. Intenta de nuevo.')
       setLoading(false)
       return
     }
