@@ -29,31 +29,33 @@ function generateCorrelationId(): string {
   return `req_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
 }
 
-// Usa AsyncLocalStorage para aislar correlation IDs entre requests concurrentes
-import { AsyncLocalStorage } from 'node:async_hooks'
-const correlationStorage = new AsyncLocalStorage<string>()
+// Correlation ID simple sin dependencia de node:async_hooks
+// Compatible con browser y server (no usa módulos Node exclusivos)
+let currentCorrelationId: string | null = null
 
 /**
  * Obtiene el correlation ID del request actual.
- * Retorna undefined si no hay contexto activo.
  */
 export function getCorrelationId(): string {
-  return correlationStorage.getStore() || generateCorrelationId()
+  if (currentCorrelationId) return currentCorrelationId
+  currentCorrelationId = generateCorrelationId()
+  return currentCorrelationId
 }
 
 /**
- * Ejecuta una función con un correlation ID aislado.
- * Usar en API routes: runWithCorrelationId(() => { ... })
- */
-export function runWithCorrelationId<T>(fn: () => T, id?: string): T {
-  return correlationStorage.run(id || generateCorrelationId(), fn)
-}
-
-/**
- * @deprecated Usar runWithCorrelationId. Mantenido por retrocompatibilidad.
+ * Establece el correlation ID para el request actual.
+ * Llamar al inicio de un API route.
  */
 export function setCorrelationId(id?: string): string {
-  return id || generateCorrelationId()
+  currentCorrelationId = id || generateCorrelationId()
+  return currentCorrelationId
+}
+
+/**
+ * Limpia el correlation ID (llamar al final del request).
+ */
+export function clearCorrelationId(): void {
+  currentCorrelationId = null
 }
 
 function formatLog(entry: LogEntry): string {
@@ -85,7 +87,7 @@ function createLogEntry(level: LogLevel, message: string, context?: string, data
     level,
     message,
     context,
-    correlationId: correlationStorage.getStore() || undefined,
+    correlationId: currentCorrelationId || undefined,
     data,
     timestamp: new Date().toISOString(),
   }
