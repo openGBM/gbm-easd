@@ -19,8 +19,8 @@ export default async function AdminLayout({
   }
 
   // Verificar que el usuario tiene rol de admin (server-side enforcement)
-  const allowedAdmins = (process.env.ADMIN_EMAILS || 'admin@gbm.net').split(',').map(e => e.trim())
-  if (!allowedAdmins.includes(user.email || '')) {
+  const allowedAdmins = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean)
+  if (allowedAdmins.length === 0 || !allowedAdmins.includes(user.email || '')) {
     redirect('/admin/login')
   }
 
@@ -30,7 +30,7 @@ export default async function AdminLayout({
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminNav userEmail={user.email || ''} multiInstrument={isMultiInstrument} />
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
         {children}
       </main>
     </div>

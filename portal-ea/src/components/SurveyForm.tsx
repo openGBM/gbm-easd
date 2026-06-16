@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { DimensionWithQuestions, AGREEMENT_SCALE, ScaleLabel } from '@/types/database'
+import { DimensionWithQuestions, DEFAULT_SCALE_LABELS, ScaleLabel } from '@/types/database'
 
 interface SurveyFormProps {
   sessionId: string
@@ -18,7 +18,7 @@ export default function SurveyForm({ sessionId, dimensions, scaleLabels }: Surve
   // Usar etiquetas personalizadas si existen, sino las default
   const scale = scaleLabels && scaleLabels.length > 0
     ? scaleLabels.sort((a, b) => b.value - a.value)
-    : AGREEMENT_SCALE
+    : DEFAULT_SCALE_LABELS
 
   const [step, setStep] = useState<'register' | 'survey' | 'submitting'>('register')
   const [currentDimension, setCurrentDimension] = useState(0)
@@ -51,56 +51,50 @@ export default function SurveyForm({ sessionId, dimensions, scaleLabels }: Surve
       return
     }
 
-    const { data, error: dbError } = await supabase
-      .from('respondents')
-      .insert({ session_id: sessionId, name: name.trim(), email: email.trim() })
-      .select('id')
-      .single()
+    // Usar API route con rate limiting y validación server-side
+    try {
+      const res = await fetch('/api/respondents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, name: name.trim(), email: email.trim() }),
+      })
 
-    if (dbError) {
-      if (dbError.code === '23505') {
-        // Email ya registrado — verificar si completó o no
-        const { data: existing } = await supabase
-          .from('respondents')
-          .select('id, completed')
-          .eq('session_id', sessionId)
-          .eq('email', email.trim())
-          .single()
+      if (res.status === 429) {
+        setError('Demasiadas solicitudes. Espera un momento antes de intentar de nuevo.')
+        return
+      }
 
-        if (existing?.completed) {
+      const result = await res.json()
+
+      if (!res.ok) {
+        if (result.code === 'ALREADY_COMPLETED') {
           setError('Ya respondiste esta encuesta. Tu evaluación fue registrada exitosamente.')
           return
         }
-
-        if (existing) {
-          // No completó — cargar respuestas previas y permitir continuar
-          setRespondentId(existing.id)
-
-          // Cargar respuestas existentes
-          const { data: prevResponses } = await supabase
-            .from('responses')
-            .select('question_id, value')
-            .eq('respondent_id', existing.id)
-
-          if (prevResponses && prevResponses.length > 0) {
-            const prevMap: Record<string, number> = {}
-            prevResponses.forEach(r => { prevMap[r.question_id] = r.value })
-            setResponses(prevMap)
-          }
-
-          setStep('survey')
-          return
-        }
-
-        setError('Ya existe un registro con este correo para esta sesión')
-      } else {
-        setError('Error al registrar. Intenta de nuevo.')
+        setError(result.error || 'Error al registrar. Intenta de nuevo.')
+        return
       }
-      return
-    }
 
-    setRespondentId(data.id)
-    setStep('survey')
+      setRespondentId(result.id)
+
+      // Si es reanudación, cargar respuestas previas
+      if (result.resumed) {
+        const { data: prevResponses } = await supabase
+          .from('responses')
+          .select('question_id, value')
+          .eq('respondent_id', result.id)
+
+        if (prevResponses && prevResponses.length > 0) {
+          const prevMap: Record<string, number> = {}
+          prevResponses.forEach(r => { prevMap[r.question_id] = r.value })
+          setResponses(prevMap)
+        }
+      }
+
+      setStep('survey')
+    } catch {
+      setError('Error de conexión. Intenta de nuevo.')
+    }
   }
 
   function selectValue(questionId: string, value: number) {
@@ -261,6 +255,11 @@ export default function SurveyForm({ sessionId, dimensions, scaleLabels }: Surve
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
+            role="progressbar"
+            aria-valuenow={currentDimension + 1}
+            aria-valuemin={1}
+            aria-valuemax={totalDimensions}
+            aria-label={`Progreso: dimensión ${currentDimension + 1} de ${totalDimensions}`}
             className="h-2 rounded-full transition-all duration-300"
             style={{ width: `${((currentDimension + 1) / totalDimensions) * 100}%`, backgroundColor: dimColor }}
           />
@@ -301,6 +300,8 @@ export default function SurveyForm({ sessionId, dimensions, scaleLabels }: Surve
                       key={value}
                       onClick={() => selectValue(question.id, value)}
                       title={`${value} — ${label}`}
+                      aria-label={`Valor ${value}: ${label}`}
+                      aria-pressed={selectedValue === value}
                       className={`w-10 h-10 rounded-lg border text-sm font-bold transition-all ${
                         selectedValue === value
                           ? 'text-white'

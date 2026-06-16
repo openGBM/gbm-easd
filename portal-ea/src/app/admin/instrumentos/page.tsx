@@ -39,26 +39,38 @@ export default function InstrumentosPage() {
       .order('created_at', { ascending: false })
 
     if (data) {
-      // Para cada instrumento, contar sesiones asociadas
-      const formatted = await Promise.all(data.map(async (inst) => {
+      // Obtener todos los version IDs para contar sesiones en una sola query
+      const allVersionIds = data.flatMap(inst =>
+        (inst.instrument_versions || []).map((v: any) => v.id)
+      )
+
+      // Una sola query para contar sesiones por version_id
+      let sessionCounts: Record<string, number> = {}
+      if (allVersionIds.length > 0) {
+        const { data: sessionData } = await supabase
+          .from('sessions')
+          .select('instrument_version_id')
+          .in('instrument_version_id', allVersionIds)
+
+        if (sessionData) {
+          sessionData.forEach(s => {
+            const vid = s.instrument_version_id
+            if (vid) sessionCounts[vid] = (sessionCounts[vid] || 0) + 1
+          })
+        }
+      }
+
+      const formatted = data.map(inst => {
         const currentVersion = inst.instrument_versions?.find((v: any) => v.is_current) || undefined
         const versionIds = (inst.instrument_versions || []).map((v: any) => v.id)
-
-        let sessionCount = 0
-        if (versionIds.length > 0) {
-          const { count } = await supabase
-            .from('sessions')
-            .select('*', { count: 'exact', head: true })
-            .in('instrument_version_id', versionIds)
-          sessionCount = count || 0
-        }
+        const sessionCount = versionIds.reduce((sum: number, vid: string) => sum + (sessionCounts[vid] || 0), 0)
 
         return {
           ...inst,
           current_version: currentVersion,
           session_count: sessionCount,
         }
-      }))
+      })
       setInstruments(formatted)
     }
     setLoading(false)

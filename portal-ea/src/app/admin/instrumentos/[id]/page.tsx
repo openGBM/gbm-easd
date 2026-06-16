@@ -6,7 +6,6 @@ import { createClient } from '@/lib/supabase/client'
 import { Instrument, InstrumentVersion, DimensionWithQuestions } from '@/types/database'
 import { showToast } from '@/components/Toast'
 import PromptModal from '@/components/PromptModal'
-import * as ExcelJS from 'exceljs'
 import ReactMarkdown from 'react-markdown'
 import Link from 'next/link'
 
@@ -432,6 +431,7 @@ export default function InstrumentDetailPage() {
   async function exportToExcel() {
     if (!currentVersion || dimensions.length === 0) return
 
+    const ExcelJS = await import('exceljs')
     const wb = new ExcelJS.Workbook()
 
     // Hoja 1: Banco de Preguntas
@@ -527,6 +527,7 @@ export default function InstrumentDetailPage() {
 
     try {
       const buffer = await file.arrayBuffer()
+      const ExcelJS = await import('exceljs')
       const wb = new ExcelJS.Workbook()
       await wb.xlsx.load(buffer)
 

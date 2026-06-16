@@ -29,13 +29,12 @@ function generateCorrelationId(): string {
   return `req_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
 }
 
-// Almacena el correlation ID del request actual (server-side)
+// Correlation ID simple sin dependencia de node:async_hooks
+// Compatible con browser y server (no usa módulos Node exclusivos)
 let currentCorrelationId: string | null = null
 
 /**
- * Obtiene o genera un correlation ID para el request actual.
- * En server components/API routes, intenta leer el header x-request-id.
- * Si no existe, genera uno nuevo.
+ * Obtiene el correlation ID del request actual.
  */
 export function getCorrelationId(): string {
   if (currentCorrelationId) return currentCorrelationId
@@ -45,11 +44,18 @@ export function getCorrelationId(): string {
 
 /**
  * Establece el correlation ID para el request actual.
- * Llamar al inicio de un API route o server action.
+ * Llamar al inicio de un API route.
  */
 export function setCorrelationId(id?: string): string {
   currentCorrelationId = id || generateCorrelationId()
   return currentCorrelationId
+}
+
+/**
+ * Limpia el correlation ID (llamar al final del request).
+ */
+export function clearCorrelationId(): void {
+  currentCorrelationId = null
 }
 
 function formatLog(entry: LogEntry): string {
