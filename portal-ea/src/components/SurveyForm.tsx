@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { DimensionWithQuestions, AGREEMENT_SCALE, ScaleLabel } from '@/types/database'
+import { DimensionWithQuestions, DEFAULT_SCALE_LABELS, ScaleLabel } from '@/types/database'
 
 interface SurveyFormProps {
   sessionId: string
@@ -18,7 +18,7 @@ export default function SurveyForm({ sessionId, dimensions, scaleLabels }: Surve
   // Usar etiquetas personalizadas si existen, sino las default
   const scale = scaleLabels && scaleLabels.length > 0
     ? scaleLabels.sort((a, b) => b.value - a.value)
-    : AGREEMENT_SCALE
+    : DEFAULT_SCALE_LABELS
 
   const [step, setStep] = useState<'register' | 'survey' | 'submitting'>('register')
   const [currentDimension, setCurrentDimension] = useState(0)
@@ -255,6 +255,11 @@ export default function SurveyForm({ sessionId, dimensions, scaleLabels }: Surve
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
+            role="progressbar"
+            aria-valuenow={currentDimension + 1}
+            aria-valuemin={1}
+            aria-valuemax={totalDimensions}
+            aria-label={`Progreso: dimensión ${currentDimension + 1} de ${totalDimensions}`}
             className="h-2 rounded-full transition-all duration-300"
             style={{ width: `${((currentDimension + 1) / totalDimensions) * 100}%`, backgroundColor: dimColor }}
           />
@@ -295,6 +300,8 @@ export default function SurveyForm({ sessionId, dimensions, scaleLabels }: Surve
                       key={value}
                       onClick={() => selectValue(question.id, value)}
                       title={`${value} — ${label}`}
+                      aria-label={`Valor ${value}: ${label}`}
+                      aria-pressed={selectedValue === value}
                       className={`w-10 h-10 rounded-lg border text-sm font-bold transition-all ${
                         selectedValue === value
                           ? 'text-white'

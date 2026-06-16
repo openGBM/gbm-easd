@@ -21,18 +21,49 @@ export default function PromptModal({
 }: PromptModalProps) {
   const [value, setValue] = useState(defaultValue)
   const inputRef = useRef<HTMLInputElement>(null)
+  const modalRef = useRef<HTMLDivElement>(null)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
     if (isOpen) {
+      previousFocusRef.current = document.activeElement as HTMLElement
       setValue(defaultValue)
       setTimeout(() => inputRef.current?.focus(), 100)
+    } else if (previousFocusRef.current) {
+      previousFocusRef.current.focus()
+      previousFocusRef.current = null
     }
   }, [isOpen, defaultValue])
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') onCancel()
-      if (e.key === 'Enter' && value.trim()) onConfirm(value.trim())
+      if (e.key === 'Escape') {
+        onCancel()
+        return
+      }
+      if (e.key === 'Enter' && value.trim()) {
+        onConfirm(value.trim())
+        return
+      }
+      if (e.key === 'Tab' && modalRef.current) {
+        const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+        if (focusable.length === 0) return
+        const first = focusable[0]
+        const last = focusable[focusable.length - 1]
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault()
+            last.focus()
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault()
+            first.focus()
+          }
+        }
+      }
     }
     if (isOpen) {
       document.addEventListener('keydown', handleKeyDown)
@@ -45,8 +76,14 @@ export default function PromptModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/50" onClick={onCancel} />
-      <div className="relative bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-4">{title}</h3>
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="prompt-modal-title"
+        className="relative bg-white rounded-xl shadow-2xl max-w-md w-full p-6"
+      >
+        <h3 id="prompt-modal-title" className="text-lg font-bold text-gray-900 mb-4">{title}</h3>
         <input
           ref={inputRef}
           type="text"
