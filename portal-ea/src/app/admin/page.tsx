@@ -276,9 +276,9 @@ export default function AdminDashboard() {
       </div>
 
       {/* Crear nueva sesión */}
-      <div className="bg-white rounded-xl shadow-sm border p-6 mb-8">
-        <h2 className="text-lg font-medium mb-4">Crear Nueva Sesión</h2>
-        <form onSubmit={createSession} className="space-y-4">
+      <div className="bg-white rounded-xl shadow-sm border p-4 sm:p-6 mb-6 sm:mb-8">
+        <h2 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">Crear Nueva Sesión</h2>
+        <form onSubmit={createSession} className="space-y-3">
           {multiInstrumentEnabled && instruments.length > 0 && (
             <InstrumentSelector
               instruments={instruments}
@@ -286,19 +286,19 @@ export default function AdminDashboard() {
               onChange={setSelectedInstrumentId}
             />
           )}
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-3">
             <input
               type="text"
               value={newSessionName}
               onChange={e => setNewSessionName(e.target.value)}
               placeholder="Nombre de la sesión (ej: Evaluación Banco XYZ)"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               required
             />
             <button
               type="submit"
               disabled={creating}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 whitespace-nowrap"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 whitespace-nowrap text-sm"
             >
               {creating ? 'Creando...' : '+ Crear Sesión'}
             </button>
@@ -307,18 +307,18 @@ export default function AdminDashboard() {
       </div>
 
       {/* Filtros de sesiones */}
-      <div className="flex gap-4 mb-6 items-center">
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <input
           type="text"
           value={filterSearch}
           onChange={e => setFilterSearch(e.target.value)}
           placeholder="Buscar por nombre..."
-          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
         />
         <select
           value={filterStatus}
           onChange={e => setFilterStatus(e.target.value as 'all' | 'active' | 'inactive')}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
         >
           <option value="all">Todas</option>
           <option value="active">Activas</option>
@@ -333,14 +333,14 @@ export default function AdminDashboard() {
           <p className="text-sm mt-1">Crea una sesión para comenzar.</p>
         </div>
       ) : (
-        <div className="grid gap-6">
+        <div className="grid gap-4 sm:gap-6">
           {filteredSessions.map(session => (
-            <div key={session.id} className="bg-white rounded-xl shadow-sm border p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-lg font-bold text-gray-900">{session.name}</h3>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+            <div key={session.id} className="bg-white rounded-xl shadow-sm border p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    <h3 className="text-base sm:text-lg font-bold text-gray-900 truncate">{session.name}</h3>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${
                       session.is_active
                         ? 'bg-green-100 text-green-700'
                         : 'bg-red-100 text-red-700'
@@ -354,14 +354,14 @@ export default function AdminDashboard() {
                       />
                     )}
                   </div>
-                  <p className="text-sm text-gray-500 mb-4">
+                  <p className="text-sm text-gray-500 mb-3">
                     Creada: {new Date(session.created_at).toLocaleDateString('es-MX')} — 
                     {' '}{session.respondent_count} encuestado(s)
                   </p>
-                  <div className="flex gap-3">
+                  <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => toggleSession(session.id, session.is_active)}
-                      className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                      className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                         session.is_active
                           ? 'bg-red-50 text-red-600 hover:bg-red-100'
                           : 'bg-green-50 text-green-600 hover:bg-green-100'
@@ -371,14 +371,14 @@ export default function AdminDashboard() {
                     </button>
                     <Link
                       href={`/admin/sesiones/${session.id}`}
-                      className="px-4 py-1.5 rounded-lg text-sm font-medium bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors"
+                      className="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors"
                     >
                       Ver Detalle
                     </Link>
                     <button
                       onClick={() => deleteSession(session.id, session.name)}
                       disabled={deleting === session.id}
-                      className="px-4 py-1.5 rounded-lg text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
+                      className="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
                     >
                       {deleting === session.id ? 'Eliminando...' : 'Eliminar'}
                     </button>
@@ -386,8 +386,8 @@ export default function AdminDashboard() {
                 </div>
                 {/* QR Code — solo si la sesión está activa */}
                 {session.is_active && (
-                  <div className="ml-6">
-                    <QRCodeDisplay url={getSurveyUrl(session.id)} size={120} />
+                  <div className="shrink-0 self-center sm:self-start">
+                    <QRCodeDisplay url={getSurveyUrl(session.id)} size={100} />
                   </div>
                 )}
               </div>
