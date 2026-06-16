@@ -1,11 +1,15 @@
 import type { NextConfig } from "next";
 
+const isDev = process.env.NODE_ENV !== 'production'
+
 const securityHeaders = [
   {
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Next.js requiere unsafe-eval en dev; Recharts usa inline
+      isDev
+        ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"  // Next.js dev requiere unsafe-eval
+        : "script-src 'self' 'unsafe-inline'",               // Producción: sin unsafe-eval
       "style-src 'self' 'unsafe-inline'", // Tailwind CSS inyecta inline styles
       "img-src 'self' data: blob:",
       "font-src 'self'",

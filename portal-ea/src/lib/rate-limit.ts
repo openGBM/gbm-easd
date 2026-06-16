@@ -41,8 +41,21 @@ initLimiters()
 /**
  * Fallback en memoria para desarrollo sin Upstash.
  * Usa un Map simple con TTL de 60 segundos.
+ * Incluye limpieza periódica para evitar memory leak.
  */
 const memoryStore = new Map<string, { count: number; resetAt: number }>()
+
+// Limpiar entradas expiradas cada 5 minutos
+if (typeof setInterval !== 'undefined') {
+  setInterval(() => {
+    const now = Date.now()
+    for (const [key, entry] of memoryStore) {
+      if (now > entry.resetAt) {
+        memoryStore.delete(key)
+      }
+    }
+  }, 5 * 60 * 1000).unref?.()
+}
 
 function memoryRateLimit(key: string, limit: number, windowMs: number = 60000): { success: boolean; remaining: number } {
   const now = Date.now()

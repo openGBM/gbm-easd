@@ -108,26 +108,16 @@ export default function AdminDashboard() {
   }
 
   async function loadStats() {
-    // Total sesiones habilitadas
-    const { count: activeSessions } = await supabase
-      .from('sessions')
-      .select('*', { count: 'exact', head: true })
-      .eq('is_active', true)
-
-    // Total respuestas completadas (encuestados que terminaron)
-    const { count: totalResponses } = await supabase
-      .from('respondents')
-      .select('*', { count: 'exact', head: true })
-      .eq('completed', true)
-
-    // Tiempo promedio de respuesta (completed_at - created_at)
-    const { data: completedRespondents } = await supabase
-      .from('respondents')
-      .select('created_at, completed_at')
-      .eq('completed', true)
-      .not('completed_at', 'is', null)
+    // Ejecutar queries en paralelo (son independientes)
+    const [activeResult, responsesResult, completedResult, instrumentsResult] = await Promise.all([
+      supabase.from('sessions').select('*', { count: 'exact', head: true }).eq('is_active', true),
+      supabase.from('respondents').select('*', { count: 'exact', head: true }).eq('completed', true),
+      supabase.from('respondents').select('created_at, completed_at').eq('completed', true).not('completed_at', 'is', null),
+      supabase.from('instruments').select('*', { count: 'exact', head: true }).eq('is_active', true),
+    ])
 
     let avgTimeMinutes = 0
+    const completedRespondents = completedResult.data
     if (completedRespondents && completedRespondents.length > 0) {
       const totalMinutes = completedRespondents.reduce((sum, r) => {
         const start = new Date(r.created_at).getTime()
@@ -137,17 +127,11 @@ export default function AdminDashboard() {
       avgTimeMinutes = Math.round(totalMinutes / completedRespondents.length)
     }
 
-    // Total instrumentos activos
-    const { count: totalInstruments } = await supabase
-      .from('instruments')
-      .select('*', { count: 'exact', head: true })
-      .eq('is_active', true)
-
     setStats({
-      activeSessions: activeSessions || 0,
-      totalResponses: totalResponses || 0,
+      activeSessions: activeResult.count || 0,
+      totalResponses: responsesResult.count || 0,
       avgTimeMinutes,
-      totalInstruments: totalInstruments || 0,
+      totalInstruments: instrumentsResult.count || 0,
     })
   }
 

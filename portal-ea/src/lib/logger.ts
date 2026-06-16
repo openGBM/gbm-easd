@@ -29,27 +29,31 @@ function generateCorrelationId(): string {
   return `req_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
 }
 
-// Almacena el correlation ID del request actual (server-side)
-let currentCorrelationId: string | null = null
+// Usa AsyncLocalStorage para aislar correlation IDs entre requests concurrentes
+import { AsyncLocalStorage } from 'node:async_hooks'
+const correlationStorage = new AsyncLocalStorage<string>()
 
 /**
- * Obtiene o genera un correlation ID para el request actual.
- * En server components/API routes, intenta leer el header x-request-id.
- * Si no existe, genera uno nuevo.
+ * Obtiene el correlation ID del request actual.
+ * Retorna undefined si no hay contexto activo.
  */
 export function getCorrelationId(): string {
-  if (currentCorrelationId) return currentCorrelationId
-  currentCorrelationId = generateCorrelationId()
-  return currentCorrelationId
+  return correlationStorage.getStore() || generateCorrelationId()
 }
 
 /**
- * Establece el correlation ID para el request actual.
- * Llamar al inicio de un API route o server action.
+ * Ejecuta una función con un correlation ID aislado.
+ * Usar en API routes: runWithCorrelationId(() => { ... })
+ */
+export function runWithCorrelationId<T>(fn: () => T, id?: string): T {
+  return correlationStorage.run(id || generateCorrelationId(), fn)
+}
+
+/**
+ * @deprecated Usar runWithCorrelationId. Mantenido por retrocompatibilidad.
  */
 export function setCorrelationId(id?: string): string {
-  currentCorrelationId = id || generateCorrelationId()
-  return currentCorrelationId
+  return id || generateCorrelationId()
 }
 
 function formatLog(entry: LogEntry): string {
@@ -81,7 +85,7 @@ function createLogEntry(level: LogLevel, message: string, context?: string, data
     level,
     message,
     context,
-    correlationId: currentCorrelationId || undefined,
+    correlationId: correlationStorage.getStore() || undefined,
     data,
     timestamp: new Date().toISOString(),
   }

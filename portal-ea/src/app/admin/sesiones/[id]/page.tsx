@@ -12,7 +12,6 @@ import ConfirmModal from '@/components/ConfirmModal'
 import { showToast } from '@/components/Toast'
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
-import * as ExcelJS from 'exceljs'
 
 export default function SessionDetailPage() {
   const params = useParams()
@@ -278,7 +277,8 @@ export default function SessionDetailPage() {
       })
     }
 
-    // Generar archivo Excel con 2 hojas usando ExcelJS
+    // Generar archivo Excel con 2 hojas usando ExcelJS (dynamic import para reducir bundle)
+    const ExcelJS = await import('exceljs')
     const wb = new ExcelJS.Workbook()
 
     // Hoja Resumen
