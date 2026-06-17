@@ -1,6 +1,6 @@
-# Portal de Evaluaciones de Autodiagnóstico — GBM
+# Portal de Evaluaciones — GBM
 
-Portal web multi-instrumento para evaluaciones de autodiagnóstico organizacional.  
+**v1.3.4** · Portal web multi-instrumento para evaluaciones organizacionales.  
 Permite aplicar distintos instrumentos de evaluación, gestionar sesiones con participantes, visualizar resultados con gráficos de radar, y generar análisis interpretativos con inteligencia artificial.
 
 ![Portal de Evaluaciones GBM](../docs/portal-inicio.png)
@@ -11,15 +11,16 @@ Permite aplicar distintos instrumentos de evaluación, gestionar sesiones con pa
 
 | Capa | Tecnología |
 |------|------------|
-| Framework | Next.js 16 (App Router) |
-| Lenguaje | TypeScript |
+| Framework | Next.js 16 (App Router, proxy.ts) |
+| Lenguaje | TypeScript 6 |
 | UI | React 19 + Tailwind CSS 4 |
 | Visualización | Recharts (radar chart, bar chart) |
 | QR | qrcode.react |
-| Exportación | ExcelJS, jsPDF + html2canvas-pro |
+| Exportación | ExcelJS (dynamic import), jsPDF + html2canvas-pro |
 | IA/Análisis | Google Gemini 2.0 Flash + Groq Llama 3.3 70B (fallback) |
 | Backend/DB | Supabase (PostgreSQL + Auth + RLS) |
-| Auth | Supabase Auth (email/password) |
+| Auth | Supabase Auth (email/password) + proxy server-side |
+| Rate Limiting | Upstash Redis (prod) / memoria con cleanup (dev) |
 
 ---
 
@@ -42,7 +43,8 @@ portal-ea/
 │   │       ├── instrumentos/page.tsx        # Catálogo de instrumentos
 │   │       ├── instrumentos/[id]/page.tsx   # Gestión de instrumento
 │   │       ├── instrumentos/[id]/tendencias/page.tsx # Tendencias
-│   │       └── encuestados/page.tsx         # Historial de encuestados
+│   │       ├── encuestados/page.tsx         # Historial de encuestados
+│   │       └── consumo/page.tsx             # Tracking de consumo y tokens
 │   ├── components/
 │   │   ├── SurveyForm.tsx                   # Wizard de encuesta (registro + stepper)
 │   │   ├── RadarChart.tsx                   # Gráfico de radar (Recharts)
@@ -89,12 +91,15 @@ dimensions (1) ──── (N) questions (1) ───────────�
 
 | Tabla | Descripción |
 |-------|-------------|
-| `sessions` | Sesiones de evaluación (id, name, is_active, created_at) |
-| `dimensions` | Dimensiones EA con color (id, name, description, display_order, color) |
+| `sessions` | Sesiones de evaluación (id, name, is_active, instrument_version_id, created_at) |
+| `instruments` | Instrumentos de evaluación (id, name, description, ai_expertise_prompt, is_active) |
+| `instrument_versions` | Versiones del banco (id, instrument_id, version_number, version_tag, is_current, scale_labels, maturity_levels) |
+| `dimensions` | Dimensiones con color (id, name, description, display_order, color, instrument_version_id) |
 | `questions` | Preguntas por dimensión (id, dimension_id, text, display_order) |
 | `respondents` | Encuestados (id, session_id, name, email, completed, completed_at, created_at) |
 | `responses` | Respuestas (id, respondent_id, question_id, value 1-5, created_at) |
 | `session_analyses` | Análisis IA por sesión (id, session_id, analysis_text, generated_at, generated_by) |
+| `usage_logs` | Registro de consumo (id, user_email, action, model, input_tokens, output_tokens, metadata, created_at) |
 
 ---
 
@@ -113,34 +118,39 @@ dimensions (1) ──── (N) questions (1) ───────────�
 - Tabla resumen con nivel de madurez por dimensión (Naciente / Base / Clase Mundial)
 
 ### Administrador
-- Login con email/password (Supabase Auth)
-- Dashboard con métricas globales (sesiones activas, respuestas totales, tiempo promedio)
+- Login con email/password (Supabase Auth) con rate limiting server-side
+- Dashboard con métricas globales (sesiones activas, respuestas totales, tiempo promedio) cargadas en paralelo
 - Dashboard con lista de sesiones (activas/inactivas)
-- Crear nuevas sesiones
+- Crear nuevas sesiones (con log de uso automático)
 - Habilitar/deshabilitar sesiones
 - Eliminar sesiones con confirmación (cascade)
 - Código QR generado para cada sesión con botones para copiar URL y copiar QR como imagen PNG
 - Detalle de sesión con dashboard específico (respuestas y tiempo promedio de la sesión)
 - Vista de resultados por encuestado individual
 - Vista consolidada (promedio de todos los encuestados completados)
-- Análisis IA (Gemini/Groq): interpretación ejecutiva de resultados bajo demanda, con formato markdown y opción de copiar
+- Análisis IA (Gemini/Groq): interpretación ejecutiva con tracking de tokens consumidos por modelo
 - Prompt de expertise IA con vista previa markdown (expand/collapse), textarea ampliado (12 rows, monospace) y límite de 6000 caracteres
-- Prompts personalizados (>200 chars) usan su propio formato de respuesta en lugar de la plantilla genérica
-- Detalle por pregunta enviado a la IA cuando el instrumento tiene prompt personalizado
+- Prompts personalizados (>200 chars) usan su propio formato de respuesta con detalle por pregunta
 - Editor visual de dimensiones: color editable vía color picker, descripción editable inline
 - Versionamiento automático al agregar/eliminar dimensiones (si ya existen respuestas)
-- Exportar respuestas a Excel (.xlsx) con 2 hojas: Resumen y Detalle
+- Exportar respuestas a Excel (.xlsx) con 2 hojas: Resumen y Detalle (ExcelJS cargado bajo demanda)
 - Exportar resultados a PDF (radar + tabla con título del instrumento)
 - Eliminar encuestados y sus respuestas
 - Tendencias por instrumento: gráfico de barras con evolución entre sesiones + filtros
 - Historial de encuestados: búsqueda por email/nombre + tabla cronológica + radares por sesión
 - Metadata dinámica en URLs de encuesta: OG tags muestran nombre del instrumento y sesión
+- **Tracking de consumo**: sesiones creadas, análisis generados, tokens por modelo por usuario
 
 ### Seguridad
-- Supabase Auth con verificación de email autorizado
+- Proxy server-side (proxy.ts) que verifica autenticación y email autorizado antes de renderizar admin
+- Supabase Auth con verificación de email autorizado (default deny-all si ADMIN_EMAILS no está configurada)
+- Rate limiting server-side: login por IP, registro de encuestados por IP, análisis IA por usuario
 - RLS (Row Level Security) en PostgreSQL
-- Validación UUID en parámetros de ruta
+- Validación Zod en todos los API routes + validación UUID en parámetros de ruta
+- CSP diferenciada: `unsafe-eval` solo en desarrollo, removido en producción
+- Sanitización de input en filtros de búsqueda PostgREST
 - Exportación Excel restringida a administradores autenticados
+- Focus trap en modales (accesibilidad + prevención de interacción con background)
 
 ---
 
@@ -168,7 +178,7 @@ Los niveles se configuran desde el editor visual (sección "Niveles de Madurez")
 ## Ejecución Local
 
 ### Prerrequisitos
-- Node.js 18+
+- Node.js 22+
 - Supabase CLI (para base de datos local)
 - Proyecto Supabase configurado con tablas y seed data
 
@@ -179,12 +189,14 @@ Crear archivo `.env.local` en la raíz de `portal-ea/`:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<tu-anon-key>
-ADMIN_EMAILS=admin@gbm.net
+ADMIN_EMAILS=tu-email@empresa.com
 GEMINI_API_KEY=<tu-api-key-de-google-ai-studio>
 GROQ_API_KEY=<tu-api-key-de-groq>
+UPSTASH_REDIS_REST_URL=<tu-upstash-url>          # Opcional: rate limiting en producción
+UPSTASH_REDIS_REST_TOKEN=<tu-upstash-token>      # Opcional: rate limiting en producción
 ```
 
-> **Nota:** Se requiere al menos una de las dos keys de IA (GEMINI o GROQ). El sistema intenta Gemini primero y usa Groq como fallback.
+> **Nota:** Se requiere al menos una de las dos keys de IA (GEMINI o GROQ). El sistema intenta Gemini primero y usa Groq como fallback. Si ADMIN_EMAILS no está configurada, nadie tiene acceso admin.
 
 ### Comandos
 
@@ -222,6 +234,7 @@ La aplicación estará disponible en [http://localhost:3000](http://localhost:30
 | `/admin/instrumentos` | Protegido | Catálogo de instrumentos |
 | `/admin/instrumentos/[id]` | Protegido | Gestión de instrumento |
 | `/admin/instrumentos/[id]/tendencias` | Protegido | Tendencias del instrumento |
+| `/admin/consumo` | Protegido | Tracking de consumo por usuario |
 | `/admin/encuestados` | Protegido | Historial de encuestados |
 
 ---
@@ -230,7 +243,10 @@ La aplicación estará disponible en [http://localhost:3000](http://localhost:30
 
 | Ruta | Método | Descripción |
 |------|--------|-------------|
-| `/api/analysis` | POST | Genera análisis IA con Gemini (solo admin) |
+| `/api/analysis` | POST | Genera análisis IA con Gemini/Groq (solo admin, rate limited) |
+| `/api/auth/login` | POST | Login con rate limiting server-side por IP |
+| `/api/respondents` | POST | Registro de encuestados con validación Zod y rate limiting |
+| `/api/usage` | GET | Consulta de consumo agregado por usuario (solo admin) |
 
 ---
 
