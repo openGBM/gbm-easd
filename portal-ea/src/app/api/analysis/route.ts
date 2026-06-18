@@ -243,14 +243,17 @@ El tono debe ser profesional pero accesible, orientado a líderes de negocio y T
 
     // Registrar consumo de IA (usage log)
     if (aiResult) {
-      await supabase.from('usage_logs').insert({
+      const { error: usageError } = await supabase.from('usage_logs').insert({
         user_email: user.email,
         action: 'analysis',
         model: aiResult.model,
         input_tokens: aiResult.inputTokens,
         output_tokens: aiResult.outputTokens,
         metadata: { session_id: sessionId, session_name: sessionName },
-      }).then(() => {}, () => {}) // No bloquear si falla el log
+      })
+      if (usageError) {
+        logger.warn('Error registrando usage_logs', 'api/analysis', usageError)
+      }
     }
 
     // Guardar el análisis en la base de datos
