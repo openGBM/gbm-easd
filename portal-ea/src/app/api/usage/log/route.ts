@@ -31,6 +31,10 @@ export async function POST(request: NextRequest) {
 
     // Usar admin client para bypasear RLS
     const adminClient = createAdminSupabaseClient()
+    if (!adminClient) {
+      return NextResponse.json({ error: 'Service role key no configurada' }, { status: 503 })
+    }
+
     const { error } = await adminClient.from('usage_logs').insert({
       user_email: user.email,
       action,
@@ -45,7 +49,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ ok: true })
-  } catch {
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+  } catch (err: any) {
+    console.error('[api/usage/log] Error:', err?.message || err)
+    return NextResponse.json({ error: err?.message || 'Error interno' }, { status: 500 })
   }
 }
