@@ -90,8 +90,8 @@ export default async function ResultadosPage({ params }: Props) {
     const qType = r.questions.type || 'likert'
     const contributesToScore = r.questions.contributes_to_score !== false
 
-    // Radar: solo Likert que contribuyen
-    if (qType === 'likert' && contributesToScore && r.value !== null) {
+    // Radar: solo Likert que contribuyen (excluir value=0 que es sentinel de texto)
+    if (qType === 'likert' && contributesToScore && r.value !== null && r.value > 0) {
       if (!dimensionScores[dimId]) {
         dimensionScores[dimId] = { name: dimName, total: 0, count: 0, order: dimOrder }
       }

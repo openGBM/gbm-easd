@@ -117,10 +117,15 @@ export default function SessionDetailPage() {
       .eq('respondent_id', respondentId)
 
     if (responses && responses.length > 0) {
-      // Calcular promedio por dimensión
+      // Calcular promedio por dimensión (solo Likert que contribuyen al score)
       const dimensionScores: Record<string, { name: string; total: number; count: number; order: number }> = {}
 
       responses.forEach((r: any) => {
+        const qType = r.questions.type || 'likert'
+        const contributesToScore = r.questions.contributes_to_score !== false
+
+        if (qType !== 'likert' || !contributesToScore || r.value === null || r.value === 0) return
+
         const dimId = r.questions.dimensions.id
         const dimName = r.questions.dimensions.name
         const dimOrder = r.questions.dimensions.display_order
@@ -342,7 +347,7 @@ export default function SessionDetailPage() {
     allResponses.forEach((r: any) => {
       const qType = r.questions.type || 'likert'
       const contributesToScore = r.questions.contributes_to_score !== false
-      if (qType !== 'likert' || !contributesToScore || r.value === null) return
+      if (qType !== 'likert' || !contributesToScore || r.value === null || r.value === 0) return
 
       const dimName = r.questions.dimensions.name
       const dimOrder = r.questions.dimensions.display_order
@@ -416,7 +421,7 @@ export default function SessionDetailPage() {
         const contributesToScore = r.questions.contributes_to_score !== false
 
         // Solo incluir en radar: Likert que contribuyen al score
-        if (qType !== 'likert' || !contributesToScore || r.value === null) return
+        if (qType !== 'likert' || !contributesToScore || r.value === null || r.value === 0) return
 
         const dimId = r.questions.dimensions.id
         const dimName = r.questions.dimensions.name
