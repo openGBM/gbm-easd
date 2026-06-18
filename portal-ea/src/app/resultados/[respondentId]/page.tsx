@@ -75,18 +75,48 @@ export default async function ResultadosPage({ params }: Props) {
   }
 
   // Calcular promedio por dimensión para el radar chart
+  // Solo incluir preguntas Likert que contribuyen al score
   const dimensionScores: Record<string, { name: string; total: number; count: number; order: number }> = {}
+
+  // Recopilar datos boolean para pie charts
+  const booleanData: { question: string; dimension: string; yesCount: number; noCount: number }[] = []
+  // Recopilar respuestas de texto
+  const textData: { question: string; dimension: string; text: string }[] = []
 
   responses.forEach((r: any) => {
     const dimId = r.questions.dimensions.id
     const dimName = r.questions.dimensions.name
     const dimOrder = r.questions.dimensions.display_order
+    const qType = r.questions.type || 'likert'
+    const contributesToScore = r.questions.contributes_to_score !== false
 
-    if (!dimensionScores[dimId]) {
-      dimensionScores[dimId] = { name: dimName, total: 0, count: 0, order: dimOrder }
+    // Radar: solo Likert que contribuyen
+    if (qType === 'likert' && contributesToScore && r.value !== null) {
+      if (!dimensionScores[dimId]) {
+        dimensionScores[dimId] = { name: dimName, total: 0, count: 0, order: dimOrder }
+      }
+      dimensionScores[dimId].total += r.value
+      dimensionScores[dimId].count += 1
     }
-    dimensionScores[dimId].total += r.value
-    dimensionScores[dimId].count += 1
+
+    // Boolean: recopilar para pie chart (individual respondent = 1 respuesta)
+    if (qType === 'boolean' && r.value !== null) {
+      booleanData.push({
+        question: r.questions.text,
+        dimension: dimName,
+        yesCount: r.value === 1 ? 1 : 0,
+        noCount: r.value === 0 ? 1 : 0,
+      })
+    }
+
+    // Texto libre
+    if (qType === 'text' && r.text_value) {
+      textData.push({
+        question: r.questions.text,
+        dimension: dimName,
+        text: r.text_value,
+      })
+    }
   })
 
   const chartData = Object.values(dimensionScores)
@@ -112,6 +142,8 @@ export default async function ResultadosPage({ params }: Props) {
       chartData={chartData}
       tableData={tableData}
       maturityLevels={maturityLevels}
+      booleanData={booleanData}
+      textData={textData}
     />
   )
 }

@@ -302,6 +302,10 @@ export default function InstrumentDetailPage() {
     await supabase.from('questions').update({ text: newText.trim() }).eq('id', questionId)
   }
 
+  async function updateQuestionField(questionId: string, field: string, value: any) {
+    await supabase.from('questions').update({ [field]: value }).eq('id', questionId)
+  }
+
   async function moveDimension(dimId: string, direction: 'up' | 'down') {
     const idx = dimensions.findIndex(d => d.id === dimId)
     if (idx < 0) return
@@ -443,6 +447,9 @@ export default function InstrumentDetailPage() {
       { header: 'Orden Dimensión', key: 'dimOrder', width: 15 },
       { header: 'Pregunta', key: 'question', width: 80 },
       { header: 'Orden Pregunta', key: 'qOrder', width: 15 },
+      { header: 'Tipo', key: 'type', width: 10 },
+      { header: 'Contribuye al Puntaje', key: 'contributesToScore', width: 20 },
+      { header: 'Obligatoria', key: 'isRequired', width: 12 },
     ]
     ws.getRow(1).font = { bold: true }
 
@@ -455,6 +462,9 @@ export default function InstrumentDetailPage() {
           dimOrder: dim.display_order,
           question: q.text,
           qOrder: q.display_order,
+          type: q.type || 'likert',
+          contributesToScore: (q.contributes_to_score !== false) ? 'sí' : 'no',
+          isRequired: (q.is_required !== false) ? 'sí' : 'no',
         })
       })
     })
@@ -558,6 +568,12 @@ export default function InstrumentDetailPage() {
         const dimOrder = Number(row.getCell(4).value) || 0
         const questionText = row.getCell(5).value?.toString().trim() || ''
         const qOrder = Number(row.getCell(6).value) || 0
+        // Nuevas columnas (opcionales — retrocompatible)
+        const qType = (row.getCell(7).value?.toString().trim().toLowerCase() || 'likert') as 'likert' | 'boolean' | 'text'
+        const contributesRaw = row.getCell(8).value?.toString().trim().toLowerCase() || 'sí'
+        const requiredRaw = row.getCell(9).value?.toString().trim().toLowerCase() || 'sí'
+        const contributesToScore = !['no', 'false', '0'].includes(contributesRaw)
+        const isRequired = !['no', 'false', '0'].includes(requiredRaw)
 
         if (!dimName || !questionText) return
 
@@ -570,7 +586,13 @@ export default function InstrumentDetailPage() {
             questions: [],
           }
         }
-        parsedDimensions[dimName].questions.push({ text: questionText, order: qOrder })
+        parsedDimensions[dimName].questions.push({
+          text: questionText,
+          order: qOrder,
+          type: ['likert', 'boolean', 'text'].includes(qType) ? qType : 'likert',
+          contributes_to_score: contributesToScore,
+          is_required: isRequired,
+        })
       })
 
       const dimsArray = Object.values(parsedDimensions)
@@ -815,6 +837,9 @@ export default function InstrumentDetailPage() {
             dimension_id: newDim.id,
             text: q.text,
             display_order: q.order,
+            type: (q as any).type || 'likert',
+            contributes_to_score: (q as any).contributes_to_score !== false,
+            is_required: (q as any).is_required !== false,
           }))
           const { error: qError } = await supabase.from('questions').insert(questionsToInsert)
           if (qError) {
@@ -1036,34 +1061,68 @@ export default function InstrumentDetailPage() {
                     className="text-sm text-gray-500 mb-2 w-full px-2 py-0.5 border border-transparent hover:border-gray-300 focus:border-blue-400 rounded focus:outline-none"
                   />
                 )}
-                <ul className="space-y-1 pl-4">
+                <ul className="space-y-2 pl-4">
                   {dim.questions.map((q, qIdx) => (
-                    <li key={q.id} className="text-sm text-gray-700 flex items-center gap-1 group">
-                      <span className="text-gray-400 mr-1 font-mono text-xs w-4">{q.display_order}.</span>
-                      <input
-                        type="text"
-                        defaultValue={q.text}
-                        onBlur={e => updateQuestionText(q.id, e.target.value)}
-                        className="flex-1 px-2 py-0.5 border border-transparent hover:border-gray-300 focus:border-blue-400 rounded text-sm focus:outline-none"
-                      />
-                      <div className="opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
-                        <button
-                          onClick={() => moveQuestion(q.id, dim.id, 'up')}
-                          disabled={qIdx === 0}
-                          className="text-xs text-gray-400 hover:text-gray-700 disabled:opacity-30"
-                          title="Subir"
-                        >▲</button>
-                        <button
-                          onClick={() => moveQuestion(q.id, dim.id, 'down')}
-                          disabled={qIdx === dim.questions.length - 1}
-                          className="text-xs text-gray-400 hover:text-gray-700 disabled:opacity-30"
-                          title="Bajar"
-                        >▼</button>
-                        <button
-                          onClick={() => deleteQuestion(q.id, dim.id)}
-                          className="text-xs text-red-400 hover:text-red-600"
-                          title="Eliminar"
-                        >✕</button>
+                    <li key={q.id} className="text-sm text-gray-700 group">
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-400 mr-1 font-mono text-xs w-4">{q.display_order}.</span>
+                        <input
+                          type="text"
+                          defaultValue={q.text}
+                          onBlur={e => updateQuestionText(q.id, e.target.value)}
+                          className="flex-1 px-2 py-0.5 border border-transparent hover:border-gray-300 focus:border-blue-400 rounded text-sm focus:outline-none"
+                        />
+                        {/* Tipo badge */}
+                        <select
+                          defaultValue={q.type || 'likert'}
+                          onChange={e => updateQuestionField(q.id, 'type', e.target.value)}
+                          className="text-xs border border-gray-200 rounded px-1 py-0.5 text-gray-500 bg-gray-50"
+                          title="Tipo de pregunta"
+                        >
+                          <option value="likert">Likert</option>
+                          <option value="boolean">Sí/No</option>
+                          <option value="text">Texto</option>
+                        </select>
+                        <div className="opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
+                          <button
+                            onClick={() => moveQuestion(q.id, dim.id, 'up')}
+                            disabled={qIdx === 0}
+                            className="text-xs text-gray-400 hover:text-gray-700 disabled:opacity-30"
+                            title="Subir"
+                          >▲</button>
+                          <button
+                            onClick={() => moveQuestion(q.id, dim.id, 'down')}
+                            disabled={qIdx === dim.questions.length - 1}
+                            className="text-xs text-gray-400 hover:text-gray-700 disabled:opacity-30"
+                            title="Bajar"
+                          >▼</button>
+                          <button
+                            onClick={() => deleteQuestion(q.id, dim.id)}
+                            className="text-xs text-red-400 hover:text-red-600"
+                            title="Eliminar"
+                          >✕</button>
+                        </div>
+                      </div>
+                      {/* Opciones: contribuye al puntaje + obligatoria */}
+                      <div className="flex gap-4 ml-6 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            defaultChecked={q.contributes_to_score !== false}
+                            onChange={e => updateQuestionField(q.id, 'contributes_to_score', e.target.checked)}
+                            className="rounded border-gray-300 text-blue-600 w-3 h-3"
+                          />
+                          Contribuye al puntaje
+                        </label>
+                        <label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            defaultChecked={q.is_required !== false}
+                            onChange={e => updateQuestionField(q.id, 'is_required', e.target.checked)}
+                            className="rounded border-gray-300 text-blue-600 w-3 h-3"
+                          />
+                          Obligatoria
+                        </label>
                       </div>
                     </li>
                   ))}
