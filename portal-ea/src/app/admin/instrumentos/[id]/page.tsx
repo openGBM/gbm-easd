@@ -556,7 +556,7 @@ export default function InstrumentDetailPage() {
         description: string
         color: string
         order: number
-        questions: { text: string; order: number }[]
+        questions: { text: string; order: number; type: string; contributes_to_score: boolean; is_required: boolean }[]
       }> = {}
 
       ws.eachRow((row, rowNumber) => {
@@ -837,9 +837,9 @@ export default function InstrumentDetailPage() {
             dimension_id: newDim.id,
             text: q.text,
             display_order: q.order,
-            type: (q as any).type || 'likert',
-            contributes_to_score: (q as any).contributes_to_score !== false,
-            is_required: (q as any).is_required !== false,
+            type: q.type || 'likert',
+            contributes_to_score: q.contributes_to_score !== false,
+            is_required: q.is_required !== false,
           }))
           const { error: qError } = await supabase.from('questions').insert(questionsToInsert)
           if (qError) {
