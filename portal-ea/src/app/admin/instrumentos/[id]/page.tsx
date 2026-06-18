@@ -1083,7 +1083,7 @@ export default function InstrumentDetailPage() {
                           <option value="boolean">Sí/No</option>
                           <option value="text">Texto</option>
                         </select>
-                        <div className="opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
+                        <div className="flex gap-1 ml-auto">
                           <button
                             onClick={() => moveQuestion(q.id, dim.id, 'up')}
                             disabled={qIdx === 0}
@@ -1103,8 +1103,8 @@ export default function InstrumentDetailPage() {
                           >✕</button>
                         </div>
                       </div>
-                      {/* Opciones: contribuye al puntaje + obligatoria */}
-                      <div className="flex gap-4 ml-6 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {/* Opciones: tipo + contribuye al puntaje + obligatoria */}
+                      <div className="flex flex-wrap gap-3 ml-6 mt-1">
                         <label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer">
                           <input
                             type="checkbox"
