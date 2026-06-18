@@ -160,16 +160,17 @@ export default function AdminDashboard() {
       .insert(insertData)
 
     if (!error) {
-      // Registrar creación de sesión en usage_logs (fire-and-forget)
+      // Registrar creación de sesión en usage_logs
       const { data: { user } } = await supabase.auth.getUser()
       if (user?.email) {
-        supabase.from('usage_logs').insert({
+        const { error: logError } = await supabase.from('usage_logs').insert({
           user_email: user.email,
           action: 'create_session',
           input_tokens: 0,
           output_tokens: 0,
           metadata: { session_name: newSessionName.trim(), instrument_id: selectedInstrumentId || null },
-        }).select().then(() => {}, () => {})
+        })
+        if (logError) console.warn('usage_logs error:', logError.message)
       }
       setNewSessionName('')
       await loadSessions()
