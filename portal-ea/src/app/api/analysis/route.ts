@@ -246,19 +246,21 @@ El tono debe ser profesional pero accesible, orientado a líderes de negocio y T
     if (aiResult) {
       try {
         const adminClient = createAdminSupabaseClient()
-        const { error: usageError } = await adminClient.from('usage_logs').insert({
-          user_email: user.email,
-          action: 'analysis',
-          model: aiResult.model,
-          input_tokens: aiResult.inputTokens,
-          output_tokens: aiResult.outputTokens,
-          metadata: { session_id: sessionId, session_name: sessionName },
-        })
-        if (usageError) {
-          logger.warn('Error registrando usage_logs', 'api/analysis', usageError)
+        if (adminClient) {
+          const { error: usageError } = await adminClient.from('usage_logs').insert({
+            user_email: user.email,
+            action: 'analysis',
+            model: aiResult.model,
+            input_tokens: aiResult.inputTokens,
+            output_tokens: aiResult.outputTokens,
+            metadata: { session_id: sessionId, session_name: sessionName },
+          })
+          if (usageError) {
+            logger.warn('Error registrando usage_logs', 'api/analysis', usageError)
+          }
         }
       } catch {
-        // No bloquear el flujo si el admin client falla (ej: service key no configurada)
+        // No bloquear el flujo si el admin client falla
       }
     }
 
