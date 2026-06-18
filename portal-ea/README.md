@@ -106,16 +106,21 @@ dimensions (1) ──── (N) questions (1) ───────────�
 ## Funcionalidades Implementadas
 
 ### Encuestado
+- **Landing page**: al acceder al enlace, ve nombre del instrumento, descripción, cantidad de dimensiones/preguntas, tiempo estimado, y botón "Comenzar"
 - Acceso público por enlace `/encuesta/{sessionId}` (sin login)
 - Registro con nombre y correo electrónico
 - Encuesta tipo wizard/stepper: una dimensión por paso
-- Escala de acuerdo (1–5): Totalmente en desacuerdo → Totalmente de acuerdo
-- Barra de progreso con color por dimensión
+- **Tres tipos de pregunta**: Likert (1-5), Boolean (Sí/No), Texto libre
+- Escala configurable por instrumento con etiquetas personalizadas
+- Preguntas marcadas como opcionales muestran indicador `(opcional)` y permiten avanzar sin responder
+- Barra de progreso accesible con color por dimensión
 - Navegación adelante/atrás entre dimensiones
-- Validación de respuestas completas antes de avanzar
+- Validación de respuestas obligatorias antes de avanzar
 - Reanudación si el encuestado ya se registró pero no completó
-- Gráfico de radar con resultados al finalizar
-- Tabla resumen con nivel de madurez por dimensión (Naciente / Base / Clase Mundial)
+- Gráfico de radar con resultados al finalizar (solo preguntas Likert que contribuyen)
+- Tabla resumen con nivel de madurez por dimensión
+- **Pie charts** para preguntas boolean
+- **Lista de respuestas abiertas** para preguntas de texto libre
 
 ### Administrador
 - Login con email/password (Supabase Auth) con rate limiting server-side
@@ -260,8 +265,6 @@ La aplicación estará disponible en [http://localhost:3000](http://localhost:30
 
 ### Mediano plazo
 
-- **Landing page del instrumento** — Página intermedia con nombre, descripción e instrucciones antes de comenzar la evaluación.
-- **Tipos de pregunta variados** (texto libre, boolean, selección múltiple) — Capturar contexto cualitativo además del Likert 1-5.
 - **SSO** (SAML, OAuth corporativo) — Login empresarial para clientes grandes.
 
 ### Largo plazo (postergado)

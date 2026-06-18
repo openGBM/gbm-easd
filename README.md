@@ -160,9 +160,9 @@ gbm-easd/
 - [x] v1.2 — Multi-instrumento, versionamiento, import/export Excel, escalas y niveles configurables
 - [x] v1.3 — Editor visual, tendencias, historial de encuestados, filtros
 - [x] v1.3.4 — Instrumento AI-DLC, seguridad (proxy, rate limiting, CSP), consumo, responsive, accesibilidad
-- [ ] v2.0 — Administración de usuarios y roles (admin, editor, viewer)
-- [ ] v2.1 — Notificaciones por correo, exportar análisis IA a PDF
-- [ ] v2.2 — Landing page del instrumento, tipos de pregunta variados
+- [x] v2.0 — Landing page, tipos de pregunta (Likert/Boolean/Texto), preguntas opcionales, contributes_to_score
+- [ ] v2.1 — Administración de usuarios y roles (admin, editor, viewer)
+- [ ] v2.2 — Notificaciones por correo, exportar análisis IA a PDF
 - [ ] v3.0 — SSO corporativo (SAML, OAuth)
 - [ ] v4.0 — Multi-tenant, organizaciones aisladas
 
