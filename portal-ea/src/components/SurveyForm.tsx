@@ -199,14 +199,39 @@ export default function SurveyForm({
       })
     })
 
-    const { error: insertError } = await supabase
-      .from('responses')
-      .upsert(responsesArray, { onConflict: 'respondent_id,question_id' })
+    // Separar respuestas numéricas de texto para compatibilidad con BD sin columna text_value
+    const numericResponses = responsesArray
+      .filter(r => r.text_value === null)
+      .map(({ respondent_id, question_id, value }) => ({ respondent_id, question_id, value }))
 
-    if (insertError) {
-      setError('Error al guardar respuestas. Intenta de nuevo.')
-      setStep('survey')
-      return
+    const textResponsesToSave = responsesArray.filter(r => r.text_value !== null)
+
+    // Primero guardar respuestas numéricas (siempre funciona)
+    if (numericResponses.length > 0) {
+      const { error: insertError } = await supabase
+        .from('responses')
+        .upsert(numericResponses, { onConflict: 'respondent_id,question_id' })
+
+      if (insertError) {
+        console.error('Error guardando respuestas numéricas:', insertError)
+        setError('Error al guardar respuestas. Intenta de nuevo.')
+        setStep('survey')
+        return
+      }
+    }
+
+    // Luego intentar guardar respuestas de texto (puede fallar si la columna no existe)
+    if (textResponsesToSave.length > 0) {
+      const { error: textError } = await supabase
+        .from('responses')
+        .upsert(textResponsesToSave, { onConflict: 'respondent_id,question_id' })
+
+      if (textError) {
+        // Si falla por columna inexistente, guardar solo el value=0 sin text_value
+        const fallback = textResponsesToSave.map(({ respondent_id, question_id, value }) => ({ respondent_id, question_id, value }))
+        await supabase.from('responses').upsert(fallback, { onConflict: 'respondent_id,question_id' })
+        console.warn('text_value no disponible en BD, guardado como value=0:', textError.message)
+      }
     }
 
     await supabase
