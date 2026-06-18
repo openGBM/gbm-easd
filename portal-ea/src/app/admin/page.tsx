@@ -163,13 +163,13 @@ export default function AdminDashboard() {
       // Registrar creación de sesión en usage_logs (fire-and-forget)
       const { data: { user } } = await supabase.auth.getUser()
       if (user?.email) {
-        void supabase.from('usage_logs').insert({
+        supabase.from('usage_logs').insert({
           user_email: user.email,
           action: 'create_session',
           input_tokens: 0,
           output_tokens: 0,
           metadata: { session_name: newSessionName.trim(), instrument_id: selectedInstrumentId || null },
-        })
+        }).select().then(() => {}, () => {})
       }
       setNewSessionName('')
       await loadSessions()
