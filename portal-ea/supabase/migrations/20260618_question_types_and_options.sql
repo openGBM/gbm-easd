@@ -15,15 +15,12 @@ ALTER TABLE questions ADD CONSTRAINT chk_question_type
 ALTER TABLE responses ADD COLUMN IF NOT EXISTS text_value text;
 
 -- Relajar constraint de value para permitir NULL en preguntas de texto
--- (text: value=NULL, text_value='respuesta')
+-- (text: value=0 sentinel, text_value='respuesta')
 -- (boolean: value=0 o 1)
 -- (likert: value=1-5)
 ALTER TABLE responses DROP CONSTRAINT IF EXISTS responses_value_check;
 ALTER TABLE responses ADD CONSTRAINT responses_value_check 
-  CHECK (
-    (text_value IS NOT NULL AND value IS NULL) OR  -- pregunta texto
-    (value IS NOT NULL AND value >= 0 AND value <= 5)  -- likert (1-5) o boolean (0-1)
-  );
+  CHECK (value IS NOT NULL AND value >= 0 AND value <= 5);
 
 -- Índice para filtrar preguntas que contribuyen al puntaje
 CREATE INDEX IF NOT EXISTS idx_questions_contributes 

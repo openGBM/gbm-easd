@@ -181,7 +181,7 @@ export default function SurveyForm({
             responsesArray.push({
               respondent_id: respondentId!,
               question_id: q.id,
-              value: null,
+              value: 0,  // Sentinel para texto (no se usa en cálculos, contributes_to_score=false)
               text_value: textVal.trim(),
             })
           }
