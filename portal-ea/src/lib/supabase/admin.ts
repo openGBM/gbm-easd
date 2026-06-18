@@ -16,6 +16,13 @@ export function createAdminSupabaseClient() {
   }
 
   return createClient(url, serviceKey, {
-    auth: { persistSession: false },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+    db: {
+      schema: 'public',
+    },
   })
 }

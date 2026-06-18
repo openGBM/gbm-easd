@@ -17,13 +17,7 @@ CREATE INDEX IF NOT EXISTS idx_usage_logs_action ON usage_logs(action);
 CREATE INDEX IF NOT EXISTS idx_usage_logs_created_at ON usage_logs(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_usage_logs_model ON usage_logs(model) WHERE model IS NOT NULL;
 
--- RLS: usuarios autenticados pueden insertar y leer
-ALTER TABLE usage_logs ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "usage_logs_insert" ON usage_logs
-  FOR INSERT
-  WITH CHECK (auth.role() = 'authenticated');
-
-CREATE POLICY "usage_logs_select" ON usage_logs
-  FOR SELECT
-  USING (auth.role() = 'authenticated');
+-- RLS: deshabilitado para usage_logs (tabla de logs internos)
+-- La seguridad se maneja a nivel de API route (autenticación requerida)
+-- No se expone al anon key directamente
+ALTER TABLE usage_logs DISABLE ROW LEVEL SECURITY;
