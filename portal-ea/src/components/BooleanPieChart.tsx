@@ -38,7 +38,7 @@ export default function BooleanPieChart({ question, yesCount, noCount }: Boolean
               <Cell key={idx} fill={COLORS[idx]} />
             ))}
           </Pie>
-          <Tooltip formatter={(value: number) => [`${value} respuesta(s)`, '']} />
+          <Tooltip formatter={(value) => [`${value} respuesta(s)`, '']} />
         </PieChart>
       </ResponsiveContainer>
       <div className="flex justify-center gap-4 text-xs text-gray-500 mt-1">
