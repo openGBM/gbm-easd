@@ -15,6 +15,10 @@ export function createAdminSupabaseClient() {
     return null
   }
 
+  // Log para debug: verificar que la key es service_role (empieza con 'eyJ' y es más larga que anon)
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+  console.log(`[admin-client] key length: ${serviceKey.length}, anon length: ${anonKey.length}, same: ${serviceKey === anonKey}`)
+
   return createClient(url, serviceKey, {
     auth: {
       persistSession: false,
