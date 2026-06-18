@@ -17,15 +17,13 @@ CREATE INDEX IF NOT EXISTS idx_usage_logs_action ON usage_logs(action);
 CREATE INDEX IF NOT EXISTS idx_usage_logs_created_at ON usage_logs(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_usage_logs_model ON usage_logs(model) WHERE model IS NOT NULL;
 
--- RLS: solo admins autenticados pueden leer/escribir
+-- RLS: usuarios autenticados pueden insertar y leer
 ALTER TABLE usage_logs ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Admins pueden insertar usage_logs"
-  ON usage_logs FOR INSERT
-  TO authenticated
-  WITH CHECK (true);
+CREATE POLICY "usage_logs_insert" ON usage_logs
+  FOR INSERT
+  WITH CHECK (auth.role() = 'authenticated');
 
-CREATE POLICY "Admins pueden leer usage_logs"
-  ON usage_logs FOR SELECT
-  TO authenticated
-  USING (true);
+CREATE POLICY "usage_logs_select" ON usage_logs
+  FOR SELECT
+  USING (auth.role() = 'authenticated');
