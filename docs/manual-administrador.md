@@ -1,8 +1,8 @@
-# Manual del Portal de Evaluaciones de Autodiagnóstico — GBM
+# Manual del Portal de Evaluaciones — GBM (v2.0)
 
 ## Introducción
 
-El Portal de Evaluaciones de Autodiagnóstico es una herramienta web que permite aplicar instrumentos de evaluación a equipos y organizaciones de forma ágil, digital y sin fricción. Los participantes responden encuestas desde cualquier dispositivo (celular, tablet, computadora) y los resultados se visualizan inmediatamente con gráficos de radar, tablas de madurez y análisis interpretativo generado por inteligencia artificial.
+El Portal de Evaluaciones es una herramienta web que permite aplicar instrumentos de evaluación a equipos y organizaciones de forma ágil, digital y sin fricción. Los participantes responden encuestas desde cualquier dispositivo (celular, tablet, computadora) y los resultados se visualizan inmediatamente con gráficos de radar, pie charts, tablas de madurez y análisis interpretativo generado por inteligencia artificial.
 
 ---
 
@@ -12,14 +12,16 @@ El Portal de Evaluaciones de Autodiagnóstico es una herramienta web que permite
 
 | Capacidad | Descripción |
 |-----------|-------------|
-| Evaluar equipos | Aplicar instrumentos de autodiagnóstico con dimensiones y preguntas configurables |
-| Visualizar resultados | Gráficos de radar y tablas de madurez por dimensión y global |
-| Análisis IA | Interpretación ejecutiva automatizada de los resultados |
+| Evaluar equipos | Aplicar instrumentos con dimensiones y preguntas configurables (Likert, Sí/No, Texto libre) |
+| Visualizar resultados | Gráficos de radar, pie charts para boolean, lista de respuestas abiertas y tablas de madurez |
+| Análisis IA | Interpretación ejecutiva automatizada con tracking de tokens consumidos |
 | Multi-instrumento | Gestionar distintos tipos de evaluación desde un solo portal |
-| Sesiones con QR | Cada sesión genera un código QR para acceso rápido desde móvil |
+| Landing page | Cada sesión muestra una página de bienvenida con info del instrumento antes de comenzar |
+| Sesiones con QR | Código QR con botones de copiar URL y copiar QR como imagen |
 | Exportar datos | Descarga de resultados en formato Excel y PDF |
 | Tendencias | Visualización de la evolución de resultados entre sesiones de un instrumento |
 | Historial de encuestados | Consolidación de participaciones de un mismo encuestado en múltiples sesiones |
+| Tracking de consumo | Registro de sesiones creadas, análisis generados y tokens de IA por usuario |
 
 ### Roles del sistema
 
@@ -94,8 +96,13 @@ Desde la página de gestión del instrumento:
 **Preguntas:**
 - **Agregar**: botón "+ Agregar pregunta" dentro de cada dimensión
 - **Editar texto**: click en el texto → editar inline → se guarda al salir del campo
-- **Reordenar**: botones ▲/▼ (visibles al pasar el mouse)
-- **Eliminar**: botón ✕ (visible al pasar el mouse)
+- **Cambiar tipo**: selector dropdown (Likert / Sí-No / Texto) — siempre visible al lado de cada pregunta
+- **Contribuye al puntaje**: checkbox que define si la pregunta se incluye en el cálculo del radar/promedio
+- **Obligatoria**: checkbox que define si el encuestado debe responder para avanzar
+- **Reordenar**: botones ▲/▼
+- **Eliminar**: botón ✕
+
+> **Nota**: Las preguntas de tipo "Texto libre" nunca contribuyen al puntaje del radar (solo se muestran como respuestas abiertas en los resultados).
 
 #### Import/Export Excel (masivo)
 
@@ -108,11 +115,11 @@ El archivo debe tener **dos hojas**:
 
 **Hoja 1: "Banco de Preguntas"** (o cualquier nombre que contenga "banco")
 
-| Dimensión | Descripción Dimensión | Color | Orden Dimensión | Pregunta | Orden Pregunta |
-|-----------|----------------------|-------|-----------------|----------|----------------|
-| Contexto | Evalúa el contexto... | #1B2A4A | 1 | Pregunta 1... | 1 |
-| Contexto | Evalúa el contexto... | #1B2A4A | 1 | Pregunta 2... | 2 |
-| Casos de Uso | Evalúa los casos... | #E85D04 | 2 | Pregunta 1... | 1 |
+| Dimensión | Descripción Dimensión | Color | Orden Dimensión | Pregunta | Orden Pregunta | Tipo | Contribuye al Puntaje | Obligatoria |
+|-----------|----------------------|-------|-----------------|----------|----------------|------|----------------------|-------------|
+| Contexto | Evalúa el contexto... | #1B2A4A | 1 | Pregunta 1... | 1 | likert | sí | sí |
+| Contexto | Evalúa el contexto... | #1B2A4A | 1 | Pregunta 2... | 2 | boolean | no | sí |
+| Feedback | Ayúdanos a mejorar... | #7C2D12 | 3 | ¿Qué mejorarías? | 1 | text | no | no |
 
 - **Dimensión**: nombre de la dimensión (se repite en cada fila de pregunta)
 - **Descripción Dimensión**: texto descriptivo mostrado al encuestado
@@ -120,6 +127,11 @@ El archivo debe tener **dos hojas**:
 - **Orden Dimensión**: número que define la secuencia de presentación
 - **Pregunta**: texto de la afirmación a evaluar
 - **Orden Pregunta**: número de orden dentro de la dimensión
+- **Tipo** (opcional): `likert` (escala 1-5, default), `boolean` (sí/no), `text` (texto libre)
+- **Contribuye al Puntaje** (opcional): `sí` (default) o `no` — si se incluye en el radar/promedio
+- **Obligatoria** (opcional): `sí` (default) o `no` — si el encuestado debe responder
+
+> Si no se incluyen las columnas Tipo, Contribuye o Obligatoria, se usan los valores por defecto (likert, sí, sí) — retrocompatible con Excels anteriores.
 
 **Hoja 2: "Escala"** (o cualquier nombre que contenga "escala") — opcional
 
@@ -318,15 +330,30 @@ Hacer clic en **"Ver Detalle"** para acceder a:
 
 El participante accede al enlace de la sesión (sin necesidad de login):
 
-1. **Registro**: ingresa nombre y correo electrónico
-2. **Evaluación**: responde las preguntas dimensión por dimensión (wizard con barra de progreso)
-3. **Resultados**: al finalizar, ve inmediatamente su gráfico de radar y tabla de madurez
+1. **Landing page**: ve el nombre del instrumento, descripción, cantidad de dimensiones/preguntas, tiempo estimado y botón "Comenzar Evaluación"
+2. **Registro**: ingresa nombre y correo electrónico
+3. **Evaluación**: responde las preguntas dimensión por dimensión (wizard con barra de progreso)
+4. **Resultados**: al finalizar, ve inmediatamente su gráfico de radar, pie charts (si hay preguntas sí/no), respuestas abiertas y tabla de madurez
+
+**Tipos de pregunta que puede encontrar:**
+
+| Tipo | Presentación | Obligatoriedad |
+|------|--------------|----------------|
+| **Likert (1-5)** | Botones numéricos con etiquetas de escala | Configurable por pregunta |
+| **Sí/No** | Dos botones: ✓ Sí / ✗ No | Configurable por pregunta |
+| **Texto libre** | Textarea con máximo 500 caracteres | Opcional por defecto |
 
 **Características:**
-- Escala de valores 1-5 con etiquetas visibles en cada paso
+- Las preguntas opcionales muestran el indicador "(opcional)" y permiten avanzar sin responder
+- Escala de valores con etiquetas visibles en cada paso (solo para preguntas Likert)
 - Puede navegar hacia atrás para cambiar respuestas
 - Si cierra el navegador antes de enviar, puede reanudar con el mismo correo
 - Una vez enviada, no puede responder de nuevo (se muestra mensaje informativo)
+
+**Visualización de resultados:**
+- **Gráfico de radar**: muestra el promedio por dimensión (solo incluye preguntas Likert que contribuyen al puntaje)
+- **Pie charts**: distribución Sí/No por cada pregunta boolean
+- **Respuestas abiertas**: lista de textos agrupados por dimensión
 
 ---
 
@@ -455,3 +482,34 @@ Sí. Cada instrumento puede tener sus propias etiquetas para los valores 1-5, co
 
 **¿Puedo personalizar los niveles de madurez?**
 Sí. Cada instrumento puede tener sus propios niveles con nombres, colores y rangos de promedio personalizados, configurables desde el Excel de importación (hoja "Niveles"). Se pueden definir 2, 3, 5 o cualquier cantidad de niveles.
+
+**¿Puedo mezclar tipos de pregunta en un mismo instrumento?**
+Sí. Cada pregunta puede ser Likert (1-5), Sí/No (boolean) o Texto libre. Se configuran individualmente desde el editor visual o la columna "Tipo" en el Excel.
+
+**¿Las preguntas de texto libre afectan el radar?**
+No. Las preguntas de texto libre nunca contribuyen al puntaje. Las preguntas Sí/No pueden configurarse para contribuir o no (por defecto no contribuyen).
+
+**¿Puedo hacer preguntas opcionales?**
+Sí. Cada pregunta puede marcarse como "no obligatoria". El encuestado puede avanzar sin responderla y la pregunta no afecta los cálculos si queda sin respuesta.
+
+**¿Dónde veo el consumo de tokens de IA?**
+En la navegación admin → "Consumo". Muestra sesiones creadas, análisis generados y tokens consumidos por modelo (Gemini/Groq) por cada usuario.
+
+---
+
+## Consumo y Uso
+
+La sección de **Consumo** (accesible desde la navegación admin) registra automáticamente:
+
+- **Sesiones creadas**: cada vez que un admin crea una nueva sesión
+- **Análisis IA generados**: cada vez que se genera un análisis interpretativo
+- **Tokens por modelo**: cantidad de tokens de entrada y salida consumidos por Gemini o Groq
+
+### Vistas disponibles
+
+| Vista | Contenido |
+|-------|-----------|
+| **Resumen por usuario** | Email, sesiones creadas, análisis generados, tokens desglosados por modelo |
+| **Detalle de actividad** | Tabla cronológica: fecha, usuario, acción, modelo, tokens consumidos |
+
+> Los datos se registran automáticamente. No requiere configuración adicional.

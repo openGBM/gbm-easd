@@ -3,33 +3,50 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { DimensionWithQuestions, DEFAULT_SCALE_LABELS, ScaleLabel } from '@/types/database'
+import { DimensionWithQuestions, DEFAULT_SCALE_LABELS, ScaleLabel, Question } from '@/types/database'
 
 interface SurveyFormProps {
   sessionId: string
   dimensions: DimensionWithQuestions[]
   scaleLabels?: ScaleLabel[] | null
+  instrumentName?: string
+  instrumentDescription?: string | null
+  sessionName?: string
+  totalDimensionsCount?: number
+  totalQuestionsCount?: number
+  estimatedMinutes?: number
 }
 
-export default function SurveyForm({ sessionId, dimensions, scaleLabels }: SurveyFormProps) {
+export default function SurveyForm({
+  sessionId,
+  dimensions,
+  scaleLabels,
+  instrumentName = 'Evaluación',
+  instrumentDescription,
+  sessionName,
+  totalDimensionsCount,
+  totalQuestionsCount,
+  estimatedMinutes,
+}: SurveyFormProps) {
   const router = useRouter()
   const supabase = createClient()
 
-  // Usar etiquetas personalizadas si existen, sino las default
   const scale = scaleLabels && scaleLabels.length > 0
     ? scaleLabels.sort((a, b) => b.value - a.value)
     : DEFAULT_SCALE_LABELS
 
-  const [step, setStep] = useState<'register' | 'survey' | 'submitting'>('register')
+  const [step, setStep] = useState<'landing' | 'register' | 'survey' | 'submitting'>('landing')
   const [currentDimension, setCurrentDimension] = useState(0)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  // responses: { questionId: value }
   const [responses, setResponses] = useState<Record<string, number>>({})
+  const [textResponses, setTextResponses] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
   const [respondentId, setRespondentId] = useState<string | null>(null)
 
   const totalDimensions = dimensions.length
+
+  // === HANDLERS ===
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault()
@@ -51,7 +68,6 @@ export default function SurveyForm({ sessionId, dimensions, scaleLabels }: Surve
       return
     }
 
-    // Usar API route con rate limiting y validación server-side
     try {
       const res = await fetch('/api/respondents', {
         method: 'POST',
@@ -77,17 +93,21 @@ export default function SurveyForm({ sessionId, dimensions, scaleLabels }: Surve
 
       setRespondentId(result.id)
 
-      // Si es reanudación, cargar respuestas previas
       if (result.resumed) {
         const { data: prevResponses } = await supabase
           .from('responses')
-          .select('question_id, value')
+          .select('question_id, value, text_value')
           .eq('respondent_id', result.id)
 
         if (prevResponses && prevResponses.length > 0) {
           const prevMap: Record<string, number> = {}
-          prevResponses.forEach(r => { prevMap[r.question_id] = r.value })
+          const prevTextMap: Record<string, string> = {}
+          prevResponses.forEach(r => {
+            if (r.value !== null) prevMap[r.question_id] = r.value
+            if (r.text_value) prevTextMap[r.question_id] = r.text_value
+          })
           setResponses(prevMap)
+          setTextResponses(prevTextMap)
         }
       }
 
@@ -101,14 +121,30 @@ export default function SurveyForm({ sessionId, dimensions, scaleLabels }: Surve
     setResponses(prev => ({ ...prev, [questionId]: value }))
   }
 
-  function allQuestionsAnswered(dimensionIndex: number): boolean {
+  function setTextResponse(questionId: string, text: string) {
+    setTextResponses(prev => ({ ...prev, [questionId]: text }))
+  }
+
+  function isQuestionAnswered(question: Question): boolean {
+    const type = question.type || 'likert'
+    if (type === 'text') {
+      // Texto libre: obligatorio solo si is_required
+      if (!question.is_required) return true
+      return (textResponses[question.id] || '').trim().length > 0
+    }
+    // Likert y Boolean: verificar que haya valor numérico
+    if (!question.is_required) return true
+    return responses[question.id] !== undefined
+  }
+
+  function allRequiredAnswered(dimensionIndex: number): boolean {
     const dim = dimensions[dimensionIndex]
-    return dim.questions.every(q => responses[q.id] !== undefined)
+    return dim.questions.every(q => isQuestionAnswered(q))
   }
 
   function nextDimension() {
-    if (!allQuestionsAnswered(currentDimension)) {
-      setError('Responde todas las preguntas antes de continuar')
+    if (!allRequiredAnswered(currentDimension)) {
+      setError('Responde todas las preguntas obligatorias antes de continuar')
       return
     }
     setError('')
@@ -125,28 +161,77 @@ export default function SurveyForm({ sessionId, dimensions, scaleLabels }: Surve
   }
 
   async function handleSubmit() {
-    if (!allQuestionsAnswered(currentDimension)) {
-      setError('Responde todas las preguntas antes de enviar')
+    if (!allRequiredAnswered(currentDimension)) {
+      setError('Responde todas las preguntas obligatorias antes de enviar')
       return
     }
 
     setStep('submitting')
     setError('')
 
-    const responsesArray = Object.entries(responses).map(([question_id, value]) => ({
-      respondent_id: respondentId!,
-      question_id,
-      value,
-    }))
+    // Construir array de respuestas (numéricas + texto)
+    const responsesArray: { respondent_id: string; question_id: string; value: number | null; text_value: string | null }[] = []
 
-    const { error: insertError } = await supabase
-      .from('responses')
-      .upsert(responsesArray, { onConflict: 'respondent_id,question_id' })
+    dimensions.forEach(dim => {
+      dim.questions.forEach(q => {
+        const type = q.type || 'likert'
+        if (type === 'text') {
+          const textVal = textResponses[q.id]
+          if (textVal && textVal.trim()) {
+            responsesArray.push({
+              respondent_id: respondentId!,
+              question_id: q.id,
+              value: 0,  // Sentinel para texto (no se usa en cálculos, contributes_to_score=false)
+              text_value: textVal.trim(),
+            })
+          }
+        } else {
+          const numVal = responses[q.id]
+          if (numVal !== undefined) {
+            responsesArray.push({
+              respondent_id: respondentId!,
+              question_id: q.id,
+              value: numVal,
+              text_value: null,
+            })
+          }
+        }
+      })
+    })
 
-    if (insertError) {
-      setError('Error al guardar respuestas. Intenta de nuevo.')
-      setStep('survey')
-      return
+    // Separar respuestas numéricas de texto para compatibilidad con BD sin columna text_value
+    const numericResponses = responsesArray
+      .filter(r => r.text_value === null)
+      .map(({ respondent_id, question_id, value }) => ({ respondent_id, question_id, value }))
+
+    const textResponsesToSave = responsesArray.filter(r => r.text_value !== null)
+
+    // Primero guardar respuestas numéricas (siempre funciona)
+    if (numericResponses.length > 0) {
+      const { error: insertError } = await supabase
+        .from('responses')
+        .upsert(numericResponses, { onConflict: 'respondent_id,question_id' })
+
+      if (insertError) {
+        console.error('Error guardando respuestas numéricas:', insertError)
+        setError('Error al guardar respuestas. Intenta de nuevo.')
+        setStep('survey')
+        return
+      }
+    }
+
+    // Luego intentar guardar respuestas de texto (puede fallar si la columna no existe)
+    if (textResponsesToSave.length > 0) {
+      const { error: textError } = await supabase
+        .from('responses')
+        .upsert(textResponsesToSave, { onConflict: 'respondent_id,question_id' })
+
+      if (textError) {
+        // Si falla por columna inexistente, guardar solo el value=0 sin text_value
+        const fallback = textResponsesToSave.map(({ respondent_id, question_id, value }) => ({ respondent_id, question_id, value }))
+        await supabase.from('responses').upsert(fallback, { onConflict: 'respondent_id,question_id' })
+        console.warn('text_value no disponible en BD, guardado como value=0:', textError.message)
+      }
     }
 
     await supabase
@@ -154,31 +239,71 @@ export default function SurveyForm({ sessionId, dimensions, scaleLabels }: Surve
       .update({ completed: true, completed_at: new Date().toISOString() })
       .eq('id', respondentId!)
 
-    // Fallback: si el update anterior falló por columna inexistente, intentar sin completed_at
-    const { data: checkData } = await supabase
-      .from('respondents')
-      .select('completed')
-      .eq('id', respondentId!)
-      .single()
-
-    if (checkData && !checkData.completed) {
-      await supabase
-        .from('respondents')
-        .update({ completed: true })
-        .eq('id', respondentId!)
-    }
-
     router.push(`/resultados/${respondentId}`)
+  }
+
+  // === RENDERS ===
+
+  // === LANDING PAGE ===
+  if (step === 'landing') {
+    return (
+      <div className="max-w-lg mx-auto text-center">
+        <img src="/logo-gbm.png" alt="GBM" className="h-10 mx-auto mb-6" />
+
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">
+          {instrumentName}
+        </h1>
+
+        {instrumentDescription && (
+          <p className="text-gray-600 mb-6">{instrumentDescription}</p>
+        )}
+
+        <div className="flex flex-wrap justify-center gap-4 mb-6 text-sm text-gray-500">
+          {totalDimensionsCount && (
+            <span className="flex items-center gap-1">📋 {totalDimensionsCount} dimensiones</span>
+          )}
+          {totalQuestionsCount && (
+            <span className="flex items-center gap-1">❓ {totalQuestionsCount} preguntas</span>
+          )}
+          {estimatedMinutes && (
+            <span className="flex items-center gap-1">⏱️ ~{estimatedMinutes} minutos</span>
+          )}
+        </div>
+
+        {sessionName && (
+          <p className="text-sm text-gray-400 mb-6">Sesión: {sessionName}</p>
+        )}
+
+        <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
+          <div className="flex items-start gap-3 text-left text-sm text-gray-600">
+            <span className="text-lg">📊</span>
+            <p>Al finalizar verás tus resultados inmediatamente con un gráfico de radar y tu nivel de madurez por dimensión.</p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setStep('register')}
+          className="w-full sm:w-auto px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-lg"
+        >
+          Comenzar Evaluación →
+        </button>
+
+        <p className="text-xs text-gray-400 mt-4">
+          Tus respuestas son confidenciales. Solo el administrador de la sesión puede ver los resultados.
+        </p>
+      </div>
+    )
   }
 
   // === REGISTRO ===
   if (step === 'register') {
     return (
       <div className="max-w-md mx-auto">
-        <h2 className="text-2xl font-bold mb-6 text-center">Registro</h2>
-        <p className="text-gray-600 mb-6 text-center">
-          Ingresa tus datos para comenzar la evaluación de madurez
-        </p>
+        <div className="text-center mb-6">
+          <img src="/logo-gbm.png" alt="GBM" className="h-8 mx-auto mb-3" />
+          <h2 className="text-2xl font-bold">Registro</h2>
+          <p className="text-gray-600 text-sm mt-1">Ingresa tus datos para comenzar</p>
+        </div>
         <form onSubmit={handleRegister} className="space-y-4">
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
@@ -213,7 +338,14 @@ export default function SurveyForm({ sessionId, dimensions, scaleLabels }: Surve
             type="submit"
             className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
           >
-            Comenzar Evaluación
+            Continuar
+          </button>
+          <button
+            type="button"
+            onClick={() => setStep('landing')}
+            className="w-full text-sm text-gray-500 hover:text-gray-700"
+          >
+            ← Volver
           </button>
         </form>
       </div>
@@ -235,7 +367,6 @@ export default function SurveyForm({ sessionId, dimensions, scaleLabels }: Surve
     return (
       <div className="text-center py-12">
         <p className="text-red-600 font-medium">No se encontraron dimensiones para esta evaluación.</p>
-        <p className="text-gray-500 text-sm mt-2">El instrumento puede no tener preguntas configuradas.</p>
       </div>
     )
   }
@@ -244,6 +375,9 @@ export default function SurveyForm({ sessionId, dimensions, scaleLabels }: Surve
   if (!currentDim) return null
   const isLastStep = currentDimension === totalDimensions - 1
   const dimColor = currentDim.color || '#2563EB'
+
+  // Verificar si la dimensión tiene preguntas Likert (para mostrar la leyenda de escala)
+  const hasLikertQuestions = currentDim.questions.some(q => (q.type || 'likert') === 'likert')
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -275,44 +409,95 @@ export default function SurveyForm({ sessionId, dimensions, scaleLabels }: Surve
           <p className="text-gray-500 text-sm mb-6">{currentDim.description}</p>
         )}
 
-        {/* Leyenda de escala */}
-        <div className="flex flex-wrap gap-2 mb-6 p-3 bg-gray-50 rounded-lg text-xs text-gray-600">
-          {scale.map(({ value, label }) => (
-            <span key={value} className="whitespace-nowrap">
-              <strong>{value}</strong> = {label}
-            </span>
-          ))}
-        </div>
+        {/* Leyenda de escala (solo si hay preguntas Likert) */}
+        {hasLikertQuestions && (
+          <div className="flex flex-wrap gap-2 mb-6 p-3 bg-gray-50 rounded-lg text-xs text-gray-600">
+            {scale.map(({ value, label }) => (
+              <span key={value} className="whitespace-nowrap">
+                <strong>{value}</strong> = {label}
+              </span>
+            ))}
+          </div>
+        )}
 
-        {/* Preguntas de esta dimensión */}
+        {/* Preguntas */}
         <div className="space-y-6">
           {currentDim.questions.map((question, idx) => {
-            const selectedValue = responses[question.id]
+            const qType = question.type || 'likert'
+            const isOptional = !question.is_required
+
             return (
               <div key={question.id} className="border-b pb-4 last:border-b-0 last:pb-0">
                 <p className="text-sm text-gray-800 mb-3">
                   <span className="font-medium text-gray-500">{idx + 1}.</span>{' '}
                   {question.text}
+                  {isOptional && <span className="text-gray-400 text-xs ml-2">(opcional)</span>}
                 </p>
-                <div className="flex gap-2">
-                  {scale.map(({ value, label }) => (
+
+                {/* Likert: botones 1-5 */}
+                {qType === 'likert' && (
+                  <div className="flex gap-2">
+                    {scale.map(({ value, label }) => (
+                      <button
+                        key={value}
+                        onClick={() => selectValue(question.id, value)}
+                        title={`${value} — ${label}`}
+                        aria-label={`Valor ${value}: ${label}`}
+                        aria-pressed={responses[question.id] === value}
+                        className={`w-10 h-10 rounded-lg border text-sm font-bold transition-all ${
+                          responses[question.id] === value
+                            ? 'text-white'
+                            : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700'
+                        }`}
+                        style={responses[question.id] === value ? { backgroundColor: dimColor, borderColor: dimColor } : {}}
+                      >
+                        {value}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Boolean: Sí / No */}
+                {qType === 'boolean' && (
+                  <div className="flex gap-3">
                     <button
-                      key={value}
-                      onClick={() => selectValue(question.id, value)}
-                      title={`${value} — ${label}`}
-                      aria-label={`Valor ${value}: ${label}`}
-                      aria-pressed={selectedValue === value}
-                      className={`w-10 h-10 rounded-lg border text-sm font-bold transition-all ${
-                        selectedValue === value
-                          ? 'text-white'
-                          : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700'
+                      onClick={() => selectValue(question.id, 1)}
+                      aria-label="Sí"
+                      aria-pressed={responses[question.id] === 1}
+                      className={`flex-1 py-2 px-4 rounded-lg border text-sm font-medium transition-all ${
+                        responses[question.id] === 1
+                          ? 'bg-green-600 border-green-600 text-white'
+                          : 'border-gray-300 hover:border-green-400 hover:bg-green-50 text-gray-700'
                       }`}
-                      style={selectedValue === value ? { backgroundColor: dimColor, borderColor: dimColor } : {}}
                     >
-                      {value}
+                      ✓ Sí
                     </button>
-                  ))}
-                </div>
+                    <button
+                      onClick={() => selectValue(question.id, 0)}
+                      aria-label="No"
+                      aria-pressed={responses[question.id] === 0}
+                      className={`flex-1 py-2 px-4 rounded-lg border text-sm font-medium transition-all ${
+                        responses[question.id] === 0
+                          ? 'bg-red-600 border-red-600 text-white'
+                          : 'border-gray-300 hover:border-red-400 hover:bg-red-50 text-gray-700'
+                      }`}
+                    >
+                      ✗ No
+                    </button>
+                  </div>
+                )}
+
+                {/* Texto libre */}
+                {qType === 'text' && (
+                  <textarea
+                    value={textResponses[question.id] || ''}
+                    onChange={e => setTextResponse(question.id, e.target.value)}
+                    placeholder="Escribe tu respuesta..."
+                    maxLength={500}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none"
+                  />
+                )}
               </div>
             )
           })}

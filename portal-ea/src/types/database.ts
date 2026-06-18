@@ -62,11 +62,16 @@ export interface Dimension {
   instrument_version_id: string | null
 }
 
+export type QuestionType = 'likert' | 'boolean' | 'text'
+
 export interface Question {
   id: string
   dimension_id: string
   text: string
   display_order: number
+  type: QuestionType
+  contributes_to_score: boolean
+  is_required: boolean
 }
 
 export interface DimensionWithQuestions extends Dimension {
@@ -87,7 +92,8 @@ export interface Response {
   id: string
   respondent_id: string
   question_id: string
-  value: number
+  value: number | null
+  text_value: string | null
   created_at: string
 }
 

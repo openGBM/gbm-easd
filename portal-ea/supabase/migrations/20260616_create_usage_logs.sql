@@ -17,15 +17,19 @@ CREATE INDEX IF NOT EXISTS idx_usage_logs_action ON usage_logs(action);
 CREATE INDEX IF NOT EXISTS idx_usage_logs_created_at ON usage_logs(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_usage_logs_model ON usage_logs(model) WHERE model IS NOT NULL;
 
--- RLS: solo admins autenticados pueden leer/escribir
+-- RLS habilitado con policies permisivas para roles de Supabase
 ALTER TABLE usage_logs ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Admins pueden insertar usage_logs"
-  ON usage_logs FOR INSERT
-  TO authenticated
+-- Policy para service_role (usado por API routes server-side)
+CREATE POLICY "service_role_all" ON usage_logs
+  FOR ALL
+  TO service_role
+  USING (true)
   WITH CHECK (true);
 
-CREATE POLICY "Admins pueden leer usage_logs"
-  ON usage_logs FOR SELECT
+-- Policy para authenticated (fallback si se usa desde client)
+CREATE POLICY "authenticated_all" ON usage_logs
+  FOR ALL
   TO authenticated
-  USING (true);
+  USING (true)
+  WITH CHECK (true);

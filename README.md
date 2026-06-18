@@ -1,6 +1,6 @@
-# Portal de Evaluaciones de Autodiagnóstico — GBM
+# Portal de Evaluaciones — GBM
 
-Portal web multi-instrumento para evaluaciones de autodiagnóstico organizacional. Permite aplicar distintos instrumentos de evaluación, gestionar sesiones con participantes, visualizar resultados con gráficos de radar, y generar análisis interpretativos con inteligencia artificial.
+**v1.3.4** · Portal web multi-instrumento para evaluaciones organizacionales. Permite aplicar distintos instrumentos de evaluación, gestionar sesiones con participantes, visualizar resultados con gráficos de radar, y generar análisis interpretativos con inteligencia artificial.
 
 ![Portal de Evaluaciones GBM](docs/portal-inicio.png)
 
@@ -8,45 +8,59 @@ Portal web multi-instrumento para evaluaciones de autodiagnóstico organizaciona
 
 ### Para el Encuestado
 - Acceso mediante enlace público o código QR (sin login)
-- Registro con nombre y correo electrónico
-- Encuesta tipo wizard/stepper con barra de progreso
-- Escala 1-5 con etiquetas personalizables por instrumento (tooltip en cada valor)
+- Registro con nombre y correo (validado server-side con rate limiting)
+- Encuesta tipo wizard/stepper con barra de progreso accesible
+- Escala 1-5 con etiquetas personalizables por instrumento
 - Navegación adelante/atrás entre dimensiones
 - Reanudación si no completó la encuesta
 - Visualización inmediata de resultados (gráfico de radar + tabla de madurez)
+- Exportar resultados a PDF
 
 ### Para el Administrador
-- Dashboard global con métricas (sesiones, respuestas, tiempo promedio, instrumentos)
+- Dashboard global con métricas (sesiones, respuestas, tiempo promedio, instrumentos) cargadas en paralelo
 - Gestión de sesiones (crear, habilitar, deshabilitar, eliminar)
+- Copiar URL y código QR como imagen PNG con un clic
 - Dashboard por sesión con métricas específicas
 - Vista individual y consolidada de resultados
-- Análisis IA interpretativo bajo demanda (Gemini / Groq)
-- Exportar resultados a Excel (.xlsx)
-- Código QR generado por sesión
-- Gestión de instrumentos de evaluación (multi-instrumento con feature flag)
-- Import/Export del banco de preguntas via Excel
-- Versionamiento automático del banco (solo si hay respuestas)
-- Etiquetas de escala personalizables por instrumento
-- Niveles de madurez configurables (umbrales, labels y colores editables por instrumento)
-- Expertise de IA configurable por instrumento
+- Análisis IA interpretativo bajo demanda (Gemini / Groq) con tracking de tokens
+- Prompts personalizados con formato markdown y detalle por pregunta para cálculos granulares
+- Exportar resultados a Excel (.xlsx) — cargado bajo demanda
+- Gestión de instrumentos: editor visual (color, descripción, preguntas) + import/export Excel
+- Versionamiento automático al modificar el banco (si ya hay respuestas)
+- Etiquetas de escala y niveles de madurez configurables por instrumento
+- Tendencias por instrumento entre sesiones (gráficos + filtros)
+- Historial de encuestados (búsqueda por email, tabla cronológica, radares)
+- Metadata dinámica en URLs compartidas (OG tags con nombre del instrumento)
+- **Tracking de consumo**: sesiones creadas, análisis generados, tokens por modelo por usuario
+
+### Seguridad
+- Proxy server-side (proxy.ts) para protección de rutas admin
+- Rate limiting server-side: login, registro de encuestados, análisis IA
+- Supabase Auth + RLS + default deny-all si ADMIN_EMAILS no está configurada
+- Validación Zod en todos los API routes
+- CSP diferenciada producción/desarrollo
+- Sanitización de inputs en filtros de búsqueda
+- Focus trap en modales (accesibilidad)
 
 ## Stack Tecnológico
 
 | Capa | Tecnología |
 |------|------------|
-| Framework | Next.js 16 (App Router) |
-| Lenguaje | TypeScript |
-| UI | React 19 + Tailwind CSS 4 |
-| Visualización | Recharts (radar chart) |
-| Exportación | ExcelJS |
+| Framework | Next.js 16 (App Router, proxy.ts) |
+| Lenguaje | TypeScript 6 |
+| UI | React 19 + Tailwind CSS 4 (responsive) |
+| Visualización | Recharts (radar chart, bar chart) |
+| QR | qrcode.react |
+| Exportación | ExcelJS (dynamic import), jsPDF + html2canvas-pro |
 | IA/Análisis | Google Gemini 2.0 Flash + Groq Llama 3.3 70B (fallback) |
 | Backend/DB | Supabase (PostgreSQL + Auth + RLS) |
-| Feature Flags | Env var (NEXT_PUBLIC_MULTI_INSTRUMENT) |
+| Rate Limiting | Upstash Redis (prod) / memoria con cleanup (dev) |
+| CI | GitHub Actions (Node.js 22, v5 actions) |
 | Despliegue | Vercel (frontend) + Supabase Cloud (BD) |
 
 ## Requisitos Previos
 
-- [Node.js](https://nodejs.org/) (v18+)
+- [Node.js](https://nodejs.org/) (v22+)
 - [Supabase CLI](https://supabase.com/docs/guides/cli)
 - [Docker](https://www.docker.com/) (para Supabase local)
 
@@ -65,7 +79,6 @@ cd portal-ea
 npm install
 
 # Configurar variables de entorno
-# Crear .env.local con las credenciales
 cp .env.local.example .env.local
 # Editar con credenciales de Supabase local
 
@@ -78,11 +91,14 @@ npm run dev
 ```env
 NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<tu-anon-key>
-ADMIN_EMAILS=admin@gbm.net
+ADMIN_EMAILS=tu-email@empresa.com
 GEMINI_API_KEY=<api-key-google-ai-studio>
 GROQ_API_KEY=<api-key-groq>
-NEXT_PUBLIC_MULTI_INSTRUMENT=true
+UPSTASH_REDIS_REST_URL=<tu-upstash-url>          # Opcional: rate limiting en producción
+UPSTASH_REDIS_REST_TOKEN=<tu-upstash-token>      # Opcional: rate limiting en producción
 ```
+
+> **Nota:** Si ADMIN_EMAILS no está configurada, nadie tiene acceso admin (deny-all por defecto).
 
 ## Estructura del Proyecto
 
@@ -91,53 +107,64 @@ gbm-easd/
 ├── portal-ea/               # Aplicación Next.js
 │   └── src/
 │       ├── app/             # Páginas (App Router)
+│       │   ├── encuesta/    # Encuesta pública
+│       │   ├── resultados/  # Resultados públicos
+│       │   ├── admin/       # Panel admin (protegido)
+│       │   │   ├── sesiones/
+│       │   │   ├── instrumentos/
+│       │   │   ├── encuestados/
+│       │   │   └── consumo/
+│       │   └── api/         # API routes
+│       │       ├── analysis/
+│       │       ├── auth/login/
+│       │       ├── respondents/
+│       │       └── usage/
 │       ├── components/      # Componentes reutilizables
-│       ├── lib/             # Cliente Supabase
+│       ├── lib/             # Supabase, logger, rate-limit, analytics
 │       ├── types/           # Tipos TypeScript
-│       └── flags.ts         # Feature flags
-├── supabase/                # Configuración Supabase + Migraciones
-│   ├── config.toml
-│   └── migrations/          # 6 migraciones SQL
+│       └── proxy.ts         # Protección server-side de rutas
+├── supabase/                # Migraciones SQL
 ├── docs/                    # Documentación
-│   ├── vision.md            # Visión del producto
-│   ├── manual-administrador.md  # Manual de usuario
-│   └── analisis-critico.md  # Análisis técnico + roadmap
-├── aidlc-docs/              # Documentación AI-DLC
-│   ├── inception/           # Requerimientos, diseño de app
-│   └── construction/        # Diseño funcional, reglas de negocio
-└── examples/                # Ejemplos de uso
+│   ├── instrumento-diagnostico-aidlc.md  # Instrumento AI-DLC
+│   ├── manual-administrador.md           # Manual de usuario
+│   └── vision.md                         # Visión del producto
+├── aidlc-docs/              # Documentación de desarrollo (AI-DLC workflow)
+└── .github/workflows/       # CI (GitHub Actions)
 ```
 
 ## Modelo de Datos
 
 | Tabla | Descripción |
 |-------|-------------|
-| `sessions` | Sesiones de evaluación |
-| `dimensions` | Dimensiones por versión de instrumento |
+| `instruments` | Instrumentos de evaluación (nombre, descripción, prompt IA) |
+| `instrument_versions` | Versiones del banco (scale_labels, maturity_levels, is_current) |
+| `sessions` | Sesiones de evaluación (ligadas a una versión de instrumento) |
+| `dimensions` | Dimensiones con color (ligadas a versión) |
 | `questions` | Preguntas por dimensión |
-| `respondents` | Encuestados (nombre, correo, completado) |
+| `respondents` | Encuestados (nombre, correo, completado, tiempo) |
 | `responses` | Respuestas (valor 1-5) |
 | `session_analyses` | Análisis IA por sesión |
-| `instruments` | Instrumentos de evaluación |
-| `instrument_versions` | Versiones del banco (scale_labels, maturity_levels) |
+| `usage_logs` | Registro de consumo (usuario, acción, modelo, tokens) |
 
 ## Documentación
 
 - [Manual del Administrador](docs/manual-administrador.md)
+- [Instrumento AI-DLC](docs/instrumento-diagnostico-aidlc.md)
 - [Visión del Producto](docs/vision.md)
-- [Análisis Crítico y Roadmap](docs/analisis-critico.md)
-- [Requerimientos](aidlc-docs/inception/requirements/requirements.md)
-- [Diseño Multi-Instrumento](aidlc-docs/inception/application-design/v2-multi-instrument-design.md)
+- [README del Portal](portal-ea/README.md)
 
 ## Roadmap
 
 - [x] v1.0 — MVP: Encuesta EA, radar, admin básico
 - [x] v1.1 — Análisis IA, export Excel, dashboards
 - [x] v1.2 — Multi-instrumento, versionamiento, import/export Excel, escalas y niveles configurables
-- [ ] v2.1 — Editor visual de preguntas (sin depender de Excel), filtros en listado de sesiones
-- [ ] v2.2 — Notificaciones por email, dashboard histórico con tendencias
-- [ ] v3.0 — Escalas configurables (no solo 1-5), tipos de pregunta variados
-- [ ] v4.0 — Multi-tenant, roles granulares, SSO, OpenTelemetry, middleware server-side
+- [x] v1.3 — Editor visual, tendencias, historial de encuestados, filtros
+- [x] v1.3.4 — Instrumento AI-DLC, seguridad (proxy, rate limiting, CSP), consumo, responsive, accesibilidad
+- [x] v2.0 — Landing page, tipos de pregunta (Likert/Boolean/Texto), preguntas opcionales, contributes_to_score
+- [ ] v2.1 — Administración de usuarios y roles (admin, editor, viewer)
+- [ ] v2.2 — Notificaciones por correo, exportar análisis IA a PDF
+- [ ] v3.0 — SSO corporativo (SAML, OAuth)
+- [ ] v4.0 — Multi-tenant, organizaciones aisladas
 
 ## Licencia
 

@@ -160,15 +160,15 @@ export default function AdminDashboard() {
       .insert(insertData)
 
     if (!error) {
-      // Registrar creación de sesión en usage_logs
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user?.email) {
-        supabase.from('usage_logs').insert({
-          user_email: user.email,
+      // Registrar creación de sesión en usage_logs via API route (server-side, bypasses RLS)
+      fetch('/api/usage/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           action: 'create_session',
           metadata: { session_name: newSessionName.trim(), instrument_id: selectedInstrumentId || null },
-        }).then(() => {}, () => {}) // No bloquear si falla
-      }
+        }),
+      }).catch(() => {}) // No bloquear si falla
       setNewSessionName('')
       await loadSessions()
     }

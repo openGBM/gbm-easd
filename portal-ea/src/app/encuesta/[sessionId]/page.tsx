@@ -82,10 +82,11 @@ export default async function EncuestaPage({ params }: Props) {
 
   if (!session.is_active) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-yellow-600 mb-2">Sesión no disponible</h1>
-          <p className="text-gray-600">Esta sesión de evaluación no está activa en este momento.</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
+        <div className="bg-white rounded-xl shadow-sm border p-8 max-w-md text-center">
+          <img src="/logo-gbm.png" alt="GBM" className="h-10 mx-auto mb-4" />
+          <h1 className="text-xl font-bold text-gray-900 mb-2">Sesión no disponible</h1>
+          <p className="text-gray-600">Esta evaluación no está aceptando respuestas en este momento.</p>
         </div>
       </div>
     )
@@ -116,13 +117,14 @@ export default async function EncuestaPage({ params }: Props) {
 
   const { data: dimensionsResult } = { data: dimensions }
 
-  // Cargar scale_labels y nombre del instrumento si la sesión tiene versión
+  // Cargar scale_labels, nombre y descripción del instrumento si la sesión tiene versión
   let scaleLabels = null
   let instrumentName = 'Evaluación'
+  let instrumentDescription: string | null = null
   if (session.instrument_version_id) {
     const { data: versionData } = await supabase
       .from('instrument_versions')
-      .select('scale_labels, instruments(name)')
+      .select('scale_labels, instruments(name, description)')
       .eq('id', session.instrument_version_id)
       .single()
 
@@ -131,6 +133,9 @@ export default async function EncuestaPage({ params }: Props) {
     }
     if ((versionData as any)?.instruments?.name) {
       instrumentName = (versionData as any).instruments.name
+    }
+    if ((versionData as any)?.instruments?.description) {
+      instrumentDescription = (versionData as any).instruments.description
     }
   }
 
@@ -142,24 +147,23 @@ export default async function EncuestaPage({ params }: Props) {
     ),
   }))
 
+  // Calcular stats para la landing page
+  const totalQuestions = sortedDimensions.reduce((sum, dim) => sum + dim.questions.length, 0)
+  const estimatedMinutes = Math.max(3, Math.round(totalQuestions * 15 / 60))
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
       <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <img src="/logo-gbm.png" alt="GBM" className="h-10 mx-auto mb-4" />
-          <h1 className="text-3xl font-bold text-gray-900">
-            {instrumentName}
-          </h1>
-          <p className="text-gray-600 mt-2">Sesión: {session.name}</p>
-          <p className="text-sm text-gray-400 mt-1">
-            Selecciona el valor (1–5) que mejor refleje tu valoración para cada afirmación
-          </p>
-        </div>
-
         <SurveyForm
           sessionId={sessionId}
           dimensions={sortedDimensions}
           scaleLabels={scaleLabels}
+          instrumentName={instrumentName}
+          instrumentDescription={instrumentDescription}
+          sessionName={session.name}
+          totalDimensionsCount={sortedDimensions.length}
+          totalQuestionsCount={totalQuestions}
+          estimatedMinutes={estimatedMinutes}
         />
       </div>
     </div>

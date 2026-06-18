@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import Groq from 'groq-sdk'
 import { logger } from '@/lib/logger'
@@ -243,14 +244,24 @@ El tono debe ser profesional pero accesible, orientado a líderes de negocio y T
 
     // Registrar consumo de IA (usage log)
     if (aiResult) {
-      await supabase.from('usage_logs').insert({
-        user_email: user.email,
-        action: 'analysis',
-        model: aiResult.model,
-        input_tokens: aiResult.inputTokens,
-        output_tokens: aiResult.outputTokens,
-        metadata: { session_id: sessionId, session_name: sessionName },
-      }).then(() => {}, () => {}) // No bloquear si falla el log
+      try {
+        const adminClient = createAdminSupabaseClient()
+        if (adminClient) {
+          const { error: usageError } = await adminClient.from('usage_logs').insert({
+            user_email: user.email,
+            action: 'analysis',
+            model: aiResult.model,
+            input_tokens: aiResult.inputTokens,
+            output_tokens: aiResult.outputTokens,
+            metadata: { session_id: sessionId, session_name: sessionName },
+          })
+          if (usageError) {
+            logger.warn('Error registrando usage_logs', 'api/analysis', usageError)
+          }
+        }
+      } catch {
+        // No bloquear el flujo si el admin client falla
+      }
     }
 
     // Guardar el análisis en la base de datos
