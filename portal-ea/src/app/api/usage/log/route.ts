@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { z } from 'zod'
 
 const UsageLogSchema = z.object({
@@ -11,6 +12,7 @@ const UsageLogSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
+  // Verificar autenticación con el client normal
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -27,7 +29,9 @@ export async function POST(request: NextRequest) {
 
     const { action, model, input_tokens, output_tokens, metadata } = parseResult.data
 
-    const { error } = await supabase.from('usage_logs').insert({
+    // Usar admin client para bypasear RLS
+    const adminClient = createAdminSupabaseClient()
+    const { error } = await adminClient.from('usage_logs').insert({
       user_email: user.email,
       action,
       model: model || null,
