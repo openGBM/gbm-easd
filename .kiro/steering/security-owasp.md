@@ -43,3 +43,8 @@ Las siguientes son vulnerabilidades en dependencias transitivas sin fix disponib
 - Cuando se agregue un nuevo API route
 - Cuando se modifique la lógica de autenticación/autorización
 - Comando: `npm audit --audit-level=high`
+
+## Restricciones absolutas
+
+- **NUNCA desactivar RLS** (`DISABLE ROW LEVEL SECURITY`) como solución a problemas de permisos. Siempre resolver con policies correctas o ajustando el role del cliente.
+- Si una tabla necesita inserts server-side que bypasean RLS, usar el service_role key con `NO FORCE ROW LEVEL SECURITY` en la tabla (service_role bypasea RLS por defecto si no hay FORCE).
