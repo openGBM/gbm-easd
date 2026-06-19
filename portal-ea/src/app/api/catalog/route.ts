@@ -12,12 +12,13 @@ export async function GET() {
   if (!adminClient) return NextResponse.json({ error: 'Config error' }, { status: 503 })
 
   // Obtener perfil para saber el tenant
-  const { data: profile } = await adminClient.from('profiles').select('role, tenant_id').eq('id', user.id).single()
+  const { data: profile, error: profileError } = await adminClient.from('profiles').select('role, tenant_id').eq('id', user.id).single()
 
-  // Cargar instrumentos visibles:
-  // - Templates (visibles para todos)
-  // - Públicos (visibles para todos)
-  // - Privados del propio tenant (si tiene tenant)
+  if (profileError) {
+    console.error('[api/catalog] Profile error:', profileError.message)
+  }
+
+  // Cargar instrumentos visibles
   let query = adminClient
     .from('instruments')
     .select('id, name, description, visibility, is_active, created_at, tenant_id, owner_id, instrument_versions(id, version_tag, is_current)')
@@ -36,7 +37,12 @@ export async function GET() {
     query = query.or('visibility.eq.public,visibility.eq.template')
   }
 
-  const { data: instruments } = await query
+  const { data: instruments, error: queryError } = await query
+
+  if (queryError) {
+    console.error('[api/catalog] Query error:', queryError.message)
+    return NextResponse.json({ error: queryError.message, instruments: [] })
+  }
 
   return NextResponse.json({ instruments: instruments || [] })
 }
