@@ -63,6 +63,21 @@ export default function TenantsPage() {
     setCreating(false)
   }
 
+  async function updateTenant(id: string, updates: Record<string, any>) {
+    const res = await fetch(`/api/tenants/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    })
+
+    if (res.ok) {
+      await loadTenants()
+    } else {
+      const err = await res.json()
+      showToast('error', err.error || 'Error al actualizar')
+    }
+  }
+
   if (loading) {
     return (
       <div className="text-center py-12">
@@ -117,25 +132,66 @@ export default function TenantsPage() {
         <div className="grid gap-4">
           {tenants.map(tenant => (
             <div key={tenant.id} className="bg-white rounded-xl shadow-sm border p-4 sm:p-5">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div>
+              <div className="flex flex-col gap-3">
+                {/* Header: nombre + estado */}
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-gray-900">{tenant.name}</h3>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                    <input
+                      type="text"
+                      defaultValue={tenant.name}
+                      onBlur={e => updateTenant(tenant.id, { name: e.target.value.trim() })}
+                      className="font-bold text-gray-900 px-2 py-0.5 border border-transparent hover:border-gray-300 focus:border-blue-400 rounded text-sm focus:outline-none"
+                    />
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${
                       tenant.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                     }`}>
                       {tenant.is_active ? 'Activa' : 'Inactiva'}
                     </span>
                   </div>
-                  {tenant.description && (
-                    <p className="text-sm text-gray-500 mt-1">{tenant.description}</p>
-                  )}
-                  <p className="text-xs text-gray-400 mt-1">
-                    Límites: {tenant.max_active_sessions} sesiones activas · {tenant.max_analyses_per_month} análisis/mes
-                  </p>
+                  <button
+                    onClick={() => updateTenant(tenant.id, { is_active: !tenant.is_active })}
+                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                      tenant.is_active
+                        ? 'bg-red-50 text-red-600 hover:bg-red-100'
+                        : 'bg-green-50 text-green-600 hover:bg-green-100'
+                    }`}
+                  >
+                    {tenant.is_active ? 'Desactivar' : 'Activar'}
+                  </button>
                 </div>
-                <div className="flex gap-2">
-                  <span className="text-xs text-gray-400">
+
+                {/* Descripción editable */}
+                <input
+                  type="text"
+                  defaultValue={tenant.description || ''}
+                  onBlur={e => updateTenant(tenant.id, { description: e.target.value.trim() })}
+                  placeholder="Descripción (opcional)"
+                  className="text-sm text-gray-500 px-2 py-0.5 border border-transparent hover:border-gray-300 focus:border-blue-400 rounded focus:outline-none w-full"
+                />
+
+                {/* Límites editables */}
+                <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+                  <label className="flex items-center gap-1">
+                    Sesiones activas:
+                    <input
+                      type="number"
+                      defaultValue={tenant.max_active_sessions}
+                      onBlur={e => updateTenant(tenant.id, { max_active_sessions: parseInt(e.target.value) || 10 })}
+                      className="w-14 px-1 py-0.5 border border-gray-200 rounded text-center"
+                      min={1}
+                    />
+                  </label>
+                  <label className="flex items-center gap-1">
+                    Análisis/mes:
+                    <input
+                      type="number"
+                      defaultValue={tenant.max_analyses_per_month}
+                      onBlur={e => updateTenant(tenant.id, { max_analyses_per_month: parseInt(e.target.value) || 50 })}
+                      className="w-14 px-1 py-0.5 border border-gray-200 rounded text-center"
+                      min={1}
+                    />
+                  </label>
+                  <span className="text-gray-400">
                     Creada: {new Date(tenant.created_at).toLocaleDateString('es-MX')}
                   </span>
                 </div>
