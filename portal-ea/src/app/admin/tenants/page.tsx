@@ -10,7 +10,7 @@ import Link from 'next/link'
 export default function TenantsPage() {
   const router = useRouter()
   const supabase = createClient()
-  const [tenants, setTenants] = useState<Tenant[]>([])
+  const [tenants, setTenants] = useState<(Tenant & { stats?: { users: number; sessions: number; analyses_this_month: number } })[]>([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
@@ -168,6 +168,26 @@ export default function TenantsPage() {
                   placeholder="Descripción (opcional)"
                   className="text-sm text-gray-500 px-2 py-0.5 border border-transparent hover:border-gray-300 focus:border-blue-400 rounded focus:outline-none w-full"
                 />
+
+                {/* Scorecard de uso */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-blue-50 rounded-lg p-2 text-center">
+                    <p className="text-lg font-bold text-blue-600">{tenant.stats?.users || 0}</p>
+                    <p className="text-xs text-blue-500">Usuarios</p>
+                  </div>
+                  <div className="bg-green-50 rounded-lg p-2 text-center">
+                    <p className="text-lg font-bold text-green-600">
+                      {tenant.stats?.sessions || 0}/{tenant.max_active_sessions}
+                    </p>
+                    <p className="text-xs text-green-500">Sesiones</p>
+                  </div>
+                  <div className="bg-indigo-50 rounded-lg p-2 text-center">
+                    <p className="text-lg font-bold text-indigo-600">
+                      {tenant.stats?.analyses_this_month || 0}/{tenant.max_analyses_per_month}
+                    </p>
+                    <p className="text-xs text-indigo-500">Análisis/mes</p>
+                  </div>
+                </div>
 
                 {/* Límites editables */}
                 <div className="flex flex-wrap gap-4 text-xs text-gray-500">

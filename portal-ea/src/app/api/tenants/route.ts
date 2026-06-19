@@ -30,7 +30,52 @@ export async function GET() {
     .select('*')
     .order('name')
 
-  return NextResponse.json({ tenants: tenants || [] })
+  // Cargar stats de uso por tenant
+  const tenantIds = (tenants || []).map(t => t.id)
+  let stats: Record<string, { users: number; sessions: number; analyses_this_month: number }> = {}
+
+  if (tenantIds.length > 0) {
+    // Usuarios por tenant
+    const { data: profiles } = await adminClient
+      .from('profiles')
+      .select('tenant_id')
+      .in('tenant_id', tenantIds)
+      .eq('is_active', true)
+
+    // Sesiones activas por tenant
+    const { data: sessions } = await adminClient
+      .from('sessions')
+      .select('tenant_id')
+      .in('tenant_id', tenantIds)
+      .eq('is_active', true)
+
+    // Análisis este mes por tenant
+    const startOfMonth = new Date()
+    startOfMonth.setDate(1)
+    startOfMonth.setHours(0, 0, 0, 0)
+    const { data: analyses } = await adminClient
+      .from('usage_logs')
+      .select('tenant_id')
+      .in('tenant_id', tenantIds)
+      .eq('action', 'analysis')
+      .gte('created_at', startOfMonth.toISOString())
+
+    // Agregar por tenant
+    tenantIds.forEach(tid => {
+      stats[tid] = {
+        users: (profiles || []).filter(p => p.tenant_id === tid).length,
+        sessions: (sessions || []).filter(s => s.tenant_id === tid).length,
+        analyses_this_month: (analyses || []).filter(a => a.tenant_id === tid).length,
+      }
+    })
+  }
+
+  const tenantsWithStats = (tenants || []).map(t => ({
+    ...t,
+    stats: stats[t.id] || { users: 0, sessions: 0, analyses_this_month: 0 },
+  }))
+
+  return NextResponse.json({ tenants: tenantsWithStats })
 }
 
 // POST /api/tenants — crear tenant
