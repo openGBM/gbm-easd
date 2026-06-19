@@ -901,6 +901,30 @@ export default function InstrumentDetailPage() {
         <p className="text-gray-600 mb-4">{instrument.description}</p>
       )}
 
+      {/* Visibilidad del instrumento */}
+      <div className="mb-4 flex items-center gap-3">
+        <label className="text-sm font-medium text-gray-700">Visibilidad:</label>
+        <select
+          defaultValue={(instrument as any).visibility || 'public'}
+          onChange={async (e) => {
+            const { error } = await supabase
+              .from('instruments')
+              .update({ visibility: e.target.value })
+              .eq('id', instrumentId)
+            if (error) {
+              showToast('error', 'Error al cambiar visibilidad')
+            } else {
+              showToast('success', `Visibilidad cambiada a "${e.target.value}"`)
+            }
+          }}
+          className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+          <option value="public">Público (visible para todas las áreas)</option>
+          <option value="private">Privado (solo mi área)</option>
+          <option value="template">Template (base para duplicar)</option>
+        </select>
+      </div>
+
       {instrument.ai_expertise_prompt && !editingPrompt && (
         <div className="mb-6 p-4 bg-indigo-50 border border-indigo-100 rounded-lg">
           <div className="flex items-center justify-between mb-1">
