@@ -20,7 +20,7 @@ export async function GET() {
   // - Privados del propio tenant (si tiene tenant)
   let query = adminClient
     .from('instruments')
-    .select('*, instrument_versions(id, version_tag, is_current), profiles!owner_id(full_name)')
+    .select('id, name, description, visibility, is_active, created_at, tenant_id, owner_id, instrument_versions(id, version_tag, is_current)')
     .eq('is_active', true)
     .order('name')
 
