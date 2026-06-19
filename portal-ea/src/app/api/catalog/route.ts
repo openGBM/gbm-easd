@@ -28,7 +28,9 @@ export async function GET() {
     // Super admin ve todo
   } else if (profile?.tenant_id) {
     // Ver públicos + templates + privados de su tenant
-    query = query.or(`visibility.eq.public,visibility.eq.template,tenant_id.eq.${profile.tenant_id}`)
+    // tenant_id viene de la BD (profiles), no del usuario — seguro para interpolar
+    const tid = profile.tenant_id.replace(/[^a-f0-9-]/gi, '') // sanitizar UUID
+    query = query.or(`visibility.eq.public,visibility.eq.template,tenant_id.eq.${tid}`)
   } else {
     // Sin tenant: solo públicos y templates
     query = query.or('visibility.eq.public,visibility.eq.template')

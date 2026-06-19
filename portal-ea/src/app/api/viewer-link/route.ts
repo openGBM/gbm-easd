@@ -41,17 +41,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Generar token firmado (simple: base64 de session_id + expiration + random)
+    // Generar token seguro con componente random (no predecible)
     const expiresAt = new Date(Date.now() + expires_in_hours * 60 * 60 * 1000).toISOString()
-    const payload = { session_id, expires_at: expiresAt, created_by: user.email }
-    const token = Buffer.from(JSON.stringify(payload)).toString('base64url')
+    const randomBytes = crypto.randomUUID().replace(/-/g, '')
+    const token = `vl_${randomBytes}`
 
-    // Guardar en BD para validación
-    await adminClient.from('viewer_links').insert({
+    // Guardar en BD para validación (el token es opaco, la validación es por lookup en BD)
+    const { error: insertError } = await adminClient.from('viewer_links').insert({
       token,
       session_id,
       expires_at: expiresAt,
       created_by: user.id,
     })
+
+    if (insertError) return NextResponse.json({ error: insertError.message }, { status: 500 })
 
     return NextResponse.json({ token, expires_at: expiresAt })
   } catch {
