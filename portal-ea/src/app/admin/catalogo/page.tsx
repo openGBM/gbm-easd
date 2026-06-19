@@ -147,13 +147,24 @@ export default function CatalogoPage() {
                   </div>
 
                   <div className="flex gap-2 shrink-0">
-                    <button
-                      onClick={() => duplicateInstrument(inst.id, inst.name)}
-                      disabled={duplicating === inst.id}
-                      className="px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors disabled:opacity-50"
-                    >
-                      {duplicating === inst.id ? 'Duplicando...' : '📋 Usar como base'}
-                    </button>
+                    {inst.visibility === 'template' && (
+                      <button
+                        onClick={() => duplicateInstrument(inst.id, inst.name)}
+                        disabled={duplicating === inst.id}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors disabled:opacity-50"
+                      >
+                        {duplicating === inst.id ? 'Creando...' : '📋 Usar como base'}
+                      </button>
+                    )}
+                    {inst.visibility === 'public' && (
+                      <button
+                        onClick={() => duplicateInstrument(inst.id, inst.name)}
+                        disabled={duplicating === inst.id}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-50"
+                      >
+                        {duplicating === inst.id ? 'Duplicando...' : 'Duplicar'}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
