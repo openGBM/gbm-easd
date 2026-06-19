@@ -33,10 +33,18 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL('/admin/login', request.url))
     }
 
-    // Verificar que es admin autorizado
+    // Verificar que el usuario tiene perfil activo O está en ADMIN_EMAILS (fallback legacy)
     const allowedAdmins = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean)
-    if (allowedAdmins.length === 0 || !allowedAdmins.includes(user.email || '')) {
-      return NextResponse.redirect(new URL('/admin/login', request.url))
+    const isLegacyAdmin = allowedAdmins.includes(user.email || '')
+
+    if (!isLegacyAdmin) {
+      // Verificar en tabla profiles
+      const { data: profile } = await supabase.from('profiles').select('role, is_active').eq('id', user.id).single()
+
+      if (!profile || !profile.is_active) {
+        return NextResponse.redirect(new URL('/admin/login', request.url))
+      }
+      // Cualquier rol activo (super_admin, admin, editor) puede acceder al panel
     }
   }
 
