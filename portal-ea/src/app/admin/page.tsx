@@ -55,6 +55,7 @@ export default function AdminDashboard() {
       .from('instruments')
       .select('*, instrument_versions(*)')
       .eq('is_active', true)
+      .neq('visibility', 'template')  // Templates no se usan directamente para crear sesiones
       .order('name')
 
     if (data) {

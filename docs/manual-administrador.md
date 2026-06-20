@@ -1,4 +1,4 @@
-# Manual del Portal de Evaluaciones — GBM (v2.0)
+# Manual del Portal de Evaluaciones — GBM (v2.2)
 
 ## Introducción
 
@@ -16,6 +16,10 @@ El Portal de Evaluaciones es una herramienta web que permite aplicar instrumento
 | Visualizar resultados | Gráficos de radar, pie charts para boolean, lista de respuestas abiertas y tablas de madurez |
 | Análisis IA | Interpretación ejecutiva automatizada con tracking de tokens consumidos |
 | Multi-instrumento | Gestionar distintos tipos de evaluación desde un solo portal |
+| Catálogo e instrumentos | Instrumentos públicos, privados y templates con control de visibilidad |
+| Multi-tenant | Aislamiento por áreas (tenants) con usuarios y roles jerárquicos |
+| Usuarios y roles | Super Admin, Admin de Área y Editor con permisos diferenciados |
+| Viewer links | Enlace firmado temporal para compartir resultados sin necesidad de cuenta |
 | Landing page | Cada sesión muestra una página de bienvenida con info del instrumento antes de comenzar |
 | Sesiones con QR | Código QR con botones de copiar URL y copiar QR como imagen |
 | Exportar datos | Descarga de resultados en formato Excel y PDF |
@@ -27,9 +31,11 @@ El Portal de Evaluaciones es una herramienta web que permite aplicar instrumento
 
 | Rol | Acceso | Funciones |
 |-----|--------|-----------|
-| **Administrador** | Panel admin (con login) | Gestionar instrumentos, sesiones, ver resultados, generar análisis IA, exportar |
+| **Super Admin** | Panel admin completo | Gestionar todo: tenants, usuarios, instrumentos (incluido marcar como template), sesiones, análisis IA, consumo global |
+| **Admin de Área** | Panel admin (scoped a su tenant) | Gestionar instrumentos, sesiones, usuarios de su área, ver resultados, generar análisis IA, crear viewer links |
+| **Editor** | Panel admin (scoped a su tenant) | Crear sesiones, ver resultados de su área, generar análisis IA, crear viewer links |
 | **Encuestado** | Enlace público (sin login) | Responder la encuesta asignada a su sesión |
-| **Patrocinador** | Lectura de resultados | Recibir el análisis IA y datos exportados del admin |
+| **Viewer** | Enlace firmado temporal (sin cuenta) | Ver resultados consolidados de una sesión específica |
 
 ### Flujo general
 
@@ -53,7 +59,176 @@ El Portal de Evaluaciones es una herramienta web que permite aplicar instrumento
 2. Ingresar correo electrónico y contraseña autorizados
 3. Al autenticarse, se accede al dashboard principal
 
-> **Nota**: Solo los correos incluidos en la configuración de administradores tienen acceso al panel.
+> **Nota**: Solo los usuarios con perfil activo en el sistema (creados por un Super Admin o Admin de Área) pueden acceder al panel. El primer Super Admin se configura directamente en la base de datos durante el setup inicial.
+
+---
+
+## Gestión de Áreas (Tenants)
+
+Un **tenant** (área) representa un equipo o división dentro de GBM (ej: Human Capital, Educación, Arquitectura). Cada tenant opera de forma aislada: sus sesiones, instrumentos privados y usuarios son invisibles para otros tenants.
+
+### Acceder a la gestión de áreas
+
+1. En la barra de navegación, hacer clic en **"Áreas"** (solo visible para Super Admin)
+2. Se muestra el listado de áreas con su scorecard de uso
+
+### Crear un área
+
+1. Completar el formulario "Crear Nueva Área":
+   - **Nombre**: nombre del área (ej: "Human Capital")
+   - **Descripción** (opcional): propósito del área
+2. Hacer clic en **"+ Crear Área"**
+3. El área se crea con límites por defecto: 10 sesiones activas, 50 análisis/mes
+
+### Scorecard de uso por área
+
+Cada tarjeta de área muestra en tiempo real:
+
+| Indicador | Descripción |
+|-----------|-------------|
+| Usuarios | Cantidad de usuarios activos en el área |
+| Sesiones | Sesiones activas / límite máximo |
+| Análisis/mes | Análisis IA generados este mes / límite mensual |
+
+### Configurar límites
+
+- **Sesiones activas**: editar inline el número máximo de sesiones simultáneas
+- **Análisis por mes**: editar inline el límite mensual de generación de análisis IA
+
+> Los límites se editan directamente en la tarjeta del área y se guardan al salir del campo.
+
+### Activar/Desactivar un área
+
+- **Desactivar**: ningún usuario del área puede acceder al panel. Las sesiones e instrumentos se conservan.
+- **Activar**: restaura el acceso para todos los usuarios del área.
+
+> ⚠️ Las áreas nunca se eliminan (soft delete). Los datos se conservan siempre.
+
+---
+
+## Gestión de Usuarios
+
+Los usuarios del sistema se gestionan desde la sección **"Usuarios"** del panel admin.
+
+### Acceder a la gestión de usuarios
+
+1. En la barra de navegación, hacer clic en **"Usuarios"**
+2. Super Admin ve todos los usuarios. Admin de Área ve solo usuarios de su tenant.
+
+### Crear un usuario
+
+1. Completar el formulario "Crear Nuevo Usuario":
+   - **Nombre completo**
+   - **Correo electrónico** (será su login)
+   - **Contraseña** (mínimo 8 caracteres)
+   - **Rol**: Editor o Admin de Área
+   - **Área**: seleccionar el tenant al que pertenecerá
+2. Hacer clic en **"+ Crear Usuario"**
+
+**Reglas de creación:**
+- Solo **Super Admin** puede crear usuarios con rol "Admin de Área"
+- **Admin de Área** solo puede crear Editores dentro de su propio tenant
+- El correo debe ser único en todo el sistema
+
+### Activar/Desactivar usuarios
+
+- Hacer clic en **"Desactivar"** o **"Activar"** en la fila del usuario
+- Un usuario desactivado no puede iniciar sesión pero sus datos se conservan
+- No se puede desactivar a uno mismo ni modificar a un Super Admin
+
+### Tabla de usuarios
+
+| Columna | Descripción |
+|---------|-------------|
+| Nombre | Nombre completo del usuario |
+| Email | Correo de acceso |
+| Rol | Super Admin / Admin de Área / Editor |
+| Área | Tenant al que pertenece |
+| Estado | Activo / Inactivo |
+
+---
+
+## Catálogo de Instrumentos
+
+El catálogo muestra instrumentos disponibles para todos los tenants, organizados por visibilidad.
+
+### Acceder al catálogo
+
+1. En la barra de navegación, hacer clic en **"Catálogo"**
+
+### Tipos de visibilidad
+
+| Tipo | Quién lo crea | Quién lo ve | Uso |
+|------|---------------|-------------|-----|
+| **Template** | Solo Super Admin | Todos los tenants | Base para duplicar como instrumento propio |
+| **Público** | Admin de Área | Todos los tenants | Puede ser usado (crear sesiones) por cualquier área |
+| **Privado** | Admin de Área | Solo su tenant + Super Admin | Instrumento exclusivo del área |
+
+### Filtrar en el catálogo
+
+Botones de filtro rápido:
+- **Todos**: muestra templates + públicos + privados accesibles
+- **Templates**: solo templates (creados por Super Admin)
+- **Públicos**: solo instrumentos públicos
+
+### Usar un template como base
+
+1. Buscar el template deseado en el catálogo
+2. Hacer clic en **"📋 Usar como base"**
+3. Ingresar el nombre para el nuevo instrumento
+4. Se crea una copia completa (dimensiones, preguntas, escala, niveles) como instrumento **privado** en tu área
+5. El nuevo instrumento es completamente independiente del template original
+
+### Duplicar un instrumento público
+
+1. Buscar el instrumento público en el catálogo
+2. Hacer clic en **"Duplicar"**
+3. Ingresar el nombre para la copia
+4. Se crea como instrumento privado en tu área
+
+### Cambiar la visibilidad de un instrumento
+
+1. Ir a **Instrumentos → [Instrumento]** (página de gestión)
+2. En la sección "Visibilidad", seleccionar el nuevo valor
+
+**Restricciones:**
+- Solo el **owner** (quien creó el instrumento) o **Super Admin** pueden cambiar la visibilidad
+- Solo **Super Admin** puede marcar un instrumento como "Template"
+- Si un instrumento ya es template, solo Super Admin puede modificar su visibilidad
+- Los demás usuarios ven la visibilidad como badge de solo lectura
+
+---
+
+## Viewer Links (Enlace firmado para compartir resultados)
+
+Los viewer links permiten compartir resultados consolidados de una sesión con personas externas **sin necesidad de que tengan cuenta** en el sistema.
+
+### Generar un viewer link
+
+1. En el detalle de una sesión, buscar la opción de compartir resultados
+2. Configurar la expiración (por defecto 72 horas, máximo 30 días)
+3. Se genera un enlace único tipo `/viewer/vl_xxxxx`
+
+### Características del viewer link
+
+| Aspecto | Comportamiento |
+|---------|----------------|
+| Autenticación | No requiere — acceso sin login |
+| Expiración | Configurable (1-720 horas) |
+| Revocación | Se puede revocar manualmente antes de que expire |
+| Contenido | Muestra resultados consolidados (radar + tabla + madurez) |
+| Seguridad | Token opaco no predecible, validación server-side |
+
+### Estados del enlace
+
+- **Válido**: muestra los resultados normalmente
+- **Expirado**: muestra mensaje "Enlace expirado"
+- **Revocado**: muestra mensaje "Enlace revocado"
+- **Inválido**: muestra mensaje "Enlace no válido"
+
+### ¿Quién puede generar viewer links?
+
+Cualquier usuario con rol Super Admin, Admin de Área o Editor puede generar enlaces para sesiones de su tenant.
 
 ---
 
@@ -495,13 +670,31 @@ Sí. Cada pregunta puede marcarse como "no obligatoria". El encuestado puede ava
 **¿Dónde veo el consumo de tokens de IA?**
 En la navegación admin → "Consumo". Muestra sesiones creadas, análisis generados y tokens consumidos por modelo (Gemini/Groq) por cada usuario.
 
+**¿Qué es un tenant/área?**
+Un tenant es una división organizacional (ej: Human Capital, Educación, Arquitectura). Cada área tiene sus propios usuarios, sesiones e instrumentos privados aislados de otras áreas.
+
+**¿Un usuario puede pertenecer a varias áreas?**
+No. Cada usuario pertenece a un solo tenant. Solo el Super Admin es transversal (no pertenece a ningún tenant específico).
+
+**¿Qué pasa si desactivo un área?**
+Los usuarios de esa área pierden acceso al panel pero los datos (sesiones, instrumentos, resultados) se conservan intactos. Se pueden reactivar en cualquier momento.
+
+**¿Cómo comparto resultados con un cliente sin darle acceso al panel?**
+Usa un **Viewer Link**: genera un enlace firmado temporal desde el detalle de la sesión. El cliente accede a una página de solo lectura con los resultados consolidados, sin necesidad de cuenta.
+
+**¿Cuánto dura un viewer link?**
+Por defecto 72 horas (3 días). Se puede configurar entre 1 hora y 30 días (720 horas). También se puede revocar manualmente antes de que expire.
+
+**¿Quién puede crear templates?**
+Solo el Super Admin. Los templates son instrumentos base que cualquier área puede duplicar como propio.
+
 ---
 
 ## Consumo y Uso
 
 La sección de **Consumo** (accesible desde la navegación admin) registra automáticamente:
 
-- **Sesiones creadas**: cada vez que un admin crea una nueva sesión
+- **Sesiones creadas**: cada vez que un admin/editor crea una nueva sesión
 - **Análisis IA generados**: cada vez que se genera un análisis interpretativo
 - **Tokens por modelo**: cantidad de tokens de entrada y salida consumidos por Gemini o Groq
 
@@ -511,5 +704,12 @@ La sección de **Consumo** (accesible desde la navegación admin) registra autom
 |-------|-----------|
 | **Resumen por usuario** | Email, sesiones creadas, análisis generados, tokens desglosados por modelo |
 | **Detalle de actividad** | Tabla cronológica: fecha, usuario, acción, modelo, tokens consumidos |
+
+### Consumo por área (vista desde Tenants)
+
+En la sección de **Áreas**, cada tarjeta de tenant muestra:
+- Usuarios activos del área
+- Sesiones activas vs límite configurado
+- Análisis generados este mes vs límite mensual
 
 > Los datos se registran automáticamente. No requiere configuración adicional.
