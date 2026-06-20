@@ -27,6 +27,8 @@ export default function InstrumentDetailPage() {
   const [promptExpanded, setPromptExpanded] = useState(false)
   const [maturityLevelsEdit, setMaturityLevelsEdit] = useState<{ label: string; color: string; minAverage: number; maxAverage: number }[]>([])
   const [promptModal, setPromptModal] = useState<{ type: 'dimension' | 'question'; dimId?: string; order?: number } | null>(null)
+  const [userRole, setUserRole] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
 
   useEffect(() => {
     checkAuthAndLoad()
@@ -38,6 +40,16 @@ export default function InstrumentDetailPage() {
       router.push('/admin/login')
       return
     }
+    setUserId(user.id)
+
+    // Obtener rol del usuario para control de visibilidad
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    if (profile) setUserRole(profile.role)
+
     await loadInstrument()
   }
 
@@ -902,28 +914,62 @@ export default function InstrumentDetailPage() {
       )}
 
       {/* Visibilidad del instrumento */}
-      <div className="mb-4 flex items-center gap-3">
-        <label className="text-sm font-medium text-gray-700">Visibilidad:</label>
-        <select
-          defaultValue={(instrument as any).visibility || 'public'}
-          onChange={async (e) => {
-            const { error } = await supabase
-              .from('instruments')
-              .update({ visibility: e.target.value })
-              .eq('id', instrumentId)
-            if (error) {
-              showToast('error', 'Error al cambiar visibilidad')
-            } else {
-              showToast('success', `Visibilidad cambiada a "${e.target.value}"`)
-            }
-          }}
-          className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        >
-          <option value="public">Público (visible para todas las áreas)</option>
-          <option value="private">Privado (solo mi área)</option>
-          <option value="template">Template (base para duplicar)</option>
-        </select>
-      </div>
+      {(() => {
+        const isSuperAdmin = userRole === 'super_admin'
+        const isOwner = userId === (instrument as any).owner_id
+        const canChangeVisibility = isSuperAdmin || isOwner
+        const isTemplate = (instrument as any).visibility === 'template'
+
+        // Si es template y el usuario no es super_admin, no puede modificar
+        if (isTemplate && !isSuperAdmin) {
+          return (
+            <div className="mb-4 flex items-center gap-3">
+              <label className="text-sm font-medium text-gray-700">Visibilidad:</label>
+              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">Template</span>
+              <span className="text-xs text-gray-500">Solo super admin puede modificar templates</span>
+            </div>
+          )
+        }
+
+        return canChangeVisibility ? (
+          <div className="mb-4 flex items-center gap-3">
+            <label className="text-sm font-medium text-gray-700">Visibilidad:</label>
+            <select
+              value={(instrument as any).visibility || 'public'}
+              onChange={async (e) => {
+                const { error } = await supabase
+                  .from('instruments')
+                  .update({ visibility: e.target.value })
+                  .eq('id', instrumentId)
+                if (error) {
+                  showToast('error', 'Error al cambiar visibilidad')
+                } else {
+                  showToast('success', `Visibilidad cambiada a "${e.target.value}"`)
+                  setInstrument(prev => prev ? { ...prev, visibility: e.target.value } as any : prev)
+                }
+              }}
+              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="public">Público (visible para todas las áreas)</option>
+              <option value="private">Privado (solo mi área)</option>
+              {isSuperAdmin && (
+                <option value="template">Template (base para duplicar)</option>
+              )}
+            </select>
+          </div>
+        ) : (
+          <div className="mb-4 flex items-center gap-3">
+            <label className="text-sm font-medium text-gray-700">Visibilidad:</label>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+              (instrument as any).visibility === 'private' ? 'bg-gray-100 text-gray-700' :
+              'bg-blue-100 text-blue-700'
+            }`}>
+              {(instrument as any).visibility === 'private' ? 'Privado' : 'Público'}
+            </span>
+            <span className="text-xs text-gray-500">Solo el propietario o super admin puede cambiar la visibilidad</span>
+          </div>
+        )
+      })()}
 
       {instrument.ai_expertise_prompt && !editingPrompt && (
         <div className="mb-6 p-4 bg-indigo-50 border border-indigo-100 rounded-lg">
