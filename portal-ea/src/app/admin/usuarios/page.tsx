@@ -14,6 +14,10 @@ export default function UsuariosPage() {
   const [tenants, setTenants] = useState<Tenant[]>([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null)
+  const [resetModal, setResetModal] = useState<{ userId: string; email: string; name: string } | null>(null)
+  const [resetting, setResetting] = useState(false)
+  const [generatedPassword, setGeneratedPassword] = useState<string | null>(null)
 
   // Formulario
   const [newEmail, setNewEmail] = useState('')
@@ -29,6 +33,11 @@ export default function UsuariosPage() {
   async function checkAuthAndLoad() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/admin/login'); return }
+
+    // Obtener rol del usuario actual
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    if (profile) setCurrentUserRole(profile.role)
+
     await Promise.all([loadUsers(), loadTenants()])
   }
 
@@ -102,6 +111,32 @@ export default function UsuariosPage() {
       const err = await res.json()
       showToast('error', err.error || 'Error al actualizar')
     }
+  }
+
+  async function resetPassword(userId: string, mode: 'generate' | 'send_email') {
+    setResetting(true)
+    setGeneratedPassword(null)
+
+    const res = await fetch(`/api/users/${userId}/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode }),
+    })
+
+    if (res.ok) {
+      const data = await res.json()
+      if (mode === 'generate') {
+        setGeneratedPassword(data.password)
+        showToast('success', `Contraseña asignada a ${data.user_email}`)
+      } else {
+        showToast('success', data.message)
+        setResetModal(null)
+      }
+    } else {
+      const err = await res.json()
+      showToast('error', err.error || 'Error al resetear contraseña')
+    }
+    setResetting(false)
   }
 
   const roleLabel: Record<string, string> = {
@@ -228,23 +263,103 @@ export default function UsuariosPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {u.role !== 'super_admin' && (
-                        <button
-                          onClick={() => toggleUser(u.id, u.is_active)}
-                          className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                            u.is_active
-                              ? 'bg-red-50 text-red-600 hover:bg-red-100'
-                              : 'bg-green-50 text-green-600 hover:bg-green-100'
-                          }`}
-                        >
-                          {u.is_active ? 'Desactivar' : 'Activar'}
-                        </button>
-                      )}
+                      <div className="flex items-center justify-end gap-2">
+                        {u.role !== 'super_admin' && currentUserRole === 'super_admin' && (
+                          <button
+                            onClick={() => setResetModal({ userId: u.id, email: u.email, name: u.full_name })}
+                            className="px-3 py-1 rounded-lg text-xs font-medium bg-yellow-50 text-yellow-700 hover:bg-yellow-100 transition-colors"
+                            title="Resetear contraseña"
+                          >
+                            🔑
+                          </button>
+                        )}
+                        {u.role !== 'super_admin' && (
+                          <button
+                            onClick={() => toggleUser(u.id, u.is_active)}
+                            className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                              u.is_active
+                                ? 'bg-red-50 text-red-600 hover:bg-red-100'
+                                : 'bg-green-50 text-green-600 hover:bg-green-100'
+                            }`}
+                          >
+                            {u.is_active ? 'Desactivar' : 'Activar'}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de reset de contraseña */}
+      {resetModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">🔑 Resetear Contraseña</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Usuario: <strong>{resetModal.name}</strong> ({resetModal.email})
+            </p>
+
+            {generatedPassword ? (
+              <div className="space-y-3">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <p className="text-xs text-green-600 font-medium mb-1">Nueva contraseña asignada:</p>
+                  <div className="flex items-center gap-2">
+                    <code className="text-sm font-mono bg-white px-3 py-1.5 rounded border flex-1 select-all">
+                      {generatedPassword}
+                    </code>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(generatedPassword)
+                        showToast('success', 'Contraseña copiada al portapapeles')
+                      }}
+                      className="px-3 py-1.5 text-xs bg-green-100 text-green-700 rounded-lg hover:bg-green-200"
+                    >
+                      Copiar
+                    </button>
+                  </div>
+                  <p className="text-xs text-green-600 mt-2">
+                    ⚠️ Comparte esta contraseña de forma segura. No se podrá volver a consultar.
+                  </p>
+                </div>
+                <button
+                  onClick={() => { setResetModal(null); setGeneratedPassword(null) }}
+                  className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium"
+                >
+                  Cerrar
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <button
+                  onClick={() => resetPassword(resetModal.userId, 'generate')}
+                  disabled={resetting}
+                  className="w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium disabled:opacity-50 text-left"
+                >
+                  <span className="block font-medium">🎲 Generar contraseña automática</span>
+                  <span className="block text-xs text-blue-200 mt-0.5">Se asigna inmediatamente. Debes compartirla manualmente.</span>
+                </button>
+                <button
+                  onClick={() => resetPassword(resetModal.userId, 'send_email')}
+                  disabled={resetting}
+                  className="w-full px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium disabled:opacity-50 text-left"
+                >
+                  <span className="block font-medium">📧 Enviar correo de recuperación</span>
+                  <span className="block text-xs text-indigo-200 mt-0.5">El usuario define su nueva contraseña desde el correo.</span>
+                </button>
+                <button
+                  onClick={() => { setResetModal(null); setGeneratedPassword(null) }}
+                  disabled={resetting}
+                  className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium"
+                >
+                  Cancelar
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
