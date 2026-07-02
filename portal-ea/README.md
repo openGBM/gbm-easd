@@ -1,7 +1,7 @@
 # Portal de Evaluaciones — GBM
 
-**v1.3.4** · Portal web multi-instrumento para evaluaciones organizacionales.  
-Permite aplicar distintos instrumentos de evaluación, gestionar sesiones con participantes, visualizar resultados con gráficos de radar, y generar análisis interpretativos con inteligencia artificial.
+**v3.0** · Portal web multi-instrumento y multi-tenant para evaluaciones organizacionales.  
+Permite aplicar distintos instrumentos de evaluación, gestionar sesiones con participantes por áreas (tenants), controlar usuarios con roles jerárquicos, visualizar resultados con gráficos de radar, y generar análisis interpretativos con inteligencia artificial.
 
 ![Portal de Evaluaciones GBM](../docs/portal-inicio.png)
 
@@ -19,8 +19,9 @@ Permite aplicar distintos instrumentos de evaluación, gestionar sesiones con pa
 | Exportación | ExcelJS (dynamic import), jsPDF + html2canvas-pro |
 | IA/Análisis | Google Gemini 2.0 Flash + Groq Llama 3.3 70B (fallback) |
 | Backend/DB | Supabase (PostgreSQL + Auth + RLS) |
-| Auth | Supabase Auth (email/password) + proxy server-side |
+| Auth | Supabase Auth (email/password) + proxy server-side + roles (super_admin/admin/editor) |
 | Rate Limiting | Upstash Redis (prod) / memoria con cleanup (dev) |
+| Tenant Limits | lib/tenant-limits.ts (sesiones activas + análisis/mes por área) |
 
 ---
 
@@ -91,15 +92,18 @@ dimensions (1) ──── (N) questions (1) ───────────�
 
 | Tabla | Descripción |
 |-------|-------------|
-| `sessions` | Sesiones de evaluación (id, name, is_active, instrument_version_id, created_at) |
-| `instruments` | Instrumentos de evaluación (id, name, description, ai_expertise_prompt, is_active) |
+| `sessions` | Sesiones de evaluación (id, name, is_active, instrument_version_id, tenant_id, created_at) |
+| `instruments` | Instrumentos de evaluación (id, name, description, ai_expertise_prompt, visibility, tenant_id, owner_id, is_active) |
 | `instrument_versions` | Versiones del banco (id, instrument_id, version_number, version_tag, is_current, scale_labels, maturity_levels) |
 | `dimensions` | Dimensiones con color (id, name, description, display_order, color, instrument_version_id) |
 | `questions` | Preguntas por dimensión (id, dimension_id, text, display_order) |
 | `respondents` | Encuestados (id, session_id, name, email, completed, completed_at, created_at) |
 | `responses` | Respuestas (id, respondent_id, question_id, value 1-5, created_at) |
 | `session_analyses` | Análisis IA por sesión (id, session_id, analysis_text, generated_at, generated_by) |
-| `usage_logs` | Registro de consumo (id, user_email, action, model, input_tokens, output_tokens, metadata, created_at) |
+| `usage_logs` | Registro de consumo (id, user_email, action, model, input_tokens, output_tokens, tenant_id, metadata, created_at) |
+| `tenants` | Áreas/equipos (id, name, description, max_active_sessions, max_analyses_per_month, is_active) |
+| `profiles` | Perfiles de usuario (id, email, full_name, role, tenant_id, is_active) |
+| `viewer_links` | Enlaces firmados (id, token, session_id, expires_at, is_revoked, created_by) |
 
 ---
 
@@ -122,7 +126,27 @@ dimensions (1) ──── (N) questions (1) ───────────�
 - **Pie charts** para preguntas boolean
 - **Lista de respuestas abiertas** para preguntas de texto libre
 
-### Administrador
+### Usuarios, Roles y Multi-tenant (v2.1+)
+- Login con email/password (Supabase Auth) con rate limiting server-side
+- Roles: Super Admin (global), Admin de Área (su tenant), Editor (sesiones y resultados de su tenant)
+- Viewer sin cuenta: acceso por enlace firmado (token temporal con expiración)
+- Gestión de tenants (crear, editar límites, desactivar) desde panel Super Admin
+- CRUD de usuarios (crear con contraseña generada, reset password, desactivar)
+- Aislamiento por tenant en todos los datos (sesiones, instrumentos privados, consumo)
+
+### Catálogo de Instrumentos (v2.2+)
+- Visibilidad: público (visible para todos), privado (solo su tenant), template (solo super admin crea)
+- Duplicar templates o instrumentos públicos como base para crear propios
+- Restricción de visibilidad por rol en selector
+
+### Límites y Consumo (v3.0)
+- Enforcement de límites: max sesiones activas y max análisis IA por mes, configurables por tenant
+- Validación server-side antes de crear sesión (`/api/sessions/check-limit`)
+- Validación server-side antes de generar análisis IA (en `/api/analysis`)
+- Dashboard de consumo filtrado por rol: Super Admin ve todo (con filtro por área), Admin ve su tenant, Editor ve solo su email
+- Mensajes de error claros al alcanzar límites
+
+### Administrador (general)
 - Login con email/password (Supabase Auth) con rate limiting server-side
 - Dashboard con métricas globales (sesiones activas, respuestas totales, tiempo promedio) cargadas en paralelo
 - Dashboard con lista de sesiones (activas/inactivas)
@@ -147,14 +171,14 @@ dimensions (1) ──── (N) questions (1) ───────────�
 - **Tracking de consumo**: sesiones creadas, análisis generados, tokens por modelo por usuario
 
 ### Seguridad
-- Proxy server-side (proxy.ts) que verifica autenticación y email autorizado antes de renderizar admin
-- Supabase Auth con verificación de email autorizado (default deny-all si ADMIN_EMAILS no está configurada)
+- Proxy server-side (proxy.ts) que verifica autenticación, perfil activo y rol antes de renderizar admin
+- Supabase Auth con verificación contra tabla `profiles` + fallback legacy ADMIN_EMAILS (deny-all)
+- RLS con aislamiento por tenant: helper functions `get_user_tenant_id()` y `is_super_admin()`
 - Rate limiting server-side: login por IP, registro de encuestados por IP, análisis IA por usuario
-- RLS (Row Level Security) en PostgreSQL
 - Validación Zod en todos los API routes + validación UUID en parámetros de ruta
 - CSP diferenciada: `unsafe-eval` solo en desarrollo, removido en producción
 - Sanitización de input en filtros de búsqueda PostgREST
-- Exportación Excel restringida a administradores autenticados
+- Token opaco con `crypto.randomUUID()` para viewer links (no predecible)
 - Focus trap en modales (accesibilidad + prevención de interacción con background)
 
 ---
@@ -233,14 +257,17 @@ La aplicación estará disponible en [http://localhost:3000](http://localhost:30
 | `/` | Público | Landing page con enlace a admin |
 | `/encuesta/[sessionId]` | Público | Encuesta (si sesión activa) |
 | `/resultados/[respondentId]` | Público | Resultados del encuestado |
+| `/viewer/[token]` | Público | Resultados por enlace firmado (viewer sin cuenta) |
 | `/admin/login` | Público | Login de administrador |
 | `/admin` | Protegido | Dashboard de sesiones |
 | `/admin/sesiones/[id]` | Protegido | Detalle de sesión |
 | `/admin/instrumentos` | Protegido | Catálogo de instrumentos |
 | `/admin/instrumentos/[id]` | Protegido | Gestión de instrumento |
 | `/admin/instrumentos/[id]/tendencias` | Protegido | Tendencias del instrumento |
-| `/admin/consumo` | Protegido | Tracking de consumo por usuario |
+| `/admin/consumo` | Protegido | Tracking de consumo (filtrado por rol) |
 | `/admin/encuestados` | Protegido | Historial de encuestados |
+| `/admin/usuarios` | Super Admin / Admin | Gestión de usuarios |
+| `/admin/tenants` | Super Admin | Gestión de áreas (tenants) |
 
 ---
 
@@ -248,10 +275,15 @@ La aplicación estará disponible en [http://localhost:3000](http://localhost:30
 
 | Ruta | Método | Descripción |
 |------|--------|-------------|
-| `/api/analysis` | POST | Genera análisis IA con Gemini/Groq (solo admin, rate limited) |
+| `/api/analysis` | POST | Genera análisis IA con Gemini/Groq (admin+, rate limited, check límite tenant) |
 | `/api/auth/login` | POST | Login con rate limiting server-side por IP |
+| `/api/catalog` | GET | Catálogo de instrumentos (filtrado por visibilidad y tenant) |
+| `/api/catalog/duplicate` | POST | Duplicar instrumento como base propia |
 | `/api/respondents` | POST | Registro de encuestados con validación Zod y rate limiting |
-| `/api/usage` | GET | Consulta de consumo agregado por usuario (solo admin) |
+| `/api/sessions/check-limit` | GET | Verificar límite de sesiones del tenant actual |
+| `/api/usage` | GET | Consumo filtrado por rol/tenant (super_admin, admin, editor) |
+| `/api/users` | POST/PATCH | CRUD de usuarios (solo super_admin y admin) |
+| `/api/viewer-link` | POST | Generar enlace firmado para viewer |
 
 ---
 
@@ -259,15 +291,16 @@ La aplicación estará disponible en [http://localhost:3000](http://localhost:30
 
 ### Corto plazo (próxima iteración)
 
-- **Administración de usuarios y roles** — Gestión de usuarios desde el panel (crear, editar, desactivar). Roles: admin (gestión completa), editor (instrumentos y sesiones), viewer (solo lectura de resultados y análisis).
+- **SSO corporativo** (SAML, OAuth) — Login empresarial para clientes grandes.
 - **Notificaciones por correo** — Admin recibe aviso al completar un encuestado; encuestado recibe enlace a sus resultados.
-- **Exportar análisis IA a PDF** — Descargar el análisis interpretativo como PDF con branding GBM para entregar al cliente.
+- **Exportar análisis IA a PDF** — Descargar el análisis interpretativo como PDF con branding GBM.
 
 ### Mediano plazo
 
-- **SSO** (SAML, OAuth corporativo) — Login empresarial para clientes grandes.
+- Multi-idioma (inglés, portugués)
+- Billing/metering avanzado por tenant
 
 ### Largo plazo (postergado)
 
-- Multi-idioma (inglés, portugués)
-- Multi-tenant (organizaciones aisladas con datos separados)
+- PWA con soporte offline para encuestas
+- Internacionalización completa (i18n)

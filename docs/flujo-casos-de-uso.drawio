@@ -137,13 +137,29 @@
         <mxCell id="arr-a3-a5" value="Instrumentos" style="endArrow=classic;html=1;strokeWidth=2;" edge="1" parent="1" source="a3" target="a5"><mxGeometry relative="1" as="geometry" /></mxCell>
 
         <!-- Branch: Crear sesión -->
-        <mxCell id="a6" value="Crear Sesión&#xa;• Seleccionar instrumento&#xa;• Nombre&#xa;→ Genera QR + enlace" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="850" y="450" width="200" height="80" as="geometry" />
+        <mxCell id="a6" value="Crear Sesión&#xa;• Seleccionar instrumento&#xa;• Nombre" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="850" y="450" width="170" height="70" as="geometry" />
         </mxCell>
         <mxCell id="arr-a3-a6" value="Crear" style="endArrow=classic;html=1;strokeWidth=2;" edge="1" parent="1" source="a3" target="a6"><mxGeometry relative="1" as="geometry" /></mxCell>
 
+        <!-- Check Limit -->
+        <mxCell id="a6-limit" value="¿Límite de&#xa;sesiones ok?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="870" y="550" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="arr-a6-limit" style="endArrow=classic;html=1;strokeWidth=2;" edge="1" parent="1" source="a6" target="a6-limit"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a6-blocked" value="Error:&#xa;Límite alcanzado" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="555" width="120" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="arr-limit-blocked" value="No" style="endArrow=classic;html=1;strokeColor=#b85450;" edge="1" parent="1" source="a6-limit" target="a6-blocked"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Crear OK -->
+        <mxCell id="a6-qr" value="Sesión creada&#xa;→ QR + enlace" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="870" y="640" width="130" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="arr-limit-ok" value="Sí" style="endArrow=classic;html=1;strokeWidth=2;" edge="1" parent="1" source="a6-limit" target="a6-qr"><mxGeometry relative="1" as="geometry" /></mxCell>
+
         <!-- Sub: Análisis IA -->
-        <mxCell id="a4-ia" value="Análisis IA&#xa;(Gemini/Groq)&#xa;• Resumen ejecutivo&#xa;• Fortalezas / Oportunidades&#xa;• Hoja de ruta" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=9;" vertex="1" parent="1">
+        <mxCell id="a4-ia" value="Análisis IA&#xa;(Gemini/Groq)&#xa;• Check límite tenant&#xa;• Resumen ejecutivo&#xa;• Fortalezas / Oportunidades" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=9;" vertex="1" parent="1">
           <mxGeometry x="80" y="600" width="180" height="90" as="geometry" />
         </mxCell>
         <mxCell id="arr-a4-ia" value="Generar" style="endArrow=classic;html=1;dashed=1;strokeColor=#d79b00;" edge="1" parent="1" source="a4" target="a4-ia"><mxGeometry relative="1" as="geometry" /></mxCell>
@@ -161,10 +177,22 @@
         <mxCell id="arr-a5-detail" value="Gestionar" style="endArrow=classic;html=1;strokeWidth=2;" edge="1" parent="1" source="a5" target="a5-detail"><mxGeometry relative="1" as="geometry" /></mxCell>
 
         <!-- Sub: Compartir QR -->
-        <mxCell id="a6-qr" value="Compartir&#xa;QR / Enlace&#xa;a encuestados" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="880" y="580" width="140" height="60" as="geometry" />
+        <mxCell id="a6-share" value="Compartir&#xa;QR / Enlace&#xa;a encuestados" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="870" y="720" width="140" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="arr-a6-qr" style="endArrow=classic;html=1;strokeWidth=2;" edge="1" parent="1" source="a6" target="a6-qr"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="arr-a6-share" style="endArrow=classic;html=1;strokeWidth=2;" edge="1" parent="1" source="a6-qr" target="a6-share"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Branch: Gestión Usuarios (v2.1+) -->
+        <mxCell id="a7" value="Gestión Usuarios&#xa;• Crear / Editar&#xa;• Roles: admin, editor&#xa;• Reset password&#xa;• Desactivar" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="80" y="800" width="180" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="arr-a3-a7" value="Usuarios" style="endArrow=classic;html=1;strokeWidth=1;dashed=1;strokeColor=#b85450;" edge="1" parent="1" source="a3" target="a7"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Branch: Gestión Tenants -->
+        <mxCell id="a8" value="Gestión Tenants (Áreas)&#xa;• Crear / Editar límites&#xa;• Max sesiones / análisis&#xa;• Desactivar (soft delete)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="300" y="800" width="190" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="arr-a3-a8" value="Tenants" style="endArrow=classic;html=1;strokeWidth=1;dashed=1;strokeColor=#b85450;" edge="1" parent="1" source="a3" target="a8"><mxGeometry relative="1" as="geometry" /></mxCell>
 
         <!-- Legend -->
         <mxCell id="leg-title" value="Leyenda" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;fontStyle=1;" vertex="1" parent="1">
@@ -194,10 +222,16 @@
         <mxCell id="leg4t" value="Acciones exitosas" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=9;" vertex="1" parent="1">
           <mxGeometry x="60" y="905" width="110" height="15" as="geometry" />
         </mxCell>
+        <mxCell id="leg5" value="" style="rounded=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="40" y="925" width="15" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg5t" value="Usuarios/Tenants/Límites (v2.1-v3.0)" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="60" y="925" width="200" height="15" as="geometry" />
+        </mxCell>
 
         <!-- Footer -->
-        <mxCell id="footer2" value="GBM — Portal de Evaluaciones de Autodiagnóstico | Flujo del Administrador" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=9;fontColor=#999999;" vertex="1" parent="1">
-          <mxGeometry x="400" y="950" width="500" height="20" as="geometry" />
+        <mxCell id="footer2" value="GBM — Portal de Evaluaciones v3.0 | Flujo del Administrador | Julio 2026" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=9;fontColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="400" y="960" width="500" height="20" as="geometry" />
         </mxCell>
 
       </root>
