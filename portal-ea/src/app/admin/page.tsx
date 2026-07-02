@@ -142,6 +142,21 @@ export default function AdminDashboard() {
 
     setCreating(true)
 
+    // Verificar límite de sesiones del tenant antes de crear
+    try {
+      const limitRes = await fetch('/api/sessions/check-limit')
+      if (limitRes.ok) {
+        const limitData = await limitRes.json()
+        if (!limitData.allowed) {
+          alert(limitData.message || 'Límite de sesiones alcanzado. Contacta al administrador.')
+          setCreating(false)
+          return
+        }
+      }
+    } catch {
+      // Si falla la verificación, permitir crear (fail-open para no bloquear)
+    }
+
     // Si multi-instrumento está habilitado, asociar la versión current del instrumento seleccionado
     let instrumentVersionId: string | null = null
     if (multiInstrumentEnabled && selectedInstrumentId) {
