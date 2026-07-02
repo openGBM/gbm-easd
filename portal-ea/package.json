@@ -10,7 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "sbom": "cyclonedx-npm --output-file sbom.json --spec-version 1.5",
+    "sbom": "cyclonedx-npm --output-file sbom.json --spec-version 1.5 --ignore-npm-errors",
     "test:e2e:concurrency": "playwright test e2e/concurrency.spec.ts --workers=10"
   },
   "dependencies": {
