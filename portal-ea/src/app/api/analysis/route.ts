@@ -5,6 +5,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import Groq from 'groq-sdk'
 import { logger } from '@/lib/logger'
 import { checkAnalysisRateLimit } from '@/lib/rate-limit'
+import { checkAnalysisLimit } from '@/lib/tenant-limits'
 import { z } from 'zod'
 
 // Schema de validación para el request body
@@ -42,6 +43,26 @@ export async function POST(request: NextRequest) {
       { error: 'Demasiadas solicitudes. Intenta de nuevo en un minuto.' },
       { status: 429, headers: { 'Retry-After': '60' } }
     )
+  }
+
+  // Verificar límite de análisis por tenant
+  const adminClient = createAdminSupabaseClient()
+  if (adminClient) {
+    const { data: profile } = await adminClient
+      .from('profiles')
+      .select('tenant_id')
+      .eq('id', user.id)
+      .single()
+
+    if (profile?.tenant_id) {
+      const limitResult = await checkAnalysisLimit(adminClient, profile.tenant_id)
+      if (!limitResult.allowed) {
+        return NextResponse.json(
+          { error: limitResult.message || 'Límite de análisis alcanzado este mes.' },
+          { status: 429 }
+        )
+      }
+    }
   }
 
   // Verificar que al menos una API key esté configurada
@@ -245,9 +266,9 @@ El tono debe ser profesional pero accesible, orientado a líderes de negocio y T
     // Registrar consumo de IA (usage log)
     if (aiResult) {
       try {
-        const adminClient = createAdminSupabaseClient()
-        if (adminClient) {
-          const { error: usageError } = await adminClient.from('usage_logs').insert({
+        const usageClient = adminClient || createAdminSupabaseClient()
+        if (usageClient) {
+          const { error: usageError } = await usageClient.from('usage_logs').insert({
             user_email: user.email,
             action: 'analysis',
             model: aiResult.model,

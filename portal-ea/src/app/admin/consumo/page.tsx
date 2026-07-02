@@ -25,6 +25,11 @@ interface UsageDetail {
   created_at: string
 }
 
+interface TenantOption {
+  id: string
+  name: string
+}
+
 export default function ConsumoPage() {
   const router = useRouter()
   const supabase = createClient()
@@ -32,6 +37,9 @@ export default function ConsumoPage() {
   const [details, setDetails] = useState<UsageDetail[]>([])
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<'summary' | 'details'>('summary')
+  const [userRole, setUserRole] = useState<string | null>(null)
+  const [tenants, setTenants] = useState<TenantOption[]>([])
+  const [selectedTenant, setSelectedTenant] = useState<string>('')
 
   useEffect(() => {
     checkAuthAndLoad()
@@ -46,9 +54,11 @@ export default function ConsumoPage() {
     await loadUsage()
   }
 
-  async function loadUsage() {
+  async function loadUsage(tenantId?: string) {
+    setLoading(true)
     try {
-      const res = await fetch('/api/usage')
+      const params = tenantId ? `?tenant_id=${tenantId}` : ''
+      const res = await fetch(`/api/usage${params}`)
       if (!res.ok) {
         setLoading(false)
         return
@@ -56,10 +66,19 @@ export default function ConsumoPage() {
       const data = await res.json()
       setSummary(data.summary || [])
       setDetails(data.details || [])
+      setUserRole(data.role || null)
+      if (data.tenants && data.tenants.length > 0) {
+        setTenants(data.tenants)
+      }
     } catch {
       // silently fail
     }
     setLoading(false)
+  }
+
+  async function handleTenantFilter(tenantId: string) {
+    setSelectedTenant(tenantId)
+    await loadUsage(tenantId || undefined)
   }
 
   function formatNumber(n: number): string {
@@ -111,6 +130,19 @@ export default function ConsumoPage() {
 
       {/* Toggle vista */}
       <div className="flex gap-2 mb-6">
+        {/* Filtro por tenant (solo super_admin) */}
+        {userRole === 'super_admin' && tenants.length > 0 && (
+          <select
+            value={selectedTenant}
+            onChange={e => handleTenantFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="">Todas las áreas</option>
+            {tenants.map(t => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+        )}
         <button
           onClick={() => setView('summary')}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
