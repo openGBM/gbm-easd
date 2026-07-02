@@ -1,6 +1,6 @@
 # Portal de Evaluaciones — GBM
 
-**v1.3.4** · Portal web multi-instrumento para evaluaciones organizacionales. Permite aplicar distintos instrumentos de evaluación, gestionar sesiones con participantes, visualizar resultados con gráficos de radar, y generar análisis interpretativos con inteligencia artificial.
+**v3.0** · Portal web multi-instrumento y multi-tenant para evaluaciones organizacionales. Permite aplicar distintos instrumentos de evaluación, gestionar sesiones con participantes por áreas (tenants), controlar usuarios con roles jerárquicos, visualizar resultados con gráficos de radar, y generar análisis interpretativos con inteligencia artificial.
 
 ![Portal de Evaluaciones GBM](docs/portal-inicio.png)
 
@@ -33,13 +33,34 @@
 - Metadata dinámica en URLs compartidas (OG tags con nombre del instrumento)
 - **Tracking de consumo**: sesiones creadas, análisis generados, tokens por modelo por usuario
 
+### Usuarios y Roles (v2.1+)
+- Roles jerárquicos: Super Admin (global), Admin de Área (su tenant), Editor (sesiones y resultados)
+- Viewer sin cuenta: acceso por enlace firmado con token temporal y expiración
+- Gestión de tenants (áreas): crear, editar límites, desactivar (soft delete)
+- CRUD de usuarios desde panel Super Admin y Admin de Área
+- Aislamiento por tenant: cada área solo ve sus propias sesiones, instrumentos privados y consumo
+
+### Catálogo e Instrumentos (v2.2+)
+- Instrumentos públicos, privados y templates
+- Duplicar templates o instrumentos públicos como base
+- Visibilidad controlada por rol (solo Super Admin puede crear templates)
+- Enlace firmado para viewers (token opaco + expiración configurable)
+
+### Límites y Consumo (v3.0)
+- Enforcement de límites por tenant: sesiones activas y análisis IA por mes
+- Validación server-side antes de crear sesión o generar análisis
+- Dashboard de consumo filtrado por área (Super Admin ve todo, Admin ve su tenant)
+- Mensajes de error amigables al alcanzar límites
+
 ### Seguridad
-- Proxy server-side (proxy.ts) para protección de rutas admin
+- Proxy server-side (proxy.ts) para protección de rutas admin con verificación de rol
 - Rate limiting server-side: login, registro de encuestados, análisis IA
-- Supabase Auth + RLS + default deny-all si ADMIN_EMAILS no está configurada
+- Supabase Auth + RLS con aislamiento por tenant + default deny-all
+- RLS policies con helper functions (`get_user_tenant_id()`, `is_super_admin()`)
 - Validación Zod en todos los API routes
 - CSP diferenciada producción/desarrollo
 - Sanitización de inputs en filtros de búsqueda
+- Token opaco con crypto random para viewer links
 - Focus trap en modales (accesibilidad)
 
 ## Stack Tecnológico
@@ -109,25 +130,33 @@ gbm-easd/
 │       ├── app/             # Páginas (App Router)
 │       │   ├── encuesta/    # Encuesta pública
 │       │   ├── resultados/  # Resultados públicos
-│       │   ├── admin/       # Panel admin (protegido)
+│       │   ├── viewer/      # Resultados por enlace firmado (sin cuenta)
+│       │   ├── admin/       # Panel admin (protegido por proxy + rol)
 │       │   │   ├── sesiones/
 │       │   │   ├── instrumentos/
 │       │   │   ├── encuestados/
-│       │   │   └── consumo/
+│       │   │   ├── consumo/
+│       │   │   ├── usuarios/
+│       │   │   └── tenants/
 │       │   └── api/         # API routes
-│       │       ├── analysis/
+│       │       ├── analysis/       # Análisis IA (con check de límite)
 │       │       ├── auth/login/
+│       │       ├── catalog/        # Catálogo público/privado/templates
 │       │       ├── respondents/
-│       │       └── usage/
+│       │       ├── sessions/check-limit/  # Enforcement de límites
+│       │       ├── usage/          # Consumo filtrado por tenant/rol
+│       │       ├── users/          # CRUD de usuarios
+│       │       └── viewer-link/    # Generación de tokens firmados
 │       ├── components/      # Componentes reutilizables
-│       ├── lib/             # Supabase, logger, rate-limit, analytics
+│       ├── lib/             # Supabase, logger, rate-limit, analytics, tenant-limits
 │       ├── types/           # Tipos TypeScript
-│       └── proxy.ts         # Protección server-side de rutas
-├── supabase/                # Migraciones SQL
+│       └── proxy.ts         # Protección server-side de rutas (auth + rol)
+├── supabase/                # Migraciones SQL (schema + RLS)
 ├── docs/                    # Documentación
 │   ├── instrumento-diagnostico-aidlc.md  # Instrumento AI-DLC
 │   ├── manual-administrador.md           # Manual de usuario
 │   └── vision.md                         # Visión del producto
+├── Product-Definition/      # Definición de producto (AI-DLC Discovery)
 ├── aidlc-docs/              # Documentación de desarrollo (AI-DLC workflow)
 └── .github/workflows/       # CI (GitHub Actions)
 ```
@@ -136,15 +165,18 @@ gbm-easd/
 
 | Tabla | Descripción |
 |-------|-------------|
-| `instruments` | Instrumentos de evaluación (nombre, descripción, prompt IA) |
+| `tenants` | Áreas/equipos GBM (nombre, límites, is_active) |
+| `profiles` | Perfiles de usuario (role, tenant_id, is_active) |
+| `instruments` | Instrumentos de evaluación (visibility, tenant_id, owner_id) |
 | `instrument_versions` | Versiones del banco (scale_labels, maturity_levels, is_current) |
-| `sessions` | Sesiones de evaluación (ligadas a una versión de instrumento) |
+| `sessions` | Sesiones de evaluación (tenant_id, instrument_version_id) |
 | `dimensions` | Dimensiones con color (ligadas a versión) |
-| `questions` | Preguntas por dimensión |
+| `questions` | Preguntas por dimensión (type, contributes_to_score, is_required) |
 | `respondents` | Encuestados (nombre, correo, completado, tiempo) |
-| `responses` | Respuestas (valor 1-5) |
+| `responses` | Respuestas (value 0-5, text_value) |
 | `session_analyses` | Análisis IA por sesión |
-| `usage_logs` | Registro de consumo (usuario, acción, modelo, tokens) |
+| `usage_logs` | Registro de consumo (user_email, action, model, tokens, tenant_id) |
+| `viewer_links` | Enlaces firmados para viewers (token, session_id, expires_at) |
 
 ## Documentación
 
@@ -161,10 +193,11 @@ gbm-easd/
 - [x] v1.3 — Editor visual, tendencias, historial de encuestados, filtros
 - [x] v1.3.4 — Instrumento AI-DLC, seguridad (proxy, rate limiting, CSP), consumo, responsive, accesibilidad
 - [x] v2.0 — Landing page, tipos de pregunta (Likert/Boolean/Texto), preguntas opcionales, contributes_to_score
-- [ ] v2.1 — Administración de usuarios y roles (admin, editor, viewer)
-- [ ] v2.2 — Notificaciones por correo, exportar análisis IA a PDF
-- [ ] v3.0 — SSO corporativo (SAML, OAuth)
-- [ ] v4.0 — Multi-tenant, organizaciones aisladas
+- [x] v2.1 — Administración de usuarios y roles (super_admin, admin, editor)
+- [x] v2.2 — Catálogo de instrumentos, templates, viewer links, RLS por tenant
+- [x] v3.0 — Enforcement de límites por tenant, dashboard de consumo por área
+- [ ] v4.0 — SSO corporativo (SAML, OAuth)
+- [ ] v5.0 — Multi-tenant completo (organizaciones aisladas, billing)
 
 ## Licencia
 

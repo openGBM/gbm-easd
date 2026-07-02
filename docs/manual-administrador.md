@@ -1,8 +1,15 @@
-# Manual del Portal de Evaluaciones — GBM (v2.2)
+# Manual del Portal de Evaluaciones — GBM (v3.0)
 
 ## Introducción
 
-El Portal de Evaluaciones es una herramienta web que permite aplicar instrumentos de evaluación a equipos y organizaciones de forma ágil, digital y sin fricción. Los participantes responden encuestas desde cualquier dispositivo (celular, tablet, computadora) y los resultados se visualizan inmediatamente con gráficos de radar, pie charts, tablas de madurez y análisis interpretativo generado por inteligencia artificial.
+El Portal de Evaluaciones es una herramienta web multi-tenant que permite aplicar instrumentos de evaluación a equipos y organizaciones de forma ágil, digital y sin fricción. Los participantes responden encuestas desde cualquier dispositivo (celular, tablet, computadora) y los resultados se visualizan inmediatamente con gráficos de radar, pie charts, tablas de madurez y análisis interpretativo generado por inteligencia artificial.
+
+<!-- 
+  Para agregar capturas de pantalla:
+  1. Guardar las imágenes en docs/screenshots/
+  2. Referenciar con: ![Descripción](screenshots/nombre-archivo.png)
+-->
+
 
 ---
 
@@ -26,6 +33,7 @@ El Portal de Evaluaciones es una herramienta web que permite aplicar instrumento
 | Tendencias | Visualización de la evolución de resultados entre sesiones de un instrumento |
 | Historial de encuestados | Consolidación de participaciones de un mismo encuestado en múltiples sesiones |
 | Tracking de consumo | Registro de sesiones creadas, análisis generados y tokens de IA por usuario |
+| Enforcement de límites | Validación automática de sesiones activas y análisis IA por mes, por tenant |
 
 ### Roles del sistema
 
@@ -55,6 +63,8 @@ El Portal de Evaluaciones es una herramienta web que permite aplicar instrumento
 
 ## Acceso al Panel de Administración
 
+<!-- ![Login del administrador](screenshots/login-admin.png) -->
+
 1. Navegar a la URL del portal + `/admin/login`
 2. Ingresar correo electrónico y contraseña autorizados
 3. Al autenticarse, se accede al dashboard principal
@@ -81,6 +91,8 @@ Un **tenant** (área) representa un equipo o división dentro de GBM (ej: Human 
 3. El área se crea con límites por defecto: 10 sesiones activas, 50 análisis/mes
 
 ### Scorecard de uso por área
+
+<!-- ![Scorecard de tenants con límites](screenshots/tenants-limites.png) -->
 
 Cada tarjeta de área muestra en tiempo real:
 
@@ -303,10 +315,10 @@ El archivo debe tener **dos hojas**:
 - **Pregunta**: texto de la afirmación a evaluar
 - **Orden Pregunta**: número de orden dentro de la dimensión
 - **Tipo** (opcional): `likert` (escala 1-5, default), `boolean` (sí/no), `text` (texto libre)
-- **Contribuye al Puntaje** (opcional): `sí` (default) o `no` — si se incluye en el radar/promedio
+- **Contribuye al Puntaje** (opcional): `sí` (default) o `no` — si se incluye en el radar/promedio. **Nota**: El radar solo calcula preguntas de tipo Likert. Las preguntas Boolean y Texto nunca aparecen en el radar independientemente de este valor.
 - **Obligatoria** (opcional): `sí` (default) o `no` — si el encuestado debe responder
 
-> Si no se incluyen las columnas Tipo, Contribuye o Obligatoria, se usan los valores por defecto (likert, sí, sí) — retrocompatible con Excels anteriores.
+> Si no se incluyen las columnas Tipo, Contribuye o Obligatoria, se usan los valores por defecto (likert, sí, sí) para todas las preguntas — retrocompatible con Excels anteriores.
 
 **Hoja 2: "Escala"** (o cualquier nombre que contenga "escala") — opcional
 
@@ -394,12 +406,15 @@ El archivo debe tener **dos hojas**:
 - Los colores deben ser hex válidos (#RRGGBB)
 - Cada nivel debe tener nombre
 
-### Duplicar un instrumento
+### Duplicar un instrumento (desde el listado de instrumentos)
 
-1. En el catálogo de instrumentos, hacer clic en **"Duplicar"** en el instrumento deseado
+1. En el listado de instrumentos propios (**Instrumentos**, no el Catálogo), hacer clic en **"Duplicar"** en el instrumento deseado
 2. Ingresar el nuevo nombre
 3. Se copia completamente: dimensiones, preguntas, escala, niveles de madurez y expertise IA
-4. El duplicado es independiente del original
+4. El duplicado se crea como instrumento propio en tu área, con la misma visibilidad que el original
+5. El duplicado es independiente del original
+
+> **Diferencia con el Catálogo**: En el Catálogo, "Usar como base" (templates) y "Duplicar" (públicos) siempre crean el nuevo instrumento como **privado** en tu área. Desde el listado de Instrumentos, el botón "Duplicar" está disponible para instrumentos que ya son tuyos.
 
 **Ejemplos de expertise:**
 - *"Eres un consultor experto en Arquitectura Empresarial (EA). Evalúas la madurez y eficacia de los equipos de EA en organizaciones."*
@@ -419,6 +434,8 @@ Una **sesión** es una instancia de evaluación donde uno o más participantes r
 
 ### Ver el dashboard de sesiones
 
+<!-- ![Dashboard de sesiones](screenshots/dashboard-admin.png) -->
+
 Al acceder al panel admin, el dashboard muestra:
 
 | Tarjeta | Significado |
@@ -429,6 +446,8 @@ Al acceder al panel admin, el dashboard muestra:
 | Instrumentos | Total de instrumentos activos (visible con multi-instrumento) |
 
 ### Crear una nueva sesión
+
+<!-- ![Formulario de crear sesión](screenshots/crear-sesion.png) -->
 
 1. En el dashboard, completar el formulario "Crear Nueva Sesión":
    - Seleccionar el **instrumento** a aplicar (dropdown)
@@ -662,13 +681,22 @@ Sí. Cada instrumento puede tener sus propios niveles con nombres, colores y ran
 Sí. Cada pregunta puede ser Likert (1-5), Sí/No (boolean) o Texto libre. Se configuran individualmente desde el editor visual o la columna "Tipo" en el Excel.
 
 **¿Las preguntas de texto libre afectan el radar?**
-No. Las preguntas de texto libre nunca contribuyen al puntaje. Las preguntas Sí/No pueden configurarse para contribuir o no (por defecto no contribuyen).
+No. Las preguntas de texto libre nunca contribuyen al puntaje. Las preguntas Sí/No (boolean) tampoco se incluyen en el cálculo del radar — el radar solo usa preguntas Likert que tengan "Contribuye al Puntaje" activado. Aunque el valor por defecto de `contributes_to_score` es `true` para todos los tipos de pregunta, solo las Likert se usan en el cálculo final.
 
 **¿Puedo hacer preguntas opcionales?**
 Sí. Cada pregunta puede marcarse como "no obligatoria". El encuestado puede avanzar sin responderla y la pregunta no afecta los cálculos si queda sin respuesta.
 
 **¿Dónde veo el consumo de tokens de IA?**
-En la navegación admin → "Consumo". Muestra sesiones creadas, análisis generados y tokens consumidos por modelo (Gemini/Groq) por cada usuario.
+En la navegación admin → "Consumo". Muestra sesiones creadas, análisis generados y tokens consumidos por modelo (Gemini/Groq). Super Admin puede filtrar por área, Admin de Área ve solo su tenant, Editor ve solo su propio consumo.
+
+**¿Qué pasa si alcanzo el límite de sesiones activas?**
+Se muestra un mensaje de error y no se crea la sesión. Puedes desactivar sesiones existentes que ya no uses, o pedir al Super Admin que aumente el límite del área.
+
+**¿Qué pasa si alcanzo el límite de análisis IA por mes?**
+Se muestra un error 429 y no se genera el análisis. El contador se reinicia automáticamente el primer día del siguiente mes. También puedes pedir al Super Admin que aumente el límite.
+
+**¿Los límites aplican a todos los roles?**
+Solo aplican a usuarios con tenant asignado. El Super Admin no tiene límites. Los usuarios legacy (configurados vía ADMIN_EMAILS sin tenant) tampoco tienen límites.
 
 **¿Qué es un tenant/área?**
 Un tenant es una división organizacional (ej: Human Capital, Educación, Arquitectura). Cada área tiene sus propios usuarios, sesiones e instrumentos privados aislados de otras áreas.
@@ -713,3 +741,96 @@ En la sección de **Áreas**, cada tarjeta de tenant muestra:
 - Análisis generados este mes vs límite mensual
 
 > Los datos se registran automáticamente. No requiere configuración adicional.
+
+### Filtro por área (solo Super Admin)
+
+<!-- ![Filtro de consumo por área](screenshots/consumo-filtro-tenant.png) -->
+
+En la página de consumo, el Super Admin dispone de un selector de área que permite filtrar el reporte por un tenant específico. Si no se selecciona ninguno, se muestra el consumo global.
+
+- **Super Admin**: ve todo o filtra por área
+- **Admin de Área**: ve solo el consumo de su tenant
+- **Editor**: ve solo su propio consumo
+
+---
+
+## Enforcement de Límites por Tenant (v3.0)
+
+El sistema valida automáticamente los límites configurados por área antes de permitir crear sesiones o generar análisis IA.
+
+### ¿Cómo funcionan los límites?
+
+| Límite | Descripción | Cuándo se valida |
+|--------|-------------|------------------|
+| **Sesiones activas** | Máximo de sesiones habilitadas simultáneas por área | Al hacer clic en "Crear Sesión" |
+| **Análisis IA por mes** | Máximo de análisis generados en el mes calendario por área | Al hacer clic en "Generar Análisis" |
+
+### Configurar los límites
+
+1. Ir a **Áreas** (solo Super Admin)
+2. Editar los valores inline en cada tarjeta de área:
+   - **Max sesiones activas**: número entero (ej: 10, 20, 50)
+   - **Max análisis por mes**: número entero (ej: 50, 100, 200)
+3. Los cambios se guardan al salir del campo
+
+<!-- ![Configuración de límites por área](screenshots/tenants-limites.png) -->
+
+### Comportamiento al alcanzar un límite
+
+**Sesiones:**
+- Al intentar crear una sesión y el tenant ya alcanzó el máximo:
+- Se muestra un mensaje de alerta: *"Límite de sesiones activas alcanzado (X/Y). Desactiva sesiones existentes o contacta al administrador."*
+- No se crea la sesión
+
+<!-- ![Mensaje de límite de sesiones](screenshots/limite-sesiones-alcanzado.png) -->
+
+**Análisis IA:**
+- Al intentar generar un análisis IA y el tenant ya alcanzó el límite mensual:
+- Se retorna HTTP 429 con mensaje: *"Límite de análisis IA alcanzado este mes (X/Y). Contacta al administrador para aumentar el límite."*
+- No se genera el análisis
+
+### Áreas desactivadas
+
+Si un área está desactivada (`is_active = false`):
+- Ninguna acción es posible (crear sesiones ni generar análisis)
+- Mensaje: *"Tu área está desactivada. Contacta al administrador."*
+
+### Retrocompatibilidad (legacy)
+
+Los usuarios sin tenant asignado (configuración legacy vía `ADMIN_EMAILS`) **no tienen límites** — pueden operar sin restricciones, comportamiento idéntico a versiones anteriores.
+
+### ¿Cómo resolver "Límite alcanzado"?
+
+| Solución | Quién puede |
+|----------|-------------|
+| Desactivar sesiones que ya no se usan | Admin de Área o Editor |
+| Aumentar el límite del tenant | Solo Super Admin |
+| Esperar al siguiente mes (para análisis) | Automático |
+
+---
+
+## Capturas de Pantalla
+
+> **Nota para el equipo**: Para agregar capturas de pantalla al manual:
+> 
+> 1. Crear la carpeta `docs/screenshots/` si no existe
+> 2. Tomar screenshots de las siguientes vistas y guardar con los nombres indicados:
+>
+> | Archivo | Vista a capturar |
+> |---------|-----------------|
+> | `dashboard-admin.png` | Dashboard principal del admin con métricas |
+> | `crear-sesion.png` | Formulario de crear sesión con selector de instrumento |
+> | `detalle-sesion.png` | Detalle de sesión con lista de encuestados |
+> | `resultados-radar.png` | Gráfico de radar con tabla de madurez |
+> | `catalogo-instrumentos.png` | Catálogo con templates, públicos y privados |
+> | `editor-visual.png` | Editor visual de dimensiones y preguntas |
+> | `tendencias.png` | Gráfico de tendencias con filtros |
+> | `consumo-filtro-tenant.png` | Página de consumo con filtro por área |
+> | `tenants-limites.png` | Listado de áreas con scorecard y límites |
+> | `usuarios-crud.png` | Tabla de usuarios con botones de acción |
+> | `viewer-link.png` | Página pública del viewer link con resultados |
+> | `limite-sesiones-alcanzado.png` | Alerta cuando se alcanza el límite |
+> | `encuesta-wizard.png` | Wizard del encuestado con barra de progreso |
+> | `landing-instrumento.png` | Landing page de un instrumento |
+>
+> 3. Descomentar las líneas `<!-- ![...](...) -->` en este documento para activar las imágenes
