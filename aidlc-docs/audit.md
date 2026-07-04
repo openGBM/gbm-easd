@@ -255,3 +255,91 @@ Total: ~69 archivos nuevos, ~20 modificados. Paralelismo posible en múltiples p
 **Context**: Units Generation completado. Presentando para aprobación. Next: CONSTRUCTION PHASE.
 
 ---
+
+## INCEPTION - Units Generation Approval (Abstracción Arquitectónica v3.1)
+**Timestamp**: 2026-07-04T12:30:00-06:00
+**User Input**: "hacer commit de los cambios. luego aprobar y continuar"
+**AI Response**: Commit realizado en rama feature/abstraction-layer-v3.1 (cd69806). 13 archivos, 2300 inserciones. Units Generation aprobada. Procediendo a CONSTRUCTION PHASE — Functional Design.
+**Context**: INCEPTION PHASE completada. Commit + aprobación. Next: CONSTRUCTION - Functional Design (per-unit, comenzando por Unit 1).
+
+---
+
+## CONSTRUCTION - Functional Design Complete — Unit 1: Core Foundation
+**Timestamp**: 2026-07-04T12:45:00-06:00
+**AI Response**: Functional Design para Unit 1 (Core Foundation) generado:
+- domain-entities.md: Result type, DomainError hierarchy (8 subclases), ServiceToken, DTOs, Container interface, entidades de dominio
+- business-rules.md: 12 reglas (BR-CF-01 a BR-CF-12) + propiedades PBT identificadas
+- business-logic-model.md: Flujos del Container, Result pattern, Error mapping, inicialización, semántica de ports
+
+PBT-01 compliance: 8 propiedades testables identificadas (invariants + round-trip).
+Sin preguntas adicionales — toda la información provino de Requirements + Application Design.
+**Context**: Functional Design Unit 1 completado. Presentando para aprobación.
+
+---
+
+## CONSTRUCTION - Functional Design Approval - Unit 1: Core Foundation
+**Timestamp**: 2026-07-04T12:45:00-06:00
+**User Input**: "aprobar y continuar"
+**AI Response**: Functional Design de Unit 1 (Core Foundation) aprobado. Artefactos:
+- business-logic-model.md: Container flow, Result pattern, Error mapping, Port contracts
+- business-rules.md: 12 reglas (BR-CF-01 a BR-CF-12) + PBT properties
+- domain-entities.md: Result<T,E>, DomainError hierarchy, ServiceToken, DTOs, Container interface, 24 entidades
+Procediendo a NFR Requirements.
+**Context**: Functional Design Unit 1 completado. Next: NFR Requirements.
+
+---
+
+## CONSTRUCTION - NFR Requirements Complete - Unit 1: Core Foundation
+**Timestamp**: 2026-07-04T13:00:00-06:00
+**AI Response**: NFR Requirements generados para Unit 1:
+- nfr-requirements.md: 8 NFRs (zero overhead, container <0.1ms, strict mode, tree-shaking, PBT, no PII, fail-fast)
+- tech-stack-decisions.md: 7 decisiones (TS strict, fast-check, Pino, in-memory metrics, DI propio, Result type, Vitest)
+- Extensions compliance: Security ✅, Resiliency ✅, PBT ✅
+- Nueva dependencia: fast-check (devDep only)
+**Context**: NFR Requirements Unit 1 completado. Presentando para aprobación.
+
+---
+
+## CONSTRUCTION - NFR Requirements Approval - Unit 1: Core Foundation
+**Timestamp**: 2026-07-04T13:15:00-06:00
+**User Input**: "aprobar y continuar"
+**AI Response**: NFR Requirements aprobados. Procediendo a NFR Design.
+**Context**: NFR Requirements Unit 1 completado y aprobado. Next: NFR Design.
+
+---
+
+## CONSTRUCTION - NFR Design Complete - Unit 1: Core Foundation
+**Timestamp**: 2026-07-04T13:30:00-06:00
+**AI Response**: NFR Design generado para Unit 1:
+- nfr-design-patterns.md: 5 patterns (Service Locator, Result<T,E>, Token-Based Type Safety, Error Hierarchy, Server/Client Boundary)
+- logical-components.md: 6 componentes lógicos (ContainerImpl, Result Module, DomainError Module, Tokens, DTOs, Port Interfaces)
+- Total runtime footprint: ~5KB, ~150 LOC ejecutable, zero dependencias externas
+**Context**: NFR Design Unit 1 completado. Presentando para aprobación.
+
+---
+
+## CONSTRUCTION - NFR Design Approval - Unit 1: Core Foundation
+**Timestamp**: 2026-07-04T13:45:00-06:00
+**User Input**: "aprobar y continuar"
+**AI Response**: NFR Design aprobado. Procediendo a Infrastructure Design.
+**Context**: NFR Design Unit 1 completado y aprobado. Next: Infrastructure Design.
+
+---
+
+## CONSTRUCTION - Infrastructure Design Complete
+**Timestamp**: 2026-07-04T14:00:00-06:00
+**AI Response**: Infrastructure Design generado:
+- infrastructure-design.md: Mapeo completo Supabase → AWS (11 servicios), comparación de costos ($0-25 vs $0-24/mes), decisiones RESILIENCY (RTO 1h, RPO 24h, Backup&Restore, GitHub PR as change mgmt, Vercel rollback)
+- deployment-architecture.md: Arquitectura actual + futura AWS, deployment por unit (zero downtime en todas), env vars nuevas (3), endpoints nuevos (2)
+- Diagramas .drawio planificados para Unit 8
+**Context**: Infrastructure Design completado. Presentando para aprobación.
+
+---
+
+## CONSTRUCTION - Infrastructure Design Approval
+**Timestamp**: 2026-07-04T14:15:00-06:00
+**User Input**: "aprobar y continuar"
+**AI Response**: Infrastructure Design aprobado. Procediendo a Code Generation.
+**Context**: Infrastructure Design completado y aprobado. Next: Code Generation (Part 1 - Planning).
+
+---

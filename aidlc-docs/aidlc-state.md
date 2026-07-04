@@ -56,10 +56,10 @@
 - [x] INCEPTION - Workflow Planning (2026-07-04)
 - [x] INCEPTION - Application Design (2026-07-04)
 - [x] INCEPTION - Units Generation (2026-07-04)
-- [ ] CONSTRUCTION - Functional Design (per-unit)
-- [ ] CONSTRUCTION - NFR Requirements
-- [ ] CONSTRUCTION - NFR Design
-- [ ] CONSTRUCTION - Infrastructure Design
+- [x] CONSTRUCTION - Functional Design (per-unit) — Unit 1 DONE (2026-07-04)
+- [x] CONSTRUCTION - NFR Requirements — Unit 1 DONE (2026-07-04)
+- [x] CONSTRUCTION - NFR Design — Unit 1 DONE (2026-07-04)
+- [x] CONSTRUCTION - Infrastructure Design (2026-07-04)
 - [ ] CONSTRUCTION - Code Generation
 - [ ] CONSTRUCTION - Build and Test
 
