@@ -60,7 +60,7 @@
 - [x] CONSTRUCTION - NFR Requirements — Unit 1 DONE (2026-07-04)
 - [x] CONSTRUCTION - NFR Design — Unit 1 DONE (2026-07-04)
 - [x] CONSTRUCTION - Infrastructure Design (2026-07-04)
-- [ ] CONSTRUCTION - Code Generation
+- [x] CONSTRUCTION - Code Generation — Unit 1 DONE (2026-07-04)
 - [ ] CONSTRUCTION - Build and Test
 
 ## Extension Configuration (v3.1)
