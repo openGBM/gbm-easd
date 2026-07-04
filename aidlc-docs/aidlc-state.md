@@ -61,6 +61,15 @@
 - [x] CONSTRUCTION - NFR Design — Unit 1 DONE (2026-07-04)
 - [x] CONSTRUCTION - Infrastructure Design (2026-07-04)
 - [x] CONSTRUCTION - Code Generation — Unit 1 DONE (2026-07-04)
+- [x] CONSTRUCTION - Code Generation — Unit 2 DONE (2026-07-04)
+- [x] CONSTRUCTION - Code Generation — Unit 3 parcial (2026-07-04)
+- [x] CONSTRUCTION - Code Generation — Unit 4 infra (2026-07-04)
+- [ ] CONSTRUCTION - Code Generation — Unit 3.5 (Application Services) 🆕
+- [ ] CONSTRUCTION - Code Generation — Unit 4.5 (Consumer Migration) 🆕
+- [ ] CONSTRUCTION - Code Generation — Unit 5 (Auth Abstraction)
+- [ ] CONSTRUCTION - Code Generation — Unit 6 (AI Abstraction)
+- [ ] CONSTRUCTION - Code Generation — Unit 7 (Observability)
+- [ ] CONSTRUCTION - Code Generation — Unit 8 (AWS Stubs + Diagrams)
 - [ ] CONSTRUCTION - Build and Test
 
 ## Extension Configuration (v3.1)

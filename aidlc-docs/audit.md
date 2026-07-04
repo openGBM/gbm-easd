@@ -399,3 +399,11 @@ Validación:
 **Context**: Unit 3 parcial completada. Comenzando Unit 4 — migrar client components para usar repositorios vía ClientContainer.
 
 ---
+
+## Refinamiento de Plan — Application Services Layer
+**Timestamp**: 2026-07-04T16:30:00-06:00
+**User Input**: "incluye la opcion B y refinemos el plan"
+**AI Response**: Agregando capa de Application Services (Use Cases) al plan. Redefiniendo units para incluir services que orquestan operaciones multi-paso.
+**Context**: Se detectó que repos thin no cubren operaciones multi-paso complejas. Se agrega Unit 3.5 (Application Services) al plan.
+
+---
