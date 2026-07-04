@@ -49,77 +49,28 @@ export function registerServerDependencies(): void {
   if (registered) return
   registered = true
 
-  // Repositories — usan createServerSupabaseClient (async, lazy per-request)
-  // Para server components y API routes, creamos el client en cada resolve
-  // porque el client depende de cookies del request actual
+  // Repositories — usan admin client para operaciones que requieren bypass RLS
+  // NOTA sobre RNF-ABS-04: Idealmente se usaría server client (anon + cookies)
+  // para operaciones públicas y admin solo para operaciones privilegiadas.
+  // En esta implementación inicial usamos admin para simplificar (el middleware
+  // ya verifica auth antes de que se llegue a los repos en rutas protegidas).
+  // Para la encuesta pública, RLS protege vía policies (insert público, select restringido).
+  // 
+  // TODO (Unit 4.5): Implementar dual-client strategy:
+  //   - Repos públicos: anon client con cookie auth context
+  //   - Repos admin: service_role client
+  const adminClient = createAdminSupabaseClient()
+  if (!adminClient) throw new Error('SUPABASE_SERVICE_ROLE_KEY no configurada')
 
-  serverContainer.register(TOKENS.SessionRepository, () => {
-    // NOTA: Este patrón requiere que el consumer haga await del client antes.
-    // Para simplificar, usamos un proxy que crea el client on-demand.
-    // En la práctica, los API routes llaman createServerSupabaseClient() y pasan el client.
-    // Aquí registramos una factory que usa admin client (disponible sin cookies).
-    const adminClient = createAdminSupabaseClient()
-    if (!adminClient) throw new Error('SUPABASE_SERVICE_ROLE_KEY no configurada')
-    return new SupabaseSessionRepository(adminClient)
-  })
-
-  serverContainer.register(TOKENS.RespondentRepository, () => {
-    const adminClient = createAdminSupabaseClient()
-    if (!adminClient) throw new Error('SUPABASE_SERVICE_ROLE_KEY no configurada')
-    return new SupabaseRespondentRepository(adminClient)
-  })
-
-  serverContainer.register(TOKENS.ResponseRepository, () => {
-    const adminClient = createAdminSupabaseClient()
-    if (!adminClient) throw new Error('SUPABASE_SERVICE_ROLE_KEY no configurada')
-    return new SupabaseResponseRepository(adminClient)
-  })
-
-  serverContainer.register(TOKENS.DimensionRepository, () => {
-    const adminClient = createAdminSupabaseClient()
-    if (!adminClient) throw new Error('SUPABASE_SERVICE_ROLE_KEY no configurada')
-    return new SupabaseDimensionRepository(adminClient)
-  })
-
-  serverContainer.register(TOKENS.QuestionRepository, () => {
-    const adminClient = createAdminSupabaseClient()
-    if (!adminClient) throw new Error('SUPABASE_SERVICE_ROLE_KEY no configurada')
-    return new SupabaseQuestionRepository(adminClient)
-  })
-
-  serverContainer.register(TOKENS.InstrumentRepository, () => {
-    const adminClient = createAdminSupabaseClient()
-    if (!adminClient) throw new Error('SUPABASE_SERVICE_ROLE_KEY no configurada')
-    return new SupabaseInstrumentRepository(adminClient)
-  })
-
-  serverContainer.register(TOKENS.ProfileRepository, () => {
-    const adminClient = createAdminSupabaseClient()
-    if (!adminClient) throw new Error('SUPABASE_SERVICE_ROLE_KEY no configurada')
-    return new SupabaseProfileRepository(adminClient)
-  })
-
-  serverContainer.register(TOKENS.TenantRepository, () => {
-    const adminClient = createAdminSupabaseClient()
-    if (!adminClient) throw new Error('SUPABASE_SERVICE_ROLE_KEY no configurada')
-    return new SupabaseTenantRepository(adminClient)
-  })
-
-  serverContainer.register(TOKENS.ViewerLinkRepository, () => {
-    const adminClient = createAdminSupabaseClient()
-    if (!adminClient) throw new Error('SUPABASE_SERVICE_ROLE_KEY no configurada')
-    return new SupabaseViewerLinkRepository(adminClient)
-  })
-
-  serverContainer.register(TOKENS.UsageLogRepository, () => {
-    const adminClient = createAdminSupabaseClient()
-    if (!adminClient) throw new Error('SUPABASE_SERVICE_ROLE_KEY no configurada')
-    return new SupabaseUsageLogRepository(adminClient)
-  })
-
-  serverContainer.register(TOKENS.AnalysisRepository, () => {
-    const adminClient = createAdminSupabaseClient()
-    if (!adminClient) throw new Error('SUPABASE_SERVICE_ROLE_KEY no configurada')
-    return new SupabaseAnalysisRepository(adminClient)
-  })
+  serverContainer.register(TOKENS.SessionRepository, () => new SupabaseSessionRepository(adminClient))
+  serverContainer.register(TOKENS.RespondentRepository, () => new SupabaseRespondentRepository(adminClient))
+  serverContainer.register(TOKENS.ResponseRepository, () => new SupabaseResponseRepository(adminClient))
+  serverContainer.register(TOKENS.DimensionRepository, () => new SupabaseDimensionRepository(adminClient))
+  serverContainer.register(TOKENS.QuestionRepository, () => new SupabaseQuestionRepository(adminClient))
+  serverContainer.register(TOKENS.InstrumentRepository, () => new SupabaseInstrumentRepository(adminClient))
+  serverContainer.register(TOKENS.ProfileRepository, () => new SupabaseProfileRepository(adminClient))
+  serverContainer.register(TOKENS.TenantRepository, () => new SupabaseTenantRepository(adminClient))
+  serverContainer.register(TOKENS.ViewerLinkRepository, () => new SupabaseViewerLinkRepository(adminClient))
+  serverContainer.register(TOKENS.UsageLogRepository, () => new SupabaseUsageLogRepository(adminClient))
+  serverContainer.register(TOKENS.AnalysisRepository, () => new SupabaseAnalysisRepository(adminClient))
 }

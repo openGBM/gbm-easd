@@ -407,3 +407,11 @@ Validación:
 **Context**: Se detectó que repos thin no cubren operaciones multi-paso complejas. Se agrega Unit 3.5 (Application Services) al plan.
 
 ---
+
+## Corrección de Inconsistencias Detectadas
+**Timestamp**: 2026-07-04T17:00:00-06:00
+**User Input**: "si, corriejlas"
+**AI Response**: Corrigiendo 8 inconsistencias: actualizar v3.1-services.md, unit-of-work.md, dependency rules, structure diagrams, container client strategy, y tokens para services.
+**Context**: Revisión de consistencia. Aplicando correcciones a documentación y código.
+
+---

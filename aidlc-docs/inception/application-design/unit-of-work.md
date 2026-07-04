@@ -207,31 +207,34 @@ Cada unidad de trabajo (unit) es un **incremento desplegable independientemente*
 |---|------|----------------|-------------|--------|------|
 | 1 | Core Foundation | ~25 | 0 | Nulo | — |
 | 2 | Supabase Adapters | ~14 | 0 | Bajo | 1 |
-| 3 | Server-Side Migration | 0 | ~8 | Medio | 1, 2 |
-| 4 | Client-Side Migration | 0 | ~5 | Medio | 1, 2 |
+| 3 | Server-Side Migration (API routes) | 0 | ~3 | Medio | 1, 2 |
+| 3.5 | Application Services | ~6 | 0 | Bajo | 1, 2 |
+| 4 | Client-Side Migration (infra) | ~2 | 0 | Bajo | 1, 2 |
+| 4.5 | Consumer Migration (pages reales) | 0 | ~10-12 | Medio | 3.5, 4 |
 | 5 | Auth Abstraction | ~4 | ~4 | Alto | 1, 3 |
 | 6 | AI Abstraction | ~4 | 1 | Bajo | 1, 3 |
 | 7 | Observability Layer | ~6 | 2 | Bajo | 1, 2 |
 | 8 | AWS Stubs + Diagrams | ~16 | 0 | Nulo | 1 |
 
-**Total**: ~69 archivos nuevos, ~20 modificados
+**Total**: ~77 archivos nuevos, ~22 modificados
 
 ---
 
 ## Orden de Ejecución Recomendado
 
 ```
-Unit 1 (Core Foundation)
-    ├── Unit 2 (Supabase Adapters)  ← depende de 1
-    │       ├── Unit 3 (Server Migration)  ← depende de 1, 2
-    │       │       ├── Unit 5 (Auth)  ← depende de 1, 3
-    │       │       └── Unit 6 (AI)    ← depende de 1, 3
-    │       └── Unit 4 (Client Migration)  ← depende de 1, 2
-    ├── Unit 7 (Observability)  ← depende de 1, 2
-    └── Unit 8 (AWS Stubs + Docs)  ← depende de 1
+Unit 1 (Core Foundation)             ✅ Done
+  └── Unit 2 (Supabase Adapters)     ✅ Done
+        ├── Unit 3 (API routes)       ✅ Done (parcial)
+        ├── Unit 3.5 (Services)       ← PRÓXIMA
+        ├── Unit 4 (Client infra)     ✅ Done
+        │     └── Unit 4.5 (Consumer Migration)  ← requiere 3.5 + 4
+        ├── Unit 5 (Auth)
+        ├── Unit 6 (AI)
+        ├── Unit 7 (Observability)
+        └── Unit 8 (AWS Stubs + Docs)
 ```
 
 **Paralelismo posible:**
-- Unit 3 y Unit 4 pueden ejecutarse en paralelo (ambas dependen de 1+2)
-- Unit 7 y Unit 8 pueden ejecutarse en paralelo (ambas dependen de 1)
-- Unit 5 y Unit 6 pueden ejecutarse en paralelo (ambas dependen de 1+3)
+- Unit 5, 6, 7, 8 pueden ejecutarse en paralelo con Unit 4.5
+- Unit 3.5 debe completarse antes de Unit 4.5

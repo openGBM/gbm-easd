@@ -293,15 +293,19 @@ src/
 
 | Fase | Descripción | Riesgo | Validación |
 |------|-------------|--------|------------|
-| **1** | Crear `core/ports/` (interfaces) + `core/errors/` + `core/container.ts` | Nulo | tsc --noEmit |
-| **2** | Crear `core/adapters/supabase/` (implementaciones que envuelven código actual) | Bajo | Unit tests + Contract tests |
-| **3** | Migrar páginas server-side a usar container/repositorios | Medio | E2E Playwright |
-| **4** | Migrar componentes client-side a usar container/repositorios | Medio | E2E Playwright |
+| **1** | Crear `core/ports/` + `core/errors/` + `core/types/` + containers | Nulo | tsc --noEmit |
+| **2** | Crear `core/adapters/supabase/` (repos + client-factory) | Bajo | Unit tests + Contract tests |
+| **3** | Migrar API routes server-side a usar Container | Medio | E2E Playwright |
+| **3.5** | Crear `core/services/` (Application Services / Use Cases) | Bajo | Unit tests con repos mockeados |
+| **4** | Crear ClientContainer + hooks para client components | Bajo | tsc --noEmit |
+| **4.5** | Migrar pages/components reales usando services + repos | Medio | E2E Playwright |
 | **5** | Migrar auth a `AuthProvider` abstracto | Alto | E2E + Auth flow manual |
 | **5.5** | Migrar AI a `AIProvider` + `AIProviderChain` (Gemini/Groq) | Bajo | Unit tests + E2E analysis flow |
 | **6** | Agregar observabilidad (decorator + logger + metrics endpoint) | Bajo | Unit tests |
 | **7** | Crear `core/adapters/aws/` (stubs + contract tests) | Bajo | Contract tests |
 | **8** | Generar diagramas de arquitectura (.drawio) — actual, objetivo, comparación | Nulo | Visual review |
+
+**Nota sobre RF-ABS-01**: El criterio "Ningún componente/página/API route importa directamente @supabase" es un **criterio de completion final** (post-Fase 4.5). Durante la implementación progresiva, coexisten archivos migrados y no migrados.
 
 ---
 
