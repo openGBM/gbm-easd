@@ -49,3 +49,23 @@
 - [x] Application Design actualizado: componentes analytics + funciones puras (2026-06-11)
 - [x] Manual del administrador actualizado: PDF, tendencias, historial (2026-06-11)
 - [x] Diagrama UML de componentes (2026-06-11)
+
+## Abstracción Arquitectónica v3.1 Progress
+- [x] INCEPTION - Workspace Detection (2026-07-04)
+- [x] INCEPTION - Requirements Analysis (2026-07-04)
+- [x] INCEPTION - Workflow Planning (2026-07-04)
+- [x] INCEPTION - Application Design (2026-07-04)
+- [x] INCEPTION - Units Generation (2026-07-04)
+- [ ] CONSTRUCTION - Functional Design (per-unit)
+- [ ] CONSTRUCTION - NFR Requirements
+- [ ] CONSTRUCTION - NFR Design
+- [ ] CONSTRUCTION - Infrastructure Design
+- [ ] CONSTRUCTION - Code Generation
+- [ ] CONSTRUCTION - Build and Test
+
+## Extension Configuration (v3.1)
+| Extension | Enabled | Decided At |
+|---|---|---|
+| Security Baseline | Yes | Requirements Analysis |
+| Resiliency Baseline | Yes | Requirements Analysis |
+| Property-Based Testing | Yes (Full) | Requirements Analysis |

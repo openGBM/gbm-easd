@@ -146,3 +146,112 @@
 **Context**: Code Generation completado. Presentando para aprobación.
 
 ---
+
+
+## INCEPTION - Workspace Detection (Abstracción Arquitectónica v3.1)
+**Timestamp**: 2026-07-04T10:00:00-06:00
+**User Input**: "El sistema ya esta en la version 3.0 en revision de arquitectura se detectó que la dependencia de supabase o de la base de datos en general debería abstraerse asi como otras dependencias de modo que una posible migración a aws por ejemplo sea menos compleja. Usando AI-DLC diseñemos un ajuste que permita mejorar este aspecto de arquitectura. Se requiere:- Contar con capas de abstraccion que permitan adaptarse a cambios a aws- Minimizar costos- implementación pro fases sin romper funcionalidad- Observabilidad integrada- comparación de alternativas de infraestructura- documentacion de las desiciones de arquitectura"
+**AI Response**: Proyecto existente detectado (Brownfield). Código funcional en producción v3.0. Analizando acoplamiento de Supabase. Se encontró que NO existe capa de abstracción — todas las llamadas a Supabase son directas desde componentes/páginas/API routes (~15+ archivos con `supabase.from()` directo). Procediendo a Requirements Analysis.
+**Context**: Workspace Detection — proyecto existente con dependencia directa a Supabase. Reverse Engineering artifacts actualizados previamente. Próximo paso: Requirements Analysis.
+
+---
+
+## INCEPTION - Requirements Analysis (Abstracción Arquitectónica v3.1) — Respuestas
+**Timestamp**: 2026-07-04T10:30:00-06:00
+**User Input**: Respuestas a requirement-verification-questions-abstraction.md:
+- Q1=B (DB + Auth)
+- Q2=A (AWS nativo: DynamoDB/RDS + Cognito + API Gateway)
+- Q3=B (Branch by Abstraction)
+- Q4=B (Intermedio: Logging + Métricas de rendimiento)
+- Q5=A (Cero costo adicional: solo herramientas gratuitas/open-source)
+- Q6=A (Supabase actual vs AWS nativo)
+- Q7=B (Todo puede modificarse internamente siempre que UX no cambie)
+- Q8=D (Unitarios + contratos + E2E)
+- Q9=D (ADRs + resumen integrado en diseño)
+- Q10=A (Sí — aplicar reglas de seguridad como constraints bloqueantes)
+- Q11=A (Sí — aplicar baseline de resiliencia)
+- Q12=A (Sí — aplicar PBT para la capa de abstracción)
+**AI Response**: Respuestas claras sin ambigüedades. Extensiones: Security=Yes, Resiliency=Yes, PBT=Yes. Procediendo a generar documento de requerimientos.
+**Context**: Requirements Analysis — todas las respuestas recibidas. Gate passed.
+
+---
+
+## INCEPTION - Requirements Analysis Complete (Abstracción Arquitectónica v3.1)
+**Timestamp**: 2026-07-04T10:45:00-06:00
+**AI Response**: Documento de requerimientos generado: `aidlc-docs/inception/requirements/requirements-abstraction-v3.1.md`. Incluye:
+- 5 requerimientos funcionales (RF-ABS-01 a RF-ABS-05)
+- 8 requerimientos no funcionales (RNF-ABS-01 a RNF-ABS-08)
+- Comparación Supabase vs AWS Nativo (dimensional)
+- Estructura de archivos propuesta
+- Plan de 7 fases de alto nivel
+- Extensiones habilitadas: Security (bloqueante), Resiliency (bloqueante), PBT Full (bloqueante)
+**Context**: Requirements Analysis completado. Presentando para aprobación del usuario.
+
+---
+
+## INCEPTION - Requirements Analysis Approval (Abstracción Arquitectónica v3.1)
+**Timestamp**: 2026-07-04T11:00:00-06:00
+**User Input**: "aprobar y continuar"
+**AI Response**: Requerimientos aprobados. Procediendo a Workflow Planning.
+**Context**: Requirements Analysis completado y aprobado. Next: Workflow Planning.
+
+---
+
+## INCEPTION - Workflow Planning Complete (Abstracción Arquitectónica v3.1)
+**Timestamp**: 2026-07-04T11:15:00-06:00
+**AI Response**: Plan de ejecución generado: `aidlc-docs/inception/plans/execution-plan-abstraction-v3.1.md`. 
+Stages a EJECUTAR: Application Design, Functional Design, NFR Requirements, NFR Design, Infrastructure Design, Code Generation, Build and Test (7 stages).
+Stages SKIP: User Stories (refactoring interno), Units Generation (single unit).
+Estimación: 10-12 sesiones.
+**Context**: Workflow Planning completado. Presentando para aprobación del usuario.
+
+---
+
+## INCEPTION - Workflow Planning Approval (Abstracción Arquitectónica v3.1)
+**Timestamp**: 2026-07-04T11:30:00-06:00
+**User Input**: "aprobar y continuar" (con ajuste previo: Units Generation cambiado de SKIP a EJECUTAR — cada unit debe ser una unidad desplegable)
+**AI Response**: Plan aprobado con Units Generation incluido. Procediendo a Application Design.
+**Context**: Workflow Planning completado y aprobado. Next: Application Design.
+
+---
+
+## INCEPTION - Application Design Complete (Abstracción Arquitectónica v3.1)
+**Timestamp**: 2026-07-04T11:45:00-06:00
+**AI Response**: Application Design generado con 4 artefactos:
+- v3.1-components.md: 17 ports, 14 adapters Supabase, 3 adapters AI, 6 cross-cutting
+- v3.1-component-methods.md: Firmas completas con Result<T,E> types
+- v3.1-services.md: Container, Observability Decorator, AIProviderChain, RequestContext
+- v3.1-component-dependency.md: Matriz de dependencias + 6 Dependency Rules
+- v3.1-application-design.md: Consolidado con ADRs, estructura de archivos, compliance
+
+Total: ~60 archivos nuevos, ~15 modificados, 3 eliminados post-migración.
+Extensions compliance: Security ✅, Resiliency ✅, PBT ✅ (todas compliant o N/A para esta etapa).
+**Context**: Application Design completado. Presentando para aprobación.
+
+---
+
+## INCEPTION - Application Design Approval (Abstracción Arquitectónica v3.1)
+**Timestamp**: 2026-07-04T12:00:00-06:00
+**User Input**: "aprobar y continuar"
+**AI Response**: Application Design aprobado. Procediendo a Units Generation.
+**Context**: Application Design completado y aprobado. Next: Units Generation.
+
+---
+
+## INCEPTION - Units Generation Complete (Abstracción Arquitectónica v3.1)
+**Timestamp**: 2026-07-04T12:15:00-06:00
+**AI Response**: Units Generation completado. 8 unidades de trabajo definidas como incrementos desplegables:
+- Unit 1: Core Foundation (interfaces + errors + container) — Riesgo: Nulo
+- Unit 2: Supabase Adapters (implementaciones repos) — Riesgo: Bajo
+- Unit 3: Server-Side Migration (pages + API routes) — Riesgo: Medio
+- Unit 4: Client-Side Migration (client components) — Riesgo: Medio
+- Unit 5: Auth Abstraction (AuthProvider + middleware) — Riesgo: Alto
+- Unit 6: AI Abstraction (AIProviderChain + failover) — Riesgo: Bajo
+- Unit 7: Observability Layer (logging + metrics) — Riesgo: Bajo
+- Unit 8: AWS Stubs + Diagrams (future-ready + docs) — Riesgo: Nulo
+
+Artefactos: unit-of-work.md, unit-of-work-dependency.md, unit-of-work-story-map.md
+Total: ~69 archivos nuevos, ~20 modificados. Paralelismo posible en múltiples puntos.
+**Context**: Units Generation completado. Presentando para aprobación. Next: CONSTRUCTION PHASE.
+
+---
