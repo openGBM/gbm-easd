@@ -17,6 +17,7 @@ import {
   createAdminSupabaseClient,
 } from './adapters/supabase'
 import { GeminiProvider, GroqProvider, DefaultAIProviderChain } from './adapters/ai'
+import { PinoLogger, InMemoryMetricsCollector } from './observability'
 
 /**
  * ServerContainer — instancia de Container para uso en:
@@ -90,4 +91,8 @@ export function registerServerDependencies(): void {
 
     return new DefaultAIProviderChain(providers)
   })
+
+  // Observability
+  serverContainer.register(TOKENS.Logger, () => new PinoLogger({ component: 'server' }))
+  serverContainer.register(TOKENS.MetricsCollector, () => new InMemoryMetricsCollector())
 }
