@@ -10,31 +10,31 @@ La arquitectura de deployment **no cambia** con la introducción de la capa de a
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                           INTERNET                                      │
+│                           INTERNET                                     │
 └────────────────────────────────┬───────────────────────────────────────┘
                                  │ HTTPS
                                  ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│                      VERCEL EDGE NETWORK                                │
-│                                                                          │
+│                      VERCEL EDGE NETWORK                               │
+│                                                                        │
 │  ┌────────────────┐  ┌────────────────────────┐  ┌──────────────────┐  │
-│  │ Edge Middleware │  │ Serverless Functions    │  │ Static Assets    │  │
-│  │ (proxy.ts)     │  │ (API Routes + SSR)      │  │ (JS/CSS/Images)  │  │
-│  │                │  │                          │  │                  │  │
-│  │ Auth check     │  │ /api/respondents         │  │ /_next/static    │  │
-│  │ Route protect  │  │ /api/analysis            │  │ /public          │  │
-│  │                │  │ /api/viewer-link          │  │                  │  │
-│  │                │  │ /api/metrics (nuevo)      │  │                  │  │
-│  │                │  │ /api/health (nuevo)       │  │                  │  │
+│  │Edge Middleware │  │ Serverless Functions   │  │ Static Assets    │  │
+│  │ (proxy.ts)     │  │ (API Routes + SSR)     │  │ (JS/CSS/Images)  │  │
+│  │                │  │                        │  │                  │  │
+│  │ Auth check     │  │ /api/respondents       │  │ /_next/static    │  │
+│  │ Route protect  │  │ /api/analysis          │  │ /public          │  │
+│  │                │  │ /api/viewer-link       │  │                  │  │
+│  │                │  │ /api/metrics (nuevo)   │  │                  │  │
+│  │                │  │ /api/health (nuevo)    │  │                  │  │
 │  └────────────────┘  └────────────────────────┘  └──────────────────┘  │
 └────────────────────────────────────────────────────────────────────────┘
          │                        │
          │                        │ HTTPS (supabase-js SDK)
          ▼                        ▼
 ┌──────────────────┐    ┌────────────────────────────────────────────────┐
-│ Upstash Redis    │    │              SUPABASE                           │
-│ (Rate Limit)     │    │                                                  │
-│                  │    │  PostgreSQL + GoTrue Auth + PostgREST            │
+│ Upstash Redis    │    │              SUPABASE                          │
+│ (Rate Limit)     │    │                                                │
+│                  │    │  PostgreSQL + GoTrue Auth + PostgREST          │
 └──────────────────┘    └────────────────────────────────────────────────┘
          │
          └──── (No cambia — Upstash no se abstrae en esta iteración)
