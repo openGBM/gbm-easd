@@ -391,3 +391,11 @@ Validación:
 **Context**: Unit 2 completada. Comenzando Unit 3 — migrar server pages y API routes para usar repositorios vía Container.
 
 ---
+
+## CONSTRUCTION - Code Generation - Unit 4: Client-Side Migration
+**Timestamp**: 2026-07-04T16:00:00-06:00
+**User Input**: "continuar con Unit 4 (Client-Side Migration)"
+**AI Response**: Iniciando Unit 4. Primero llenar ClientContainer con factories, luego migrar componentes client-side.
+**Context**: Unit 3 parcial completada. Comenzando Unit 4 — migrar client components para usar repositorios vía ClientContainer.
+
+---

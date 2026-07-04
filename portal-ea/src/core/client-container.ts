@@ -1,5 +1,20 @@
 import { ContainerImpl } from './container-impl'
 import type { Container } from './container-impl'
+import { TOKENS } from './types/tokens'
+import {
+  SupabaseSessionRepository,
+  SupabaseRespondentRepository,
+  SupabaseResponseRepository,
+  SupabaseDimensionRepository,
+  SupabaseQuestionRepository,
+  SupabaseInstrumentRepository,
+  SupabaseProfileRepository,
+  SupabaseTenantRepository,
+  SupabaseViewerLinkRepository,
+  SupabaseUsageLogRepository,
+  SupabaseAnalysisRepository,
+  createBrowserSupabaseClient,
+} from './adapters/supabase'
 
 /**
  * ClientContainer — instancia de Container para uso en:
@@ -7,7 +22,6 @@ import type { Container } from './container-impl'
  *
  * Solo tiene acceso a NEXT_PUBLIC_* env vars.
  * Usa browser client con anon key (RLS activo).
- * Las factories se registran en Unit 2 (Supabase Adapters).
  *
  * Uso:
  *   import { getClientContainer } from '@/core/client-container'
@@ -16,22 +30,38 @@ import type { Container } from './container-impl'
  */
 
 const clientContainer = new ContainerImpl()
+let registered = false
 
 export function getClientContainer(): Container {
+  if (!registered) {
+    registerClientDependencies()
+  }
   return clientContainer
 }
 
 /**
  * Registra todas las factories del ClientContainer.
- * Se llama una sola vez al mount del primer component.
- * Implementación en Unit 2 (Supabase Adapters).
+ * Se ejecuta lazy al primer getClientContainer().
  *
  * NOTA: No registra tokens que requieren service_role (admin operations).
- * Intentar resolver un token no registrado causa InternalError.
+ * Usa browser client con anon key — RLS activo.
  */
 export function registerClientDependencies(): void {
-  // Skeleton — se llena en Unit 2 con:
-  // clientContainer.register(TOKENS.SessionRepository, () => new SupabaseSessionRepository(browserClient))
-  // clientContainer.register(TOKENS.AuthProvider, () => new SupabaseAuthProvider(browserClient))
-  // etc.
+  if (registered) return
+  registered = true
+
+  const browserClient = createBrowserSupabaseClient()
+
+  // Repositories disponibles en client (anon key, RLS activo)
+  clientContainer.register(TOKENS.SessionRepository, () => new SupabaseSessionRepository(browserClient))
+  clientContainer.register(TOKENS.RespondentRepository, () => new SupabaseRespondentRepository(browserClient))
+  clientContainer.register(TOKENS.ResponseRepository, () => new SupabaseResponseRepository(browserClient))
+  clientContainer.register(TOKENS.DimensionRepository, () => new SupabaseDimensionRepository(browserClient))
+  clientContainer.register(TOKENS.QuestionRepository, () => new SupabaseQuestionRepository(browserClient))
+  clientContainer.register(TOKENS.InstrumentRepository, () => new SupabaseInstrumentRepository(browserClient))
+  clientContainer.register(TOKENS.ProfileRepository, () => new SupabaseProfileRepository(browserClient))
+  clientContainer.register(TOKENS.TenantRepository, () => new SupabaseTenantRepository(browserClient))
+  clientContainer.register(TOKENS.ViewerLinkRepository, () => new SupabaseViewerLinkRepository(browserClient))
+  clientContainer.register(TOKENS.UsageLogRepository, () => new SupabaseUsageLogRepository(browserClient))
+  clientContainer.register(TOKENS.AnalysisRepository, () => new SupabaseAnalysisRepository(browserClient))
 }
