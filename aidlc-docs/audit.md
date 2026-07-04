@@ -383,3 +383,11 @@ Validación:
 **Context**: Unit 1 completada. Iniciando Code Generation para Unit 2.
 
 ---
+
+## CONSTRUCTION - Code Generation - Unit 3: Server-Side Migration
+**Timestamp**: 2026-07-04T15:30:00-06:00
+**User Input**: "continuar con Unit 3 (Server-Side Migration)"
+**AI Response**: Iniciando Unit 3. Primero necesito registrar las factories en el ServerContainer y luego migrar las páginas server-side y API routes.
+**Context**: Unit 2 completada. Comenzando Unit 3 — migrar server pages y API routes para usar repositorios vía Container.
+
+---

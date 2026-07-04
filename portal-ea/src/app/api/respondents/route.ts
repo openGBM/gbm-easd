@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { getServerContainer } from '@/core/server-container'
+import { TOKENS } from '@/core/types/tokens'
+import { isOk } from '@/core/errors/result'
 import { checkPublicRateLimit } from '@/lib/rate-limit'
 import { z } from 'zod'
 
@@ -44,59 +46,46 @@ export async function POST(request: NextRequest) {
     }
 
     const { sessionId, name, email } = parseResult.data
-    const supabase = await createServerSupabaseClient()
+    const container = getServerContainer()
+    const sessionRepo = container.resolve(TOKENS.SessionRepository)
+    const respondentRepo = container.resolve(TOKENS.RespondentRepository)
 
     // Verificar que la sesión existe y está activa
-    const { data: session, error: sessionError } = await supabase
-      .from('sessions')
-      .select('id, is_active')
-      .eq('id', sessionId)
-      .single()
-
-    if (sessionError || !session) {
+    const sessionResult = await sessionRepo.findById(sessionId)
+    if (!isOk(sessionResult)) {
       return NextResponse.json({ error: 'Sesión no encontrada' }, { status: 404 })
     }
 
-    if (!session.is_active) {
+    if (!sessionResult.value.isActive) {
       return NextResponse.json({ error: 'La sesión no está activa' }, { status: 403 })
     }
 
-    // Intentar insertar
-    const { data, error: dbError } = await supabase
-      .from('respondents')
-      .insert({ session_id: sessionId, name, email })
-      .select('id')
-      .single()
-
-    if (dbError) {
-      if (dbError.code === '23505') {
-        // Email duplicado — verificar si completó
-        const { data: existing } = await supabase
-          .from('respondents')
-          .select('id, completed')
-          .eq('session_id', sessionId)
-          .eq('email', email)
-          .single()
-
-        if (existing?.completed) {
-          return NextResponse.json(
-            { error: 'Ya respondiste esta encuesta.', code: 'ALREADY_COMPLETED' },
-            { status: 409 }
-          )
-        }
-
-        if (existing) {
-          // Permitir reanudar — retornar el ID existente
-          return NextResponse.json({ id: existing.id, resumed: true })
-        }
-
-        return NextResponse.json({ error: 'Email ya registrado en esta sesión' }, { status: 409 })
+    // Verificar si ya existe un encuestado con ese email en esta sesión
+    const existingResult = await respondentRepo.findByEmail(sessionId, email)
+    if (isOk(existingResult) && existingResult.value) {
+      const existing = existingResult.value
+      if (existing.completed) {
+        return NextResponse.json(
+          { error: 'Ya respondiste esta encuesta.', code: 'ALREADY_COMPLETED' },
+          { status: 409 }
+        )
       }
-      return NextResponse.json({ error: 'Error al registrar' }, { status: 500 })
+      // Permitir reanudar — retornar el ID existente
+      return NextResponse.json({ id: existing.id, resumed: true })
     }
 
-    return NextResponse.json({ id: data.id, resumed: false })
-  } catch (error) {
+    // Intentar crear nuevo encuestado
+    const createResult = await respondentRepo.create({ sessionId, name, email })
+    if (!isOk(createResult)) {
+      const error = createResult.error
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.httpStatus }
+      )
+    }
+
+    return NextResponse.json({ id: createResult.value.id, resumed: false })
+  } catch {
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
 }
