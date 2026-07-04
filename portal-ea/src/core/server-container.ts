@@ -16,6 +16,7 @@ import {
   createServerSupabaseClient,
   createAdminSupabaseClient,
 } from './adapters/supabase'
+import { GeminiProvider, GroqProvider, DefaultAIProviderChain } from './adapters/ai'
 
 /**
  * ServerContainer — instancia de Container para uso en:
@@ -73,4 +74,20 @@ export function registerServerDependencies(): void {
   serverContainer.register(TOKENS.ViewerLinkRepository, () => new SupabaseViewerLinkRepository(adminClient))
   serverContainer.register(TOKENS.UsageLogRepository, () => new SupabaseUsageLogRepository(adminClient))
   serverContainer.register(TOKENS.AnalysisRepository, () => new SupabaseAnalysisRepository(adminClient))
+
+  // AI Provider Chain — failover configurable vía AI_PROVIDERS env var
+  serverContainer.register(TOKENS.AIProviderChain, () => {
+    const providersConfig = (process.env.AI_PROVIDERS || 'gemini,groq').split(',').map(s => s.trim())
+    const providers: import('./ports/ai/ai-provider').AIProvider[] = []
+
+    for (const name of providersConfig) {
+      if (name === 'gemini' && process.env.GEMINI_API_KEY) {
+        providers.push(new GeminiProvider(process.env.GEMINI_API_KEY))
+      } else if (name === 'groq' && process.env.GROQ_API_KEY) {
+        providers.push(new GroqProvider(process.env.GROQ_API_KEY))
+      }
+    }
+
+    return new DefaultAIProviderChain(providers)
+  })
 }
