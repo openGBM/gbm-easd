@@ -34,4 +34,16 @@ export class AwsRespondentRepository implements RespondentRepository {
   countBySession(_sessionId: string): Promise<Result<number, DomainError>> {
     return Promise.resolve(err(new ServiceUnavailableError('AWS adapter no implementado')))
   }
+
+  countCompleted(_tenantId?: string): Promise<Result<number, DomainError>> {
+    return Promise.resolve(err(new ServiceUnavailableError('AWS adapter no implementado')))
+  }
+
+  findCompletedWithTiming(_tenantId?: string): Promise<Result<{ createdAt: string; completedAt: string }[], DomainError>> {
+    return Promise.resolve(err(new ServiceUnavailableError('AWS adapter no implementado')))
+  }
+
+  deleteBySessionId(_sessionId: string): Promise<Result<void, DomainError>> {
+    return Promise.resolve(err(new ServiceUnavailableError('AWS adapter no implementado')))
+  }
 }

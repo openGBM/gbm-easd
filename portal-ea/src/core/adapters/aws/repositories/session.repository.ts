@@ -1,6 +1,6 @@
 // TODO: Replace with actual AWS SDK implementation
 import type { SessionRepository } from '../../../ports/repositories/session.repository'
-import type { Session, CreateSessionDTO, UpdateSessionDTO, SessionFilters } from '../../../types/dtos'
+import type { Session, CreateSessionDTO, UpdateSessionDTO, SessionFilters, SessionWithRespondentCount, SessionWithInstrumentDetails } from '../../../types/dtos'
 import type { Result } from '../../../errors/result'
 import type { DomainError, NotFoundError } from '../../../errors/domain-errors'
 import { err } from '../../../errors/result'
@@ -36,6 +36,18 @@ export class AwsSessionRepository implements SessionRepository {
   }
 
   countActive(_tenantId?: string): Promise<Result<number, DomainError>> {
+    return Promise.resolve(err(new ServiceUnavailableError('AWS adapter no implementado')))
+  }
+
+  findAllWithRespondentCount(_filters?: SessionFilters): Promise<Result<SessionWithRespondentCount[], DomainError>> {
+    return Promise.resolve(err(new ServiceUnavailableError('AWS adapter no implementado')))
+  }
+
+  findByIdWithInstrument(_id: string): Promise<Result<SessionWithInstrumentDetails, NotFoundError>> {
+    return Promise.resolve(err(new NotFoundErrorClass('AWS adapter no implementado')))
+  }
+
+  countByVersionIds(_versionIds: string[]): Promise<Result<Record<string, number>, DomainError>> {
     return Promise.resolve(err(new ServiceUnavailableError('AWS adapter no implementado')))
   }
 }

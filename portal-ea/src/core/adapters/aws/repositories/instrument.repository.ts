@@ -1,6 +1,6 @@
 // TODO: Replace with actual AWS SDK implementation
 import type { InstrumentRepository } from '../../../ports/repositories/instrument.repository'
-import type { InstrumentWithVersion, InstrumentVersion, CreateInstrumentDTO, CreateVersionDTO } from '../../../types/dtos'
+import type { InstrumentWithVersion, InstrumentVersion, CreateInstrumentDTO, CreateVersionDTO, InstrumentVersionWithDetails, InstrumentWithAllVersions } from '../../../types/dtos'
 import type { Result } from '../../../errors/result'
 import type { DomainError, NotFoundError } from '../../../errors/domain-errors'
 import { err } from '../../../errors/result'
@@ -24,6 +24,26 @@ export class AwsInstrumentRepository implements InstrumentRepository {
   }
 
   createVersion(_data: CreateVersionDTO): Promise<Result<InstrumentVersion, DomainError>> {
+    return Promise.resolve(err(new ServiceUnavailableError('AWS adapter no implementado')))
+  }
+
+  findVersionWithInstrument(_versionId: string): Promise<Result<InstrumentVersionWithDetails, NotFoundError>> {
+    return Promise.resolve(err(new NotFoundErrorClass('AWS adapter no implementado')))
+  }
+
+  findActiveForSessionCreation(): Promise<Result<InstrumentWithVersion[], DomainError>> {
+    return Promise.resolve(err(new ServiceUnavailableError('AWS adapter no implementado')))
+  }
+
+  findAllWithVersions(): Promise<Result<InstrumentWithAllVersions[], DomainError>> {
+    return Promise.resolve(err(new ServiceUnavailableError('AWS adapter no implementado')))
+  }
+
+  findVersionDetails(_versionId: string): Promise<Result<{ scaleLabels: unknown; maturityLevels: unknown }, NotFoundError>> {
+    return Promise.resolve(err(new NotFoundErrorClass('AWS adapter no implementado')))
+  }
+
+  countActive(): Promise<Result<number, DomainError>> {
     return Promise.resolve(err(new ServiceUnavailableError('AWS adapter no implementado')))
   }
 }

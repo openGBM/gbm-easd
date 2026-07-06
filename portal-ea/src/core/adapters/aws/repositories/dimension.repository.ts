@@ -1,6 +1,6 @@
 // TODO: Replace with actual AWS SDK implementation
 import type { DimensionRepository } from '../../../ports/repositories/dimension.repository'
-import type { Dimension, DimensionWithQuestions } from '../../../types/dtos'
+import type { Dimension, DimensionWithQuestions, CreateDimensionDTO } from '../../../types/dtos'
 import type { Result } from '../../../errors/result'
 import type { DomainError } from '../../../errors/domain-errors'
 import { err } from '../../../errors/result'
@@ -16,6 +16,10 @@ export class AwsDimensionRepository implements DimensionRepository {
   }
 
   findByInstrumentVersionId(_versionId: string): Promise<Result<DimensionWithQuestions[], DomainError>> {
+    return Promise.resolve(err(new ServiceUnavailableError('AWS adapter no implementado')))
+  }
+
+  create(_data: CreateDimensionDTO): Promise<Result<Dimension, DomainError>> {
     return Promise.resolve(err(new ServiceUnavailableError('AWS adapter no implementado')))
   }
 }

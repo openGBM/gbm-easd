@@ -36,20 +36,43 @@ export interface CreateRespondentDTO {
 
 export interface CreateResponseDTO {
   questionId: string
-  value: number // 1-5
+  value: number | null // null para respuestas solo-texto
+  textValue?: string | null
 }
 
 // ─── Instrument ─────────────────────────────────────────────────────────────
 
 export interface CreateInstrumentDTO {
   name: string
-  description?: string
+  description?: string | null
+  aiExpertisePrompt?: string | null
 }
 
 export interface CreateVersionDTO {
   instrumentId: string
   versionNumber: number
+  versionTag?: string
+  isCurrent?: boolean
   isActive?: boolean
+  scaleLabels?: unknown | null
+  maturityLevels?: unknown | null
+}
+
+export interface CreateDimensionDTO {
+  name: string
+  description: string
+  color: string
+  displayOrder: number
+  instrumentVersionId: string
+}
+
+export interface CreateQuestionDTO {
+  dimensionId: string
+  text: string
+  displayOrder: number
+  type?: string
+  isRequired?: boolean
+  contributesToScore?: boolean
 }
 
 // ─── Profile ────────────────────────────────────────────────────────────────
@@ -195,8 +218,40 @@ export interface InstrumentVersion {
   isActive: boolean
 }
 
+export interface InstrumentVersionWithDetails {
+  id: string
+  instrumentName: string
+  instrumentDescription: string | null
+  versionTag: string | null
+  scaleLabels: unknown[] | null
+  maturityLevels: unknown[] | null
+}
+
 export interface InstrumentWithVersion extends Instrument {
   activeVersion: InstrumentVersion | null
+}
+
+export interface InstrumentWithAllVersions extends Instrument {
+  versions: InstrumentVersion[]
+  currentVersion: InstrumentVersion | null
+}
+
+export interface SessionWithRespondentCount extends Session {
+  respondentCount: number
+  instrumentName?: string
+  versionTag?: string
+}
+
+export interface SessionWithInstrumentDetails extends Session {
+  instrumentName?: string
+  versionTag?: string
+  maturityLevels?: unknown[] | null
+}
+
+export interface RawResponse {
+  questionId: string
+  value: number | null
+  textValue: string | null
 }
 
 export interface Profile {

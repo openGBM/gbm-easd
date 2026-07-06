@@ -10,4 +10,7 @@ export interface RespondentRepository {
   markCompleted(id: string): Promise<Result<void, DomainError>>
   delete(id: string): Promise<Result<void, DomainError>>
   countBySession(sessionId: string): Promise<Result<number, DomainError>>
+  countCompleted(tenantId?: string): Promise<Result<number, DomainError>>
+  findCompletedWithTiming(tenantId?: string): Promise<Result<{ createdAt: string; completedAt: string }[], DomainError>>
+  deleteBySessionId(sessionId: string): Promise<Result<void, DomainError>>
 }

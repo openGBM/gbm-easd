@@ -1,9 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { DimensionRepository } from '../../../ports/repositories/dimension.repository'
-import type { Dimension, DimensionWithQuestions, Question } from '../../../types/dtos'
+import type { Dimension, DimensionWithQuestions, Question, CreateDimensionDTO } from '../../../types/dtos'
 import type { Result } from '../../../errors/result'
 import { ok, err } from '../../../errors/result'
-import { InternalError } from '../../../errors/domain-errors'
+import { InternalError, type DomainError } from '../../../errors/domain-errors'
 
 export class SupabaseDimensionRepository implements DimensionRepository {
   constructor(private readonly client: SupabaseClient) {}
@@ -54,6 +54,26 @@ export class SupabaseDimensionRepository implements DimensionRepository {
     }
 
     return ok((data || []).map(this.mapToDimensionWithQuestions))
+  }
+
+  async create(data: CreateDimensionDTO): Promise<Result<Dimension, DomainError>> {
+    const { data: created, error } = await this.client
+      .from('dimensions')
+      .insert({
+        name: data.name,
+        description: data.description,
+        color: data.color,
+        display_order: data.displayOrder,
+        instrument_version_id: data.instrumentVersionId,
+      })
+      .select()
+      .single()
+
+    if (error) {
+      return err(new InternalError('Error al crear dimensión', { table: 'dimensions' }))
+    }
+
+    return ok(this.mapToDimension(created))
   }
 
   private mapToDimension(row: Record<string, unknown>): Dimension {

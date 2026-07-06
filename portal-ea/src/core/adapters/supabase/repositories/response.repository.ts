@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ResponseRepository } from '../../../ports/repositories/response.repository'
-import type { ResponseWithQuestion, CreateResponseDTO, DimensionScore } from '../../../types/dtos'
+import type { ResponseWithQuestion, CreateResponseDTO, DimensionScore, RawResponse } from '../../../types/dtos'
 import type { Result } from '../../../errors/result'
 import { ok, err } from '../../../errors/result'
 import { InternalError, type DomainError } from '../../../errors/domain-errors'
@@ -45,6 +45,7 @@ export class SupabaseResponseRepository implements ResponseRepository {
       respondent_id: respondentId,
       question_id: r.questionId,
       value: r.value,
+      ...(r.textValue !== undefined && { text_value: r.textValue }),
     }))
 
     const { error } = await this.client
@@ -95,6 +96,48 @@ export class SupabaseResponseRepository implements ResponseRepository {
     if (!data || data.length === 0) return ok([])
 
     return ok(this.aggregateScores(data))
+  }
+
+  async findRawByRespondentId(respondentId: string): Promise<Result<RawResponse[], DomainError>> {
+    const { data } = await this.client
+      .from('responses')
+      .select('question_id, value, text_value')
+      .eq('respondent_id', respondentId)
+
+    if (!data) return ok([])
+    return ok(data.map((r: any) => ({
+      questionId: r.question_id as string,
+      value: r.value as number | null,
+      textValue: (r.text_value as string) || null,
+    })))
+  }
+
+  async findByRespondentIds(respondentIds: string[]): Promise<Result<ResponseWithQuestion[], DomainError>> {
+    if (respondentIds.length === 0) return ok([])
+
+    const { data } = await this.client
+      .from('responses')
+      .select(`
+        *,
+        questions!inner(id, dimension_id, text, display_order,
+          dimensions!inner(id, name, description, display_order, color)
+        )
+      `)
+      .in('respondent_id', respondentIds)
+
+    if (!data) return ok([])
+    return ok(data.map(this.mapToResponseWithQuestion))
+  }
+
+  async deleteByRespondentId(respondentId: string): Promise<Result<void, DomainError>> {
+    await this.client.from('responses').delete().eq('respondent_id', respondentId)
+    return ok(undefined)
+  }
+
+  async deleteByRespondentIds(respondentIds: string[]): Promise<Result<void, DomainError>> {
+    if (respondentIds.length === 0) return ok(undefined)
+    await this.client.from('responses').delete().in('respondent_id', respondentIds)
+    return ok(undefined)
   }
 
   private aggregateScores(data: Record<string, unknown>[]): DimensionScore[] {

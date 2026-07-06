@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { SessionRepository } from '../../../ports/repositories/session.repository'
-import type { Session, CreateSessionDTO, UpdateSessionDTO, SessionFilters } from '../../../types/dtos'
+import type { Session, CreateSessionDTO, UpdateSessionDTO, SessionFilters, SessionWithRespondentCount, SessionWithInstrumentDetails } from '../../../types/dtos'
 import type { Result } from '../../../errors/result'
 import { ok, err } from '../../../errors/result'
 import { NotFoundError, ConflictError, InternalError, type DomainError } from '../../../errors/domain-errors'
@@ -125,6 +125,63 @@ export class SupabaseSessionRepository implements SessionRepository {
     const { count } = await query
 
     return ok(count || 0)
+  }
+
+  async findAllWithRespondentCount(filters?: SessionFilters): Promise<Result<SessionWithRespondentCount[], DomainError>> {
+    let query = this.client.from('sessions')
+      .select('*, respondents(count), instrument_versions(version_tag, instruments(name))')
+
+    if (filters?.tenantId) query = query.eq('tenant_id', filters.tenantId)
+    if (filters?.isActive !== undefined) query = query.eq('is_active', filters.isActive)
+    if (filters?.search) query = query.ilike('name', `%${filters.search}%`)
+    query = query.order('created_at', { ascending: false })
+
+    const { data } = await query
+    if (!data) return ok([])
+
+    return ok(data.map((s: any) => ({
+      ...this.mapToSession(s),
+      respondentCount: s.respondents?.[0]?.count || 0,
+      instrumentName: s.instrument_versions?.instruments?.name || undefined,
+      versionTag: s.instrument_versions?.version_tag || undefined,
+    })))
+  }
+
+  async findByIdWithInstrument(id: string): Promise<Result<SessionWithInstrumentDetails, NotFoundError>> {
+    const { data, error } = await this.client
+      .from('sessions')
+      .select('*, instrument_versions(version_tag, maturity_levels, instruments(name))')
+      .eq('id', id)
+      .single()
+
+    if (error || !data) {
+      return err(new NotFoundError('Sesión no encontrada', { table: 'sessions', id }))
+    }
+
+    return ok({
+      ...this.mapToSession(data),
+      instrumentName: (data as any).instrument_versions?.instruments?.name || undefined,
+      versionTag: (data as any).instrument_versions?.version_tag || undefined,
+      maturityLevels: (data as any).instrument_versions?.maturity_levels || null,
+    })
+  }
+
+  async countByVersionIds(versionIds: string[]): Promise<Result<Record<string, number>, DomainError>> {
+    if (versionIds.length === 0) return ok({})
+
+    const { data } = await this.client
+      .from('sessions')
+      .select('instrument_version_id')
+      .in('instrument_version_id', versionIds)
+
+    const counts: Record<string, number> = {}
+    if (data) {
+      data.forEach((s: any) => {
+        const vid = s.instrument_version_id
+        if (vid) counts[vid] = (counts[vid] || 0) + 1
+      })
+    }
+    return ok(counts)
   }
 
   private mapToSession(row: Record<string, unknown>): Session {

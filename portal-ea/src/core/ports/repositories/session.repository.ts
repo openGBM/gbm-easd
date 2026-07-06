@@ -1,6 +1,6 @@
 import type { Result } from '../../errors'
 import type { DomainError, NotFoundError } from '../../errors'
-import type { Session, CreateSessionDTO, UpdateSessionDTO, SessionFilters } from '../../types/dtos'
+import type { Session, CreateSessionDTO, UpdateSessionDTO, SessionFilters, SessionWithRespondentCount, SessionWithInstrumentDetails } from '../../types/dtos'
 
 export interface SessionRepository {
   findById(id: string): Promise<Result<Session, NotFoundError>>
@@ -11,4 +11,7 @@ export interface SessionRepository {
   delete(id: string): Promise<Result<void, DomainError>>
   toggleActive(id: string): Promise<Result<Session, DomainError>>
   countActive(tenantId?: string): Promise<Result<number, DomainError>>
+  findAllWithRespondentCount(filters?: SessionFilters): Promise<Result<SessionWithRespondentCount[], DomainError>>
+  findByIdWithInstrument(id: string): Promise<Result<SessionWithInstrumentDetails, NotFoundError>>
+  countByVersionIds(versionIds: string[]): Promise<Result<Record<string, number>, DomainError>>
 }

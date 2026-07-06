@@ -3,7 +3,7 @@ import type { RespondentRepository } from '../../../ports/repositories/responden
 import type { Respondent, CreateRespondentDTO } from '../../../types/dtos'
 import type { Result } from '../../../errors/result'
 import { ok, err } from '../../../errors/result'
-import { NotFoundError, ConflictError, InternalError } from '../../../errors/domain-errors'
+import { NotFoundError, ConflictError, InternalError, type DomainError } from '../../../errors/domain-errors'
 
 export class SupabaseRespondentRepository implements RespondentRepository {
   constructor(private readonly client: SupabaseClient) {}
@@ -101,6 +101,46 @@ export class SupabaseRespondentRepository implements RespondentRepository {
       .eq('session_id', sessionId)
 
     return ok(count || 0)
+  }
+
+  async countCompleted(tenantId?: string): Promise<Result<number, DomainError>> {
+    let query = this.client
+      .from('respondents')
+      .select('*', { count: 'exact', head: true })
+      .eq('completed', true)
+
+    // Note: filtering by tenant requires joining through sessions
+    // For now, counts all completed respondents
+    const { count } = await query
+    return ok(count || 0)
+  }
+
+  async findCompletedWithTiming(tenantId?: string): Promise<Result<{ createdAt: string; completedAt: string }[], DomainError>> {
+    const { data } = await this.client
+      .from('respondents')
+      .select('created_at, completed_at')
+      .eq('completed', true)
+      .not('completed_at', 'is', null)
+
+    if (!data) return ok([])
+    return ok(data.map((r: any) => ({ createdAt: r.created_at, completedAt: r.completed_at })))
+  }
+
+  async deleteBySessionId(sessionId: string): Promise<Result<void, DomainError>> {
+    // First delete all responses for respondents in this session
+    const { data: respondents } = await this.client
+      .from('respondents')
+      .select('id')
+      .eq('session_id', sessionId)
+
+    if (respondents && respondents.length > 0) {
+      const ids = respondents.map((r: any) => r.id)
+      await this.client.from('responses').delete().in('respondent_id', ids)
+    }
+
+    // Then delete respondents
+    await this.client.from('respondents').delete().eq('session_id', sessionId)
+    return ok(undefined)
   }
 
   private mapToRespondent(row: Record<string, unknown>): Respondent {

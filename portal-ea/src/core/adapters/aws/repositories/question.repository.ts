@@ -1,6 +1,6 @@
 // TODO: Replace with actual AWS SDK implementation
 import type { QuestionRepository } from '../../../ports/repositories/question.repository'
-import type { Question } from '../../../types/dtos'
+import type { Question, CreateQuestionDTO } from '../../../types/dtos'
 import type { Result } from '../../../errors/result'
 import type { DomainError } from '../../../errors/domain-errors'
 import { err } from '../../../errors/result'
@@ -12,6 +12,10 @@ export class AwsQuestionRepository implements QuestionRepository {
   }
 
   findByInstrumentVersionId(_versionId: string): Promise<Result<Question[], DomainError>> {
+    return Promise.resolve(err(new ServiceUnavailableError('AWS adapter no implementado')))
+  }
+
+  createBatch(_questions: CreateQuestionDTO[]): Promise<Result<void, DomainError>> {
     return Promise.resolve(err(new ServiceUnavailableError('AWS adapter no implementado')))
   }
 }
