@@ -64,12 +64,12 @@
 - [x] CONSTRUCTION - Code Generation — Unit 2 DONE (2026-07-04)
 - [x] CONSTRUCTION - Code Generation — Unit 3 parcial (2026-07-04)
 - [x] CONSTRUCTION - Code Generation — Unit 4 infra (2026-07-04)
-- [ ] CONSTRUCTION - Code Generation — Unit 3.5 (Application Services) 🆕
-- [ ] CONSTRUCTION - Code Generation — Unit 4.5 (Consumer Migration) 🆕
-- [ ] CONSTRUCTION - Code Generation — Unit 5 (Auth Abstraction)
-- [ ] CONSTRUCTION - Code Generation — Unit 6 (AI Abstraction)
-- [ ] CONSTRUCTION - Code Generation — Unit 7 (Observability)
-- [ ] CONSTRUCTION - Code Generation — Unit 8 (AWS Stubs + Diagrams)
+- [x] CONSTRUCTION - Code Generation — Unit 3.5 (Application Services) (2026-07-04)
+- [x] CONSTRUCTION - Code Generation — Unit 4.5 parcial (Consumer Migration) (2026-07-04)
+- [x] CONSTRUCTION - Code Generation — Unit 5 (Auth Abstraction) (2026-07-04)
+- [x] CONSTRUCTION - Code Generation — Unit 6 (AI Abstraction) (2026-07-04)
+- [x] CONSTRUCTION - Code Generation — Unit 7 (Observability) (2026-07-04)
+- [x] CONSTRUCTION - Code Generation — Unit 8 (AWS Stubs + Diagrams) (2026-07-04)
 - [ ] CONSTRUCTION - Build and Test
 
 ## Extension Configuration (v3.1)
