@@ -43,7 +43,7 @@ export class PinoLogger implements Logger {
 
   info(message: string, context?: Record<string, unknown>): void {
     if (context) {
-      this.instance.info(context, message)
+      this.instance.info(this.sanitize(context), message)
     } else {
       this.instance.info(message)
     }
@@ -51,20 +51,23 @@ export class PinoLogger implements Logger {
 
   warn(message: string, context?: Record<string, unknown>): void {
     if (context) {
-      this.instance.warn(context, message)
+      this.instance.warn(this.sanitize(context), message)
     } else {
       this.instance.warn(message)
     }
   }
 
   error(message: string, error?: Error, context?: Record<string, unknown>): void {
-    const ctx = { ...context, ...(error && { err: { message: error.message, stack: error.stack } }) }
+    const ctx = {
+      ...this.sanitize(context || {}),
+      ...(error && { err: { message: error.message, stack: error.stack } }),
+    }
     this.instance.error(ctx, message)
   }
 
   debug(message: string, context?: Record<string, unknown>): void {
     if (context) {
-      this.instance.debug(context, message)
+      this.instance.debug(this.sanitize(context), message)
     } else {
       this.instance.debug(message)
     }
@@ -75,5 +78,21 @@ export class PinoLogger implements Logger {
     // Replace the internal instance with a child
     ;(childLogger as unknown as { instance: pino.Logger }).instance = this.instance.child(context)
     return childLogger
+  }
+
+  /**
+   * SECURITY-03: Sanitiza contexto para prevenir PII en logs.
+   * Reemplaza valores de keys sensibles con [REDACTED].
+   */
+  private sanitize(context: Record<string, unknown>): Record<string, unknown> {
+    const piiKeys = ['email', 'password', 'token', 'secret', 'apiKey', 'api_key',
+      'name', 'phone', 'address', 'credit_card', 'ssn', 'accessToken', 'refreshToken']
+    const sanitized = { ...context }
+    for (const key of Object.keys(sanitized)) {
+      if (piiKeys.some(pii => key.toLowerCase().includes(pii.toLowerCase()))) {
+        sanitized[key] = '[REDACTED]'
+      }
+    }
+    return sanitized
   }
 }

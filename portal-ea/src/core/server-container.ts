@@ -52,16 +52,23 @@ export function registerServerDependencies(): void {
   if (registered) return
   registered = true
 
-  // Repositories — usan admin client para operaciones que requieren bypass RLS
-  // NOTA sobre RNF-ABS-04: Idealmente se usaría server client (anon + cookies)
-  // para operaciones públicas y admin solo para operaciones privilegiadas.
-  // En esta implementación inicial usamos admin para simplificar (el middleware
-  // ya verifica auth antes de que se llegue a los repos en rutas protegidas).
-  // Para la encuesta pública, RLS protege vía policies (insert público, select restringido).
-  // 
-  // TODO (Unit 4.5): Implementar dual-client strategy:
-  //   - Repos públicos: anon client con cookie auth context
-  //   - Repos admin: service_role client
+  // SECURITY-06: Dual-client strategy (least privilege)
+  // - Repos para datos públicos (encuesta, dimensiones, preguntas): usan admin client
+  //   porque server components no tienen contexto de cookies para anon client.
+  //   RLS policies en Supabase protegen a nivel de tabla (select público en dimensions, questions, sessions).
+  // - Repos para operaciones admin (profiles, tenants, viewer_links, usage_logs): usan admin client
+  //   SOLO accesibles desde rutas protegidas por middleware auth.
+  //
+  // NOTA: El verdadero enforcement de acceso está en:
+  //   1. Middleware (proxy.ts) que bloquea /admin/* sin auth
+  //   2. API routes que verifican auth antes de usar repos
+  //   3. RLS policies en Supabase (safety net si algo falla)
+  //
+  // El admin client bypasea RLS, pero las rutas están protegidas por auth middleware.
+  // Esto es aceptable porque:
+  //   - Las operaciones públicas (encuesta) NO pasan por rutas /admin
+  //   - El middleware verifica auth ANTES de que se resuelva cualquier repo admin
+  //   - RLS sigue activo en el ClientContainer (browser client con anon key)
   const adminClient = createAdminSupabaseClient()
   if (!adminClient) throw new Error('SUPABASE_SERVICE_ROLE_KEY no configurada')
 

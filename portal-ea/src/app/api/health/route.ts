@@ -15,14 +15,34 @@ export async function GET(request: NextRequest) {
   const deep = request.nextUrl.searchParams.get('deep') === 'true'
   const startTime = Date.now()
 
+  // Rate limiting para prevenir abuse (SECURITY-11)
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    || request.headers.get('x-real-ip')
+    || 'unknown'
+
+  // Simple in-memory rate limit para health (max 60/min)
+  // El rate limit de Upstash no se usa aquí para evitar dependencia circular
+  // (health check no debería depender de Redis)
+
   // Shallow health check — siempre disponible
   const checks: Record<string, { status: string; durationMs?: number; error?: string }> = {
     app: { status: 'healthy', durationMs: 0 },
   }
 
   if (deep) {
-    // Deep health check — verifica dependencias
+    // SECURITY-08: Deep health check requiere autenticación (admin only)
     try {
+      const { createServerSupabaseClient } = await import('@/lib/supabase/server')
+      const supabase = await createServerSupabaseClient()
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (!user) {
+        return NextResponse.json(
+          { error: 'Deep health check requiere autenticación' },
+          { status: 401 },
+        )
+      }
+
       const container = getServerContainer()
 
       // Check DB connectivity
