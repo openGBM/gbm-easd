@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerContainer } from '@/core/server-container'
-import { TOKENS } from '@/core/types/tokens'
+import { createRespondentService } from '@/core/services/factories'
 import { isOk } from '@/core/errors/result'
 import { checkPublicRateLimit } from '@/lib/rate-limit'
 import { z } from 'zod'
@@ -46,45 +46,30 @@ export async function POST(request: NextRequest) {
     }
 
     const { sessionId, name, email } = parseResult.data
-    const container = getServerContainer()
-    const sessionRepo = container.resolve(TOKENS.SessionRepository)
-    const respondentRepo = container.resolve(TOKENS.RespondentRepository)
 
-    // Verificar que la sesión existe y está activa
-    const sessionResult = await sessionRepo.findById(sessionId)
-    if (!isOk(sessionResult)) {
-      return NextResponse.json({ error: 'Sesión no encontrada' }, { status: 404 })
-    }
+    // Usar RespondentService para toda la lógica de registro/reanudación
+    const respondentService = createRespondentService(getServerContainer())
+    const result = await respondentService.registerOrResume({ sessionId, name, email })
 
-    if (!sessionResult.value.isActive) {
-      return NextResponse.json({ error: 'La sesión no está activa' }, { status: 403 })
-    }
-
-    // Verificar si ya existe un encuestado con ese email en esta sesión
-    const existingResult = await respondentRepo.findByEmail(sessionId, email)
-    if (isOk(existingResult) && existingResult.value) {
-      const existing = existingResult.value
-      if (existing.completed) {
+    if (!isOk(result)) {
+      const error = result.error
+      // Manejar el caso especial de ALREADY_COMPLETED para compatibilidad con el frontend
+      if (error.code === 'CONFLICT' && error.context?.code === 'ALREADY_COMPLETED') {
         return NextResponse.json(
-          { error: 'Ya respondiste esta encuesta.', code: 'ALREADY_COMPLETED' },
-          { status: 409 }
+          { error: error.message, code: 'ALREADY_COMPLETED' },
+          { status: error.httpStatus }
         )
       }
-      // Permitir reanudar — retornar el ID existente
-      return NextResponse.json({ id: existing.id, resumed: true })
-    }
-
-    // Intentar crear nuevo encuestado
-    const createResult = await respondentRepo.create({ sessionId, name, email })
-    if (!isOk(createResult)) {
-      const error = createResult.error
       return NextResponse.json(
         { error: error.message },
         { status: error.httpStatus }
       )
     }
 
-    return NextResponse.json({ id: createResult.value.id, resumed: false })
+    return NextResponse.json({
+      id: result.value.respondentId,
+      resumed: result.value.resumed,
+    })
   } catch {
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
