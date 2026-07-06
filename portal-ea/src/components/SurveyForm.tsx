@@ -3,6 +3,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { getClientContainer } from '@/core/client-container'
+import { TOKENS } from '@/core/types/tokens'
+import { isOk } from '@/core/errors/result'
 import { DimensionWithQuestions, DEFAULT_SCALE_LABELS, ScaleLabel, Question } from '@/types/database'
 
 interface SurveyFormProps {
@@ -29,7 +32,12 @@ export default function SurveyForm({
   estimatedMinutes,
 }: SurveyFormProps) {
   const router = useRouter()
+  // Auth-only: keep createClient for auth operations (migrates in Unit 5)
   const supabase = createClient()
+
+  const container = getClientContainer()
+  const responseRepo = container.resolve(TOKENS.ResponseRepository)
+  const respondentRepo = container.resolve(TOKENS.RespondentRepository)
 
   const scale = scaleLabels && scaleLabels.length > 0
     ? scaleLabels.sort((a, b) => b.value - a.value)
@@ -94,17 +102,14 @@ export default function SurveyForm({
       setRespondentId(result.id)
 
       if (result.resumed) {
-        const { data: prevResponses } = await supabase
-          .from('responses')
-          .select('question_id, value, text_value')
-          .eq('respondent_id', result.id)
-
-        if (prevResponses && prevResponses.length > 0) {
+        // Cargar respuestas previas usando abstraction layer
+        const prevResult = await responseRepo.findRawByRespondentId(result.id)
+        if (isOk(prevResult) && prevResult.value.length > 0) {
           const prevMap: Record<string, number> = {}
           const prevTextMap: Record<string, string> = {}
-          prevResponses.forEach(r => {
-            if (r.value !== null) prevMap[r.question_id] = r.value
-            if (r.text_value) prevTextMap[r.question_id] = r.text_value
+          prevResult.value.forEach(r => {
+            if (r.value !== null) prevMap[r.questionId] = r.value
+            if (r.textValue) prevTextMap[r.questionId] = r.textValue
           })
           setResponses(prevMap)
           setTextResponses(prevTextMap)
@@ -169,8 +174,8 @@ export default function SurveyForm({
     setStep('submitting')
     setError('')
 
-    // Construir array de respuestas (numéricas + texto)
-    const responsesArray: { respondent_id: string; question_id: string; value: number | null; text_value: string | null }[] = []
+    // Construir array de respuestas en formato CreateResponseDTO
+    const responsesArray: { questionId: string; value: number | null; textValue?: string | null }[] = []
 
     dimensions.forEach(dim => {
       dim.questions.forEach(q => {
@@ -179,65 +184,41 @@ export default function SurveyForm({
           const textVal = textResponses[q.id]
           if (textVal && textVal.trim()) {
             responsesArray.push({
-              respondent_id: respondentId!,
-              question_id: q.id,
+              questionId: q.id,
               value: 0,  // Sentinel para texto (no se usa en cálculos, contributes_to_score=false)
-              text_value: textVal.trim(),
+              textValue: textVal.trim(),
             })
           }
         } else {
           const numVal = responses[q.id]
           if (numVal !== undefined) {
             responsesArray.push({
-              respondent_id: respondentId!,
-              question_id: q.id,
+              questionId: q.id,
               value: numVal,
-              text_value: null,
+              textValue: null,
             })
           }
         }
       })
     })
 
-    // Separar respuestas numéricas de texto para compatibilidad con BD sin columna text_value
-    const numericResponses = responsesArray
-      .filter(r => r.text_value === null)
-      .map(({ respondent_id, question_id, value }) => ({ respondent_id, question_id, value }))
-
-    const textResponsesToSave = responsesArray.filter(r => r.text_value !== null)
-
-    // Primero guardar respuestas numéricas (siempre funciona)
-    if (numericResponses.length > 0) {
-      const { error: insertError } = await supabase
-        .from('responses')
-        .upsert(numericResponses, { onConflict: 'respondent_id,question_id' })
-
-      if (insertError) {
-        console.error('Error guardando respuestas numéricas:', insertError)
+    // Guardar respuestas usando el repositorio de abstracción
+    if (responsesArray.length > 0) {
+      const upsertResult = await responseRepo.upsertBatch(respondentId!, responsesArray)
+      if (!isOk(upsertResult)) {
+        console.error('Error guardando respuestas:', upsertResult.error)
         setError('Error al guardar respuestas. Intenta de nuevo.')
         setStep('survey')
         return
       }
     }
 
-    // Luego intentar guardar respuestas de texto (puede fallar si la columna no existe)
-    if (textResponsesToSave.length > 0) {
-      const { error: textError } = await supabase
-        .from('responses')
-        .upsert(textResponsesToSave, { onConflict: 'respondent_id,question_id' })
-
-      if (textError) {
-        // Si falla por columna inexistente, guardar solo el value=0 sin text_value
-        const fallback = textResponsesToSave.map(({ respondent_id, question_id, value }) => ({ respondent_id, question_id, value }))
-        await supabase.from('responses').upsert(fallback, { onConflict: 'respondent_id,question_id' })
-        console.warn('text_value no disponible en BD, guardado como value=0:', textError.message)
-      }
+    // Marcar como completado usando abstraction layer
+    const markResult = await respondentRepo.markCompleted(respondentId!)
+    if (!isOk(markResult)) {
+      console.error('Error marcando completado:', markResult.error)
+      // No bloquear navegación si falla el mark (respuestas ya guardadas)
     }
-
-    await supabase
-      .from('respondents')
-      .update({ completed: true, completed_at: new Date().toISOString() })
-      .eq('id', respondentId!)
 
     router.push(`/resultados/${respondentId}`)
   }

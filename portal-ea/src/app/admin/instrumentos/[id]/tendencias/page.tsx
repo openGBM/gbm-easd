@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { getClientContainer } from '@/core/client-container'
+import { TOKENS } from '@/core/types/tokens'
+import { isOk } from '@/core/errors/result'
 import { transformTrendData, RawTrendRow, TrendDataPoint, DimensionInfo } from '@/lib/analytics/transformTrendData'
 import { filterTrendData, TrendFilterState } from '@/lib/analytics/filterTrendData'
 import TrendBarChart from '@/components/TrendBarChart'
@@ -14,7 +17,13 @@ export default function TendenciasPage() {
   const params = useParams()
   const router = useRouter()
   const instrumentId = params.id as string
+  // Auth-only: keep createClient for supabase.auth.getUser() (migrates in Auth unit)
   const supabase = createClient()
+  const container = getClientContainer()
+  const instrumentRepo = container.resolve(TOKENS.InstrumentRepository)
+  const sessionRepo = container.resolve(TOKENS.SessionRepository)
+  const respondentRepo = container.resolve(TOKENS.RespondentRepository)
+  const responseRepo = container.resolve(TOKENS.ResponseRepository)
 
   const [instrumentName, setInstrumentName] = useState('')
   const [loading, setLoading] = useState(true)
@@ -47,34 +56,20 @@ export default function TendenciasPage() {
   }
 
   async function loadData() {
-    // Cargar info del instrumento
-    const { data: instrument } = await supabase
-      .from('instruments')
-      .select('name')
-      .eq('id', instrumentId)
-      .single()
-
-    if (!instrument) {
+    // Cargar info del instrumento usando repo
+    const instResult = await instrumentRepo.findById(instrumentId)
+    if (!isOk(instResult)) {
       setLoading(false)
       return
     }
-    setInstrumentName(instrument.name)
+    setInstrumentName(instResult.value.name)
 
-    // Obtener la versión actual del instrumento
-    const { data: version } = await supabase
-      .from('instrument_versions')
-      .select('id')
-      .eq('instrument_id', instrumentId)
-      .eq('is_current', true)
-      .single()
+    // La query de tendencias requiere un JOIN complejo (sessions → respondents → responses → questions → dimensions)
+    // que no tiene equivalente directo en los repos actuales.
+    // Usamos supabase directo para esta query de datos de tendencia.
+    // TODO: Agregar un método especializado en ResponseRepository o AnalyticsService para tendencias
 
-    if (!version) {
-      setLoading(false)
-      return
-    }
-
-    // Cargar sesiones de este instrumento (por instrument_version_id)
-    // También incluye versiones anteriores del mismo instrumento
+    // Obtener versiones del instrumento
     const { data: versions } = await supabase
       .from('instrument_versions')
       .select('id')

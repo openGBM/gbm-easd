@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { getClientContainer } from '@/core/client-container'
+import { TOKENS } from '@/core/types/tokens'
+import { isOk } from '@/core/errors/result'
 import { Session, Respondent } from '@/types/database'
 import RadarChart from '@/components/RadarChart'
 import ResultsTable from '@/components/ResultsTable'
@@ -17,7 +20,13 @@ export default function SessionDetailPage() {
   const params = useParams()
   const router = useRouter()
   const sessionId = params.id as string
+  // Auth-only: keep createClient for supabase.auth.getUser() (migrates in Auth unit)
   const supabase = createClient()
+  const container = getClientContainer()
+  const sessionRepo = container.resolve(TOKENS.SessionRepository)
+  const respondentRepo = container.resolve(TOKENS.RespondentRepository)
+  const responseRepo = container.resolve(TOKENS.ResponseRepository)
+  const analysisRepo = container.resolve(TOKENS.AnalysisRepository)
 
   const [session, setSession] = useState<Session | null>(null)
   const [respondents, setRespondents] = useState<Respondent[]>([])
@@ -50,34 +59,40 @@ export default function SessionDetailPage() {
   }
 
   async function loadSession() {
-    const { data: sessionData } = await supabase
-      .from('sessions')
-      .select('*, instrument_versions(version_tag, maturity_levels, instruments(name))')
-      .eq('id', sessionId)
-      .single()
+    // Cargar sesión con info de instrumento
+    const sessionResult = await sessionRepo.findByIdWithInstrument(sessionId)
+    if (isOk(sessionResult)) {
+      const s = sessionResult.value
+      setSession({
+        id: s.id,
+        name: s.name,
+        is_active: s.isActive,
+        created_at: s.createdAt,
+        instrument_version_id: s.instrumentVersionId,
+      } as any)
 
-    if (sessionData) {
-      setSession(sessionData)
-      // Cargar info del instrumento si existe
-      if (sessionData.instrument_versions) {
-        setInstrumentInfo({
-          name: (sessionData.instrument_versions as any).instruments.name,
-          versionTag: (sessionData.instrument_versions as any).version_tag,
-        })
-        if ((sessionData.instrument_versions as any).maturity_levels) {
-          setMaturityLevels((sessionData.instrument_versions as any).maturity_levels)
-        }
+      if (s.instrumentName && s.versionTag) {
+        setInstrumentInfo({ name: s.instrumentName, versionTag: s.versionTag })
+      }
+      if (s.maturityLevels) {
+        setMaturityLevels(s.maturityLevels as any[])
       }
     }
 
-    const { data: respondentData } = await supabase
-      .from('respondents')
-      .select('*')
-      .eq('session_id', sessionId)
-      .order('created_at', { ascending: false })
-
-    if (respondentData) {
-      setRespondents(respondentData)
+    // Cargar encuestados
+    const respondentsResult = await respondentRepo.findBySessionId(sessionId)
+    if (isOk(respondentsResult)) {
+      const respondentData = respondentsResult.value.map(r => ({
+        ...r,
+        id: r.id,
+        name: r.name,
+        email: r.email,
+        completed: r.completed,
+        created_at: r.createdAt,
+        session_id: r.sessionId,
+        completed_at: (r as any).completedAt || null,
+      }))
+      setRespondents(respondentData as any)
 
       // Calcular stats de la sesión
       const completed = respondentData.filter(r => r.completed)
@@ -95,14 +110,9 @@ export default function SessionDetailPage() {
     }
 
     // Cargar análisis existente si hay
-    const { data: existingAnalysis } = await supabase
-      .from('session_analyses')
-      .select('analysis_text')
-      .eq('session_id', sessionId)
-      .single()
-
-    if (existingAnalysis) {
-      setAnalysisText(existingAnalysis.analysis_text)
+    const analysisResult = await analysisRepo.findLatest(sessionId)
+    if (isOk(analysisResult) && analysisResult.value) {
+      setAnalysisText(analysisResult.value.content)
     }
 
     setLoading(false)
@@ -111,38 +121,12 @@ export default function SessionDetailPage() {
   async function viewResponses(respondentId: string) {
     setSelectedRespondent(respondentId)
 
-    const { data: responses } = await supabase
-      .from('responses')
-      .select('*, questions(*, dimensions(*))')
-      .eq('respondent_id', respondentId)
-
-    if (responses && responses.length > 0) {
-      // Calcular promedio por dimensión (solo Likert que contribuyen al score)
-      const dimensionScores: Record<string, { name: string; total: number; count: number; order: number }> = {}
-
-      responses.forEach((r: any) => {
-        const qType = r.questions.type || 'likert'
-        const contributesToScore = r.questions.contributes_to_score !== false
-
-        if (qType !== 'likert' || !contributesToScore || r.value === null || r.value === 0) return
-
-        const dimId = r.questions.dimensions.id
-        const dimName = r.questions.dimensions.name
-        const dimOrder = r.questions.dimensions.display_order
-
-        if (!dimensionScores[dimId]) {
-          dimensionScores[dimId] = { name: dimName, total: 0, count: 0, order: dimOrder }
-        }
-        dimensionScores[dimId].total += r.value
-        dimensionScores[dimId].count += 1
-      })
-
-      const formatted = Object.values(dimensionScores)
-        .sort((a, b) => a.order - b.order)
-        .map(d => ({
-          dimension: d.name,
-          value: Math.round((d.total / d.count) * 10) / 10,
-        }))
+    const scoresResult = await responseRepo.getAggregatedByRespondent(respondentId)
+    if (isOk(scoresResult) && scoresResult.value.length > 0) {
+      const formatted = scoresResult.value.map(d => ({
+        dimension: d.dimensionName,
+        value: Math.round(d.averageValue * 10) / 10,
+      }))
       setChartData(formatted)
     } else {
       setChartData([])
@@ -158,10 +142,9 @@ export default function SessionDetailPage() {
     if (!respondentId) return
     setShowDeleteRespondentModal(null)
 
-    // Primero eliminar respuestas
-    await supabase.from('responses').delete().eq('respondent_id', respondentId)
-    // Luego eliminar encuestado
-    await supabase.from('respondents').delete().eq('id', respondentId)
+    // Eliminar respuestas y encuestado via repo
+    await responseRepo.deleteByRespondentId(respondentId)
+    await respondentRepo.delete(respondentId)
 
     if (selectedRespondent === respondentId) {
       setSelectedRespondent(null)
@@ -179,15 +162,10 @@ export default function SessionDetailPage() {
     setShowDeleteSessionModal(false)
     setDeletingSession(true)
 
-    // Eliminar respuestas de todos los encuestados
-    if (respondents.length > 0) {
-      const respondentIds = respondents.map(r => r.id)
-      await supabase.from('responses').delete().in('respondent_id', respondentIds)
-      await supabase.from('respondents').delete().eq('session_id', sessionId)
-    }
-
+    // Eliminar encuestados y respuestas de la sesión
+    await respondentRepo.deleteBySessionId(sessionId)
     // Eliminar la sesión
-    await supabase.from('sessions').delete().eq('id', sessionId)
+    await sessionRepo.delete(sessionId)
 
     router.push('/admin')
   }
@@ -205,29 +183,30 @@ export default function SessionDetailPage() {
 
     const ids = completedRespondents.map(r => r.id)
 
-    // Obtener todas las respuestas con dimensiones y preguntas
-    const { data: allResponses } = await supabase
-      .from('responses')
-      .select('value, respondent_id, questions(text, display_order, dimensions(name, display_order))')
-      .in('respondent_id', ids)
-
-    if (!allResponses || allResponses.length === 0) {
+    // Obtener todas las respuestas con dimensiones y preguntas via repo
+    const responsesResult = await responseRepo.findByRespondentIds(ids)
+    if (!isOk(responsesResult) || responsesResult.value.length === 0) {
       showToast('warning', 'No hay respuestas para exportar')
       setExporting(false)
       return
     }
 
-    // Obtener dimensiones ordenadas para las columnas
-    const { data: dimensions } = await supabase
-      .from('dimensions')
-      .select('name, display_order')
-      .order('display_order')
+    const allResponses = responsesResult.value
+
+    // Obtener dimensiones únicas ordenadas
+    const dimensionMap = new Map<string, { name: string; order: number }>()
+    allResponses.forEach(r => {
+      if (r.dimension && !dimensionMap.has(r.dimension.name)) {
+        dimensionMap.set(r.dimension.name, { name: r.dimension.name, order: r.dimension.displayOrder })
+      }
+    })
+    const dimensions = Array.from(dimensionMap.values()).sort((a, b) => a.order - b.order)
 
     // Construir filas: una fila por encuestado con sus respuestas agrupadas por dimensión
     const rows: Record<string, any>[] = []
 
     for (const respondent of completedRespondents) {
-      const respondentResponses = allResponses.filter((r: any) => r.respondent_id === respondent.id)
+      const respondentResponses = allResponses.filter((r: any) => r.respondentId === respondent.id)
       const row: Record<string, any> = {
         'Nombre': respondent.name,
         'Correo': respondent.email,
@@ -237,22 +216,21 @@ export default function SessionDetailPage() {
       // Calcular promedio por dimensión
       const dimScores: Record<string, { total: number; count: number }> = {}
       respondentResponses.forEach((r: any) => {
-        const dimName = r.questions.dimensions.name
+        const dimName = r.dimension?.name
+        if (!dimName) return
         if (!dimScores[dimName]) dimScores[dimName] = { total: 0, count: 0 }
         dimScores[dimName].total += r.value
         dimScores[dimName].count += 1
       })
 
       // Agregar promedio por dimensión como columna
-      if (dimensions) {
-        dimensions.forEach(dim => {
-          const score = dimScores[dim.name]
-          row[dim.name] = score ? Math.round((score.total / score.count) * 10) / 10 : 0
-        })
-      }
+      dimensions.forEach(dim => {
+        const score = dimScores[dim.name]
+        row[dim.name] = score ? Math.round((score.total / score.count) * 10) / 10 : 0
+      })
 
       // Total general
-      const totalValues = respondentResponses.map((r: any) => r.value)
+      const totalValues = respondentResponses.map((r: any) => r.value).filter((v: any) => v != null)
       row['Promedio General'] = totalValues.length > 0
         ? Math.round((totalValues.reduce((a: number, b: number) => a + b, 0) / totalValues.length) * 10) / 10
         : 0
@@ -264,19 +242,19 @@ export default function SessionDetailPage() {
     const detailRows: Record<string, any>[] = []
     for (const respondent of completedRespondents) {
       const respondentResponses = allResponses
-        .filter((r: any) => r.respondent_id === respondent.id)
+        .filter((r: any) => r.respondentId === respondent.id)
         .sort((a: any, b: any) => {
-          const dimDiff = a.questions.dimensions.display_order - b.questions.dimensions.display_order
+          const dimDiff = (a.dimension?.displayOrder || 0) - (b.dimension?.displayOrder || 0)
           if (dimDiff !== 0) return dimDiff
-          return a.questions.display_order - b.questions.display_order
+          return (a.question?.displayOrder || 0) - (b.question?.displayOrder || 0)
         })
 
       respondentResponses.forEach((r: any) => {
         detailRows.push({
           'Nombre': respondent.name,
           'Correo': respondent.email,
-          'Dimensión': r.questions.dimensions.name,
-          'Pregunta': r.questions.text,
+          'Dimensión': r.dimension?.name || '',
+          'Pregunta': r.question?.text || '',
           'Valor': r.value,
         })
       })
@@ -330,38 +308,18 @@ export default function SessionDetailPage() {
       return
     }
 
-    const ids = completedRespondents.map(r => r.id)
-    const { data: allResponses } = await supabase
-      .from('responses')
-      .select('value, questions(dimensions(name, display_order))')
-      .in('respondent_id', ids)
-
-    if (!allResponses || allResponses.length === 0) {
+    // Obtener scores agregados por sesión usando el repo
+    const scoresResult = await responseRepo.getAggregatedBySession(sessionId)
+    if (!isOk(scoresResult) || scoresResult.value.length === 0) {
       setAnalysisError('No hay respuestas disponibles.')
       setGeneratingAnalysis(false)
       return
     }
 
-    // Calcular promedios por dimensión (solo Likert que contribuyen al score)
-    const dimScores: Record<string, { name: string; total: number; count: number; order: number }> = {}
-    allResponses.forEach((r: any) => {
-      const qType = r.questions.type || 'likert'
-      const contributesToScore = r.questions.contributes_to_score !== false
-      if (qType !== 'likert' || !contributesToScore || r.value === null || r.value === 0) return
-
-      const dimName = r.questions.dimensions.name
-      const dimOrder = r.questions.dimensions.display_order
-      if (!dimScores[dimName]) dimScores[dimName] = { name: dimName, total: 0, count: 0, order: dimOrder }
-      dimScores[dimName].total += r.value
-      dimScores[dimName].count += 1
-    })
-
-    const dimensionScores = Object.values(dimScores)
-      .sort((a, b) => a.order - b.order)
-      .map(d => ({
-        dimension: d.name,
-        value: Math.round((d.total / d.count) * 10) / 10,
-      }))
+    const dimensionScores = scoresResult.value.map(d => ({
+      dimension: d.dimensionName,
+      value: Math.round(d.averageValue * 10) / 10,
+    }))
 
     // Llamar al API
     try {
@@ -399,47 +357,13 @@ export default function SessionDetailPage() {
     setViewMode('consolidated')
     setSelectedRespondent(null)
 
-    // Obtener IDs de encuestados completados
-    const completedRespondents = respondents.filter(r => r.completed)
-    if (completedRespondents.length === 0) {
-      setChartData([])
-      return
-    }
-
-    const ids = completedRespondents.map(r => r.id)
-
-    const { data: allResponses } = await supabase
-      .from('responses')
-      .select('*, questions(*, dimensions(*))')
-      .in('respondent_id', ids)
-
-    if (allResponses && allResponses.length > 0) {
-      const dimensionScores: Record<string, { name: string; total: number; count: number; order: number }> = {}
-
-      allResponses.forEach((r: any) => {
-        const qType = r.questions.type || 'likert'
-        const contributesToScore = r.questions.contributes_to_score !== false
-
-        // Solo incluir en radar: Likert que contribuyen al score
-        if (qType !== 'likert' || !contributesToScore || r.value === null || r.value === 0) return
-
-        const dimId = r.questions.dimensions.id
-        const dimName = r.questions.dimensions.name
-        const dimOrder = r.questions.dimensions.display_order
-
-        if (!dimensionScores[dimId]) {
-          dimensionScores[dimId] = { name: dimName, total: 0, count: 0, order: dimOrder }
-        }
-        dimensionScores[dimId].total += r.value
-        dimensionScores[dimId].count += 1
-      })
-
-      const formatted = Object.values(dimensionScores)
-        .sort((a, b) => a.order - b.order)
-        .map(d => ({
-          dimension: d.name,
-          value: Math.round((d.total / d.count) * 10) / 10,
-        }))
+    // Obtener scores consolidados de la sesión usando el repo
+    const scoresResult = await responseRepo.getAggregatedBySession(sessionId)
+    if (isOk(scoresResult) && scoresResult.value.length > 0) {
+      const formatted = scoresResult.value.map(d => ({
+        dimension: d.dimensionName,
+        value: Math.round(d.averageValue * 10) / 10,
+      }))
       setChartData(formatted)
     } else {
       setChartData([])

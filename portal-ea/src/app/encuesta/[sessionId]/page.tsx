@@ -1,4 +1,6 @@
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { getServerContainer } from '@/core/server-container'
+import { TOKENS } from '@/core/types/tokens'
+import { isOk } from '@/core/errors/result'
 import SurveyForm from '@/components/SurveyForm'
 import { DimensionWithQuestions } from '@/types/database'
 import type { Metadata } from 'next'
@@ -9,33 +11,28 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { sessionId } = await params
-  const supabase = await createServerSupabaseClient()
 
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
   if (!uuidRegex.test(sessionId)) {
     return { title: 'Evaluación GBM' }
   }
 
-  const { data: session } = await supabase
-    .from('sessions')
-    .select('name, instrument_version_id')
-    .eq('id', sessionId)
-    .single()
+  const container = getServerContainer()
+  const sessionRepo = container.resolve(TOKENS.SessionRepository)
+  const instrumentRepo = container.resolve(TOKENS.InstrumentRepository)
 
-  if (!session) {
+  const sessionResult = await sessionRepo.findById(sessionId)
+  if (!isOk(sessionResult)) {
     return { title: 'Evaluación GBM' }
   }
 
+  const session = sessionResult.value
   let instrumentName = 'Evaluación'
-  if (session.instrument_version_id) {
-    const { data: versionData } = await supabase
-      .from('instrument_versions')
-      .select('instruments(name, description)')
-      .eq('id', session.instrument_version_id)
-      .single()
 
-    if ((versionData as any)?.instruments?.name) {
-      instrumentName = (versionData as any).instruments.name
+  if (session.instrumentVersionId) {
+    const versionResult = await instrumentRepo.findVersionWithInstrument(session.instrumentVersionId)
+    if (isOk(versionResult) && versionResult.value.instrumentName) {
+      instrumentName = versionResult.value.instrumentName
     }
   }
 
@@ -47,7 +44,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function EncuestaPage({ params }: Props) {
   const { sessionId } = await params
-  const supabase = await createServerSupabaseClient()
 
   // Validar formato UUID
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -62,14 +58,15 @@ export default async function EncuestaPage({ params }: Props) {
     )
   }
 
-  // Verificar que la sesión existe y está activa
-  const { data: session, error: sessionError } = await supabase
-    .from('sessions')
-    .select('*')
-    .eq('id', sessionId)
-    .single()
+  const container = getServerContainer()
+  const sessionRepo = container.resolve(TOKENS.SessionRepository)
+  const dimensionRepo = container.resolve(TOKENS.DimensionRepository)
+  const instrumentRepo = container.resolve(TOKENS.InstrumentRepository)
 
-  if (sessionError || !session) {
+  // Verificar que la sesión existe
+  const sessionResult = await sessionRepo.findById(sessionId)
+
+  if (!isOk(sessionResult)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -80,7 +77,9 @@ export default async function EncuestaPage({ params }: Props) {
     )
   }
 
-  if (!session.is_active) {
+  const session = sessionResult.value
+
+  if (!session.isActive) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
         <div className="bg-white rounded-xl shadow-sm border p-8 max-w-md text-center">
@@ -92,58 +91,70 @@ export default async function EncuestaPage({ params }: Props) {
     )
   }
 
-  // Cargar dimensiones con sus preguntas
-  // Si la sesión tiene instrument_version_id, cargar dimensiones de esa versión
-  // Si no (v1.x), cargar todas las dimensiones disponibles
-  let dimensions: any[] | null = null
-
-  if (session.instrument_version_id) {
-    const { data } = await supabase
-      .from('dimensions')
-      .select('*, questions(*)')
-      .eq('instrument_version_id', session.instrument_version_id)
-      .order('display_order', { ascending: true })
-    dimensions = data
-  }
-
-  // Fallback: si no se encontraron dimensiones con la versión, cargar sin filtro
-  if (!dimensions || dimensions.length === 0) {
-    const { data } = await supabase
-      .from('dimensions')
-      .select('*, questions(*)')
-      .order('display_order', { ascending: true })
-    dimensions = data
-  }
-
-  const { data: dimensionsResult } = { data: dimensions }
-
-  // Cargar scale_labels, nombre y descripción del instrumento si la sesión tiene versión
-  let scaleLabels = null
+  // Cargar dimensiones con preguntas usando el repositorio
+  let dimensionsData: DimensionWithQuestions[] = []
+  let scaleLabels: any = null
   let instrumentName = 'Evaluación'
   let instrumentDescription: string | null = null
-  if (session.instrument_version_id) {
-    const { data: versionData } = await supabase
-      .from('instrument_versions')
-      .select('scale_labels, instruments(name, description)')
-      .eq('id', session.instrument_version_id)
-      .single()
 
-    if (versionData?.scale_labels) {
-      scaleLabels = versionData.scale_labels
+  if (session.instrumentVersionId) {
+    // Cargar dimensiones por versión
+    const dimResult = await dimensionRepo.findByInstrumentVersionId(session.instrumentVersionId)
+    if (isOk(dimResult) && dimResult.value.length > 0) {
+      dimensionsData = dimResult.value.map(dim => ({
+        ...dim,
+        id: dim.id,
+        name: dim.name,
+        description: dim.description,
+        color: dim.color,
+        display_order: dim.displayOrder,
+        questions: dim.questions.map(q => ({
+          ...q,
+          id: q.id,
+          text: q.text,
+          display_order: q.displayOrder,
+          dimension_id: q.dimensionId,
+        })),
+      })) as any
     }
-    if ((versionData as any)?.instruments?.name) {
-      instrumentName = (versionData as any).instruments.name
+
+    // Cargar info del instrumento (nombre, descripción, escala)
+    const versionResult = await instrumentRepo.findVersionWithInstrument(session.instrumentVersionId)
+    if (isOk(versionResult)) {
+      instrumentName = versionResult.value.instrumentName || 'Evaluación'
+      instrumentDescription = versionResult.value.instrumentDescription || null
+      scaleLabels = versionResult.value.scaleLabels || null
     }
-    if ((versionData as any)?.instruments?.description) {
-      instrumentDescription = (versionData as any).instruments.description
+  }
+
+  // Fallback: si no hay dimensiones para la versión, cargar todas
+  if (dimensionsData.length === 0) {
+    const allDimsResult = await dimensionRepo.findWithQuestions()
+    if (isOk(allDimsResult)) {
+      dimensionsData = allDimsResult.value.map(dim => ({
+        ...dim,
+        id: dim.id,
+        name: dim.name,
+        description: dim.description,
+        color: dim.color,
+        display_order: dim.displayOrder,
+        questions: dim.questions.map(q => ({
+          ...q,
+          id: q.id,
+          text: q.text,
+          display_order: q.displayOrder,
+          dimension_id: q.dimensionId,
+        })),
+      })) as any
     }
   }
 
   // Ordenar preguntas dentro de cada dimensión
-  const sortedDimensions: DimensionWithQuestions[] = (dimensionsResult || []).map(dim => ({
+  const sortedDimensions: DimensionWithQuestions[] = dimensionsData.map((dim: any) => ({
     ...dim,
     questions: (dim.questions || []).sort(
-      (a: { display_order: number }, b: { display_order: number }) => a.display_order - b.display_order
+      (a: { display_order?: number; displayOrder?: number }, b: { display_order?: number; displayOrder?: number }) =>
+        (a.display_order ?? a.displayOrder ?? 0) - (b.display_order ?? b.displayOrder ?? 0)
     ),
   }))
 

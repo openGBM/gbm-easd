@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { getClientContainer } from '@/core/client-container'
+import { TOKENS } from '@/core/types/tokens'
+import { isOk } from '@/core/errors/result'
 import { Session, InstrumentWithVersion, SessionWithInstrument } from '@/types/database'
 import { isMultiInstrumentEnabled } from '@/flags'
 import QRCodeDisplay from '@/components/QRCodeDisplay'
@@ -13,7 +16,13 @@ import Link from 'next/link'
 
 export default function AdminDashboard() {
   const router = useRouter()
+  // Auth-only: keep createClient for supabase.auth.getUser() (migrates in Auth unit)
   const supabase = createClient()
+  const container = getClientContainer()
+  const sessionRepo = container.resolve(TOKENS.SessionRepository)
+  const respondentRepo = container.resolve(TOKENS.RespondentRepository)
+  const instrumentRepo = container.resolve(TOKENS.InstrumentRepository)
+
   const [sessions, setSessions] = useState<(SessionWithInstrument & { respondent_count: number })[]>([])
   const [newSessionName, setNewSessionName] = useState('')
   const [loading, setLoading] = useState(true)
@@ -51,18 +60,22 @@ export default function AdminDashboard() {
   }
 
   async function loadInstruments() {
-    const { data } = await supabase
-      .from('instruments')
-      .select('*, instrument_versions(*)')
-      .eq('is_active', true)
-      .neq('visibility', 'template')  // Templates no se usan directamente para crear sesiones
-      .order('name')
-
-    if (data) {
-      const formatted: InstrumentWithVersion[] = data.map(inst => ({
+    const result = await instrumentRepo.findActiveForSessionCreation()
+    if (isOk(result)) {
+      const formatted: InstrumentWithVersion[] = result.value.map(inst => ({
         ...inst,
-        current_version: inst.instrument_versions?.find((v: any) => v.is_current) || undefined,
-      }))
+        id: inst.id,
+        name: inst.name,
+        description: inst.description,
+        created_at: inst.createdAt,
+        is_active: true,
+        current_version: inst.activeVersion ? {
+          id: inst.activeVersion.id,
+          instrument_id: inst.activeVersion.instrumentId,
+          version_number: inst.activeVersion.versionNumber,
+          is_current: true,
+        } : undefined,
+      })) as any
       setInstruments(formatted)
       if (formatted.length > 0 && !selectedInstrumentId) {
         setSelectedInstrumentId(formatted[0].id)
@@ -71,37 +84,23 @@ export default function AdminDashboard() {
   }
 
   async function loadSessions(flagEnabled?: boolean) {
-    const useMulti = flagEnabled !== undefined ? flagEnabled : multiInstrumentEnabled
-
-    let data: any[] | null = null
-
-    // Intentar con JOIN si multi-instrumento está habilitado
-    if (useMulti) {
-      const result = await supabase
-        .from('sessions')
-        .select('*, respondents(count), instrument_versions(version_tag, instruments(name))')
-        .order('created_at', { ascending: false })
-      
-      if (!result.error) {
-        data = result.data
-      }
-    }
-
-    // Fallback: query simple sin JOIN
-    if (!data) {
-      const result = await supabase
-        .from('sessions')
-        .select('*, respondents(count)')
-        .order('created_at', { ascending: false })
-      data = result.data
-    }
-
-    if (data) {
-      const formatted = data.map((s: any) => ({
+    const result = await sessionRepo.findAllWithRespondentCount()
+    if (isOk(result)) {
+      const formatted = result.value.map(s => ({
         ...s,
-        respondent_count: s.respondents?.[0]?.count || 0,
+        id: s.id,
+        name: s.name,
+        is_active: s.isActive,
+        created_at: s.createdAt,
+        instrument_version_id: s.instrumentVersionId,
+        respondent_count: s.respondentCount,
+        // Para InstrumentBadge
+        instrument_versions: s.instrumentName && s.versionTag ? {
+          instruments: { name: s.instrumentName },
+          version_tag: s.versionTag,
+        } : undefined,
       }))
-      setSessions(formatted)
+      setSessions(formatted as any)
     }
 
     await loadStats()
@@ -109,30 +108,30 @@ export default function AdminDashboard() {
   }
 
   async function loadStats() {
-    // Ejecutar queries en paralelo (son independientes)
-    const [activeResult, responsesResult, completedResult, instrumentsResult] = await Promise.all([
-      supabase.from('sessions').select('*', { count: 'exact', head: true }).eq('is_active', true),
-      supabase.from('respondents').select('*', { count: 'exact', head: true }).eq('completed', true),
-      supabase.from('respondents').select('created_at, completed_at').eq('completed', true).not('completed_at', 'is', null),
-      supabase.from('instruments').select('*', { count: 'exact', head: true }).eq('is_active', true),
+    // Ejecutar queries en paralelo usando repos
+    const [activeResult, completedResult, timingResult, instrumentsResult] = await Promise.all([
+      sessionRepo.countActive(),
+      respondentRepo.countCompleted(),
+      respondentRepo.findCompletedWithTiming(),
+      instrumentRepo.countActive(),
     ])
 
     let avgTimeMinutes = 0
-    const completedRespondents = completedResult.data
-    if (completedRespondents && completedRespondents.length > 0) {
+    if (isOk(timingResult) && timingResult.value.length > 0) {
+      const completedRespondents = timingResult.value
       const totalMinutes = completedRespondents.reduce((sum, r) => {
-        const start = new Date(r.created_at).getTime()
-        const end = new Date(r.completed_at!).getTime()
+        const start = new Date(r.createdAt).getTime()
+        const end = new Date(r.completedAt).getTime()
         return sum + (end - start) / 1000 / 60
       }, 0)
       avgTimeMinutes = Math.round(totalMinutes / completedRespondents.length)
     }
 
     setStats({
-      activeSessions: activeResult.count || 0,
-      totalResponses: responsesResult.count || 0,
+      activeSessions: isOk(activeResult) ? activeResult.value : 0,
+      totalResponses: isOk(completedResult) ? completedResult.value : 0,
       avgTimeMinutes,
-      totalInstruments: instrumentsResult.count || 0,
+      totalInstruments: isOk(instrumentsResult) ? instrumentsResult.value : 0,
     })
   }
 
@@ -161,21 +160,17 @@ export default function AdminDashboard() {
     let instrumentVersionId: string | null = null
     if (multiInstrumentEnabled && selectedInstrumentId) {
       const selectedInst = instruments.find(i => i.id === selectedInstrumentId)
-      if (selectedInst?.current_version) {
-        instrumentVersionId = selectedInst.current_version.id
+      if ((selectedInst as any)?.current_version) {
+        instrumentVersionId = (selectedInst as any).current_version.id
       }
     }
 
-    const insertData: any = { name: newSessionName.trim() }
-    if (instrumentVersionId) {
-      insertData.instrument_version_id = instrumentVersionId
-    }
+    const createResult = await sessionRepo.create({
+      name: newSessionName.trim(),
+      instrumentVersionId: instrumentVersionId,
+    })
 
-    const { error } = await supabase
-      .from('sessions')
-      .insert(insertData)
-
-    if (!error) {
+    if (isOk(createResult)) {
       // Registrar creación de sesión en usage_logs via API route (server-side, bypasses RLS)
       fetch('/api/usage/log', {
         method: 'POST',
@@ -192,11 +187,7 @@ export default function AdminDashboard() {
   }
 
   async function toggleSession(id: string, isActive: boolean) {
-    await supabase
-      .from('sessions')
-      .update({ is_active: !isActive })
-      .eq('id', id)
-
+    await sessionRepo.toggleActive(id)
     await loadSessions()
   }
 
@@ -210,22 +201,10 @@ export default function AdminDashboard() {
     setDeleteModal(null)
     setDeleting(id)
 
-    // Obtener respondents de la sesión para eliminar sus respuestas
-    const { data: respondents } = await supabase
-      .from('respondents')
-      .select('id')
-      .eq('session_id', id)
-
-    if (respondents && respondents.length > 0) {
-      const respondentIds = respondents.map(r => r.id)
-      // Eliminar respuestas de todos los encuestados
-      await supabase.from('responses').delete().in('respondent_id', respondentIds)
-      // Eliminar encuestados
-      await supabase.from('respondents').delete().eq('session_id', id)
-    }
-
+    // Eliminar encuestados y respuestas de la sesión
+    await respondentRepo.deleteBySessionId(id)
     // Eliminar la sesión
-    await supabase.from('sessions').delete().eq('id', id)
+    await sessionRepo.delete(id)
 
     setDeleting(null)
     await loadSessions()

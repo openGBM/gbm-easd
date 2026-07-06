@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { getClientContainer } from '@/core/client-container'
+import { TOKENS } from '@/core/types/tokens'
+import { isOk } from '@/core/errors/result'
 import { transformRespondentHistory, RawHistoryRow, RespondentSession, RespondentRadarData } from '@/lib/analytics/transformRespondentHistory'
 import RespondentSearchBar from '@/components/RespondentSearchBar'
 import RespondentHistoryTable from '@/components/RespondentHistoryTable'
@@ -17,7 +20,12 @@ interface SearchResult {
 
 export default function EncuestadosPage() {
   const router = useRouter()
+  // Auth-only: keep createClient for supabase.auth.getUser() (migrates in Auth unit)
+  // Also kept for cross-session search queries not yet in repos
   const supabase = createClient()
+  const container = getClientContainer()
+  const instrumentRepo = container.resolve(TOKENS.InstrumentRepository)
+  const responseRepo = container.resolve(TOKENS.ResponseRepository)
 
   const [loading, setLoading] = useState(false)
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
@@ -49,6 +57,7 @@ export default function EncuestadosPage() {
 
   async function loadAllRespondents() {
     setLoadingAll(true)
+    // TODO: Agregar RespondentRepository.findAllCompletedGroupedByEmail() para reemplazar esta query
     const { data } = await supabase
       .from('respondents')
       .select('email, name, session_id')
@@ -90,7 +99,8 @@ export default function EncuestadosPage() {
     // Sanitizar query: escapar caracteres especiales de PostgREST filters
     const sanitized = query.replace(/[%_().,'"\\]/g, '')
 
-    // Buscar encuestados por email o nombre
+    // TODO: Agregar RespondentRepository.searchByEmailOrName() para búsqueda cross-session
+    // Buscar encuestados por email o nombre (mantener supabase directo por complejidad)
     const { data } = await supabase
       .from('respondents')
       .select('email, name, session_id')
@@ -128,6 +138,7 @@ export default function EncuestadosPage() {
     setLoadingHistory(true)
 
     // Cargar historial completo del encuestado
+    // TODO: Agregar RespondentRepository.findByEmailCompleted() para búsqueda cross-session
     const { data: respondents } = await supabase
       .from('respondents')
       .select('id, session_id, sessions(id, name, created_at, instrument_version_id)')
@@ -149,39 +160,34 @@ export default function EncuestadosPage() {
       const session = (resp as any).sessions
       if (!session) continue
 
-      // Cargar info del instrumento si existe
+      // Cargar info del instrumento si existe usando repo
       let instrumentName: string | undefined
       let versionTag: string | undefined
       let maturityLevels: any[] | null = null
       if (session.instrument_version_id) {
-        const { data: versionData } = await supabase
-          .from('instrument_versions')
-          .select('version_tag, maturity_levels, instruments(name)')
-          .eq('id', session.instrument_version_id)
-          .single()
-        if (versionData) {
-          versionTag = versionData.version_tag
-          instrumentName = (versionData as any).instruments?.name
-          maturityLevels = versionData.maturity_levels as any[] | null
+        const versionResult = await instrumentRepo.findVersionWithInstrument(session.instrument_version_id)
+        if (isOk(versionResult)) {
+          instrumentName = versionResult.value.instrumentName
+          versionTag = versionResult.value.versionTag || undefined
+          maturityLevels = versionResult.value.maturityLevels as any[] | null
         }
       }
 
-      const { data: responses } = await supabase
-        .from('responses')
-        .select('value, questions(dimension_id, dimensions(name, display_order, color))')
-        .eq('respondent_id', resp.id)
+      // Cargar respuestas usando repo
+      const responsesResult = await responseRepo.findByRespondentId(resp.id)
+      if (!isOk(responsesResult)) continue
 
-      if (!responses) continue
+      const responses = responsesResult.value
 
       // Agrupar por dimensión
       const dimScores: Record<string, { total: number; count: number; name: string; order: number; color: string | null }> = {}
 
       responses.forEach((r: any) => {
-        const dim = r.questions?.dimensions
+        const dim = r.dimension
         if (!dim) return
         const key = dim.name
         if (!dimScores[key]) {
-          dimScores[key] = { total: 0, count: 0, name: dim.name, order: dim.display_order, color: dim.color }
+          dimScores[key] = { total: 0, count: 0, name: dim.name, order: dim.displayOrder, color: dim.color || null }
         }
         dimScores[key].total += r.value
         dimScores[key].count += 1
