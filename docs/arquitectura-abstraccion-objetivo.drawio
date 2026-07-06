@@ -1,0 +1,157 @@
+<mxfile host="app.diagrams.net" modified="2026-07-04T17:00:00.000Z" agent="Kiro" version="21.0.0" type="device">
+  <diagram name="Arquitectura Objetivo - Ports &amp; Adapters" id="arch-target">
+    <mxGraphModel dx="1200" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <!-- Title -->
+        <mxCell id="title" value="Portal EA — Arquitectura Objetivo (Hexagonal / Ports &amp; Adapters)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="1000" height="40" as="geometry" />
+        </mxCell>
+        <!-- Consumer Layer -->
+        <mxCell id="consumer-group" value="CONSUMERS (Pages, API Routes, Components)" style="swimlane;fontStyle=1;align=center;verticalAlign=top;startSize=30;fillColor=#E3F2FD;strokeColor=#1565C0;fontColor=#1565C0;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="80" width="1200" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="c1" value="EncuestaPage" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1565C0;fontSize=10;" vertex="1" parent="consumer-group">
+          <mxGeometry x="20" y="40" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c2" value="AdminDashboard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1565C0;fontSize=10;" vertex="1" parent="consumer-group">
+          <mxGeometry x="140" y="40" width="110" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c3" value="/api/respondents" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1565C0;fontSize=10;" vertex="1" parent="consumer-group">
+          <mxGeometry x="270" y="40" width="110" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c4" value="/api/analysis" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1565C0;fontSize=10;" vertex="1" parent="consumer-group">
+          <mxGeometry x="400" y="40" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c5" value="SurveyForm" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1565C0;fontSize=10;" vertex="1" parent="consumer-group">
+          <mxGeometry x="520" y="40" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c6" value="Middleware" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1565C0;fontSize=10;" vertex="1" parent="consumer-group">
+          <mxGeometry x="630" y="40" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c7" value="..." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=14;" vertex="1" parent="consumer-group">
+          <mxGeometry x="740" y="45" width="40" height="30" as="geometry" />
+        </mxCell>
+        <!-- Services Layer -->
+        <mxCell id="service-group" value="APPLICATION SERVICES (Use Cases)" style="swimlane;fontStyle=1;align=center;verticalAlign=top;startSize=30;fillColor=#FFF3E0;strokeColor=#E65100;fontColor=#E65100;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="220" width="1000" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="s1" value="SessionService" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#E65100;fontSize=10;" vertex="1" parent="service-group">
+          <mxGeometry x="20" y="35" width="110" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="s2" value="RespondentService" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#E65100;fontSize=10;" vertex="1" parent="service-group">
+          <mxGeometry x="150" y="35" width="120" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="s3" value="InstrumentService" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#E65100;fontSize=10;" vertex="1" parent="service-group">
+          <mxGeometry x="290" y="35" width="120" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="s4" value="SurveyService" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#E65100;fontSize=10;" vertex="1" parent="service-group">
+          <mxGeometry x="430" y="35" width="100" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="s5" value="AnalyticsService" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#E65100;fontSize=10;" vertex="1" parent="service-group">
+          <mxGeometry x="550" y="35" width="110" height="35" as="geometry" />
+        </mxCell>
+        <!-- Core Layer (Ports + Container) -->
+        <mxCell id="core-group" value="CORE (Ports + Container + Errors)" style="swimlane;fontStyle=1;align=center;verticalAlign=top;startSize=30;fillColor=#E8F5E9;strokeColor=#2E7D32;fontColor=#2E7D32;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="340" width="1200" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="p1" value="SessionRepository&#xa;RespondentRepository&#xa;ResponseRepository&#xa;..." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=9;align=center;" vertex="1" parent="core-group">
+          <mxGeometry x="20" y="35" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="p2" value="AuthProvider&#xa;AuthGuard&#xa;AuthMiddleware" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=9;align=center;" vertex="1" parent="core-group">
+          <mxGeometry x="220" y="35" width="140" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="p3" value="AIProvider&#xa;AIProviderChain" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=9;align=center;" vertex="1" parent="core-group">
+          <mxGeometry x="380" y="35" width="120" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="p4" value="Logger&#xa;MetricsCollector" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=9;align=center;" vertex="1" parent="core-group">
+          <mxGeometry x="520" y="35" width="120" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="p5" value="Container&#xa;(Server + Client)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A5D6A7;strokeColor=#2E7D32;fontSize=10;fontStyle=1;" vertex="1" parent="core-group">
+          <mxGeometry x="680" y="35" width="130" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="p6" value="Result&lt;T,E&gt;&#xa;DomainError&#xa;ServiceToken" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=9;align=center;" vertex="1" parent="core-group">
+          <mxGeometry x="840" y="35" width="130" height="70" as="geometry" />
+        </mxCell>
+        <!-- Adapters Layer -->
+        <mxCell id="adapter-group" value="ADAPTERS (Implementaciones)" style="swimlane;fontStyle=1;align=center;verticalAlign=top;startSize=30;fillColor=#F3E5F5;strokeColor=#6A1B9A;fontColor=#6A1B9A;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="500" width="1200" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="a1" value="Supabase Adapters&#xa;(11 repos + auth + client-factory)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1BEE7;strokeColor=#6A1B9A;fontSize=10;fontStyle=1;" vertex="1" parent="adapter-group">
+          <mxGeometry x="20" y="40" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="a2" value="AI Adapters&#xa;(Gemini + Groq + Chain)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1BEE7;strokeColor=#6A1B9A;fontSize=10;fontStyle=1;" vertex="1" parent="adapter-group">
+          <mxGeometry x="320" y="40" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="a3" value="AWS Adapters (Stubs)&#xa;(DynamoDB/RDS + Cognito + Bedrock)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CE93D8;strokeColor=#6A1B9A;fontSize=10;dashed=1;dashPattern=8 8;" vertex="1" parent="adapter-group">
+          <mxGeometry x="540" y="40" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="a4" value="Observability&#xa;(Pino + InMemoryMetrics + Decorator)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1BEE7;strokeColor=#6A1B9A;fontSize=10;" vertex="1" parent="adapter-group">
+          <mxGeometry x="840" y="40" width="250" height="60" as="geometry" />
+        </mxCell>
+        <!-- External Services -->
+        <mxCell id="ext-group" value="EXTERNAL SERVICES" style="swimlane;fontStyle=1;align=center;verticalAlign=top;startSize=30;fillColor=#FAFAFA;strokeColor=#9E9E9E;fontColor=#616161;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="660" width="1200" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" value="Supabase&#xa;(PostgreSQL + Auth)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="ext-group">
+          <mxGeometry x="60" y="30" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="Google Gemini" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="ext-group">
+          <mxGeometry x="240" y="35" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="Groq" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="ext-group">
+          <mxGeometry x="360" y="35" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="Upstash Redis&#xa;(Rate Limit)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="ext-group">
+          <mxGeometry x="480" y="35" width="110" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" value="AWS (futuro)&#xa;RDS + Cognito + Bedrock" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;dashed=1;dashPattern=8 8;" vertex="1" parent="ext-group">
+          <mxGeometry x="640" y="35" width="180" height="50" as="geometry" />
+        </mxCell>
+        <!-- Arrows -->
+        <mxCell id="arr1" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#1565C0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="700" y="180" as="sourcePoint" />
+            <mxPoint x="700" y="220" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr2" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#E65100;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="700" y="300" as="sourcePoint" />
+            <mxPoint x="700" y="340" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr3" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#2E7D32;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="700" y="460" as="sourcePoint" />
+            <mxPoint x="700" y="500" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr4" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#6A1B9A;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="700" y="620" as="sourcePoint" />
+            <mxPoint x="700" y="660" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <!-- Labels on arrows -->
+        <mxCell id="lbl1" value="usa Services + resolve(Token)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="740" y="190" width="180" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl2" value="usa Ports (interfaces)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="740" y="310" width="140" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl3" value="implements" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="740" y="470" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl4" value="calls vendor SDKs" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="740" y="630" width="120" height="20" as="geometry" />
+        </mxCell>
+        <!-- Legend -->
+        <mxCell id="legend" value="ENV: PROVIDER=supabase|aws&#xa;ENV: AI_PROVIDERS=gemini,groq&#xa;Switch = cambiar variable" style="text;html=1;strokeColor=#999999;fillColor=#FAFAFA;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;fontSize=10;fontColor=#666666;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="800" width="200" height="70" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
