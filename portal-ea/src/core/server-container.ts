@@ -16,6 +16,7 @@ import {
   createServerSupabaseClient,
   createAdminSupabaseClient,
 } from './adapters/supabase'
+import { SupabaseAuthProvider, SupabaseAuthGuard, SupabaseAuthMiddleware } from './adapters/supabase/auth'
 import { GeminiProvider, GroqProvider, DefaultAIProviderChain } from './adapters/ai'
 import { PinoLogger, InMemoryMetricsCollector } from './observability'
 
@@ -95,4 +96,16 @@ export function registerServerDependencies(): void {
   // Observability
   serverContainer.register(TOKENS.Logger, () => new PinoLogger({ component: 'server' }))
   serverContainer.register(TOKENS.MetricsCollector, () => new InMemoryMetricsCollector())
+
+  // Auth
+  serverContainer.register(TOKENS.AuthProvider, () => new SupabaseAuthProvider(adminClient))
+  serverContainer.register(TOKENS.AuthGuard, () => {
+    const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean)
+    return new SupabaseAuthGuard(
+      serverContainer.resolve(TOKENS.AuthProvider),
+      serverContainer.resolve(TOKENS.ProfileRepository),
+      adminEmails,
+    )
+  })
+  serverContainer.register(TOKENS.AuthMiddleware, () => new SupabaseAuthMiddleware())
 }
