@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { getClientContainer } from '@/core/client-container'
+import { TOKENS } from '@/core/types/tokens'
+import { isOk } from '@/core/errors/result'
 import { Instrument, InstrumentVersion, DimensionWithQuestions } from '@/types/database'
 import { showToast } from '@/components/Toast'
 import PromptModal from '@/components/PromptModal'
@@ -13,7 +16,13 @@ export default function InstrumentDetailPage() {
   const params = useParams()
   const router = useRouter()
   const instrumentId = params.id as string
+  // Auth-only + complex version management: keep supabase direct for most operations
+  // TODO: Migrate remaining Supabase operations to abstraction layer when repos support
+  // update(), version management, dimension/question inline editing, import/export
   const supabase = createClient()
+  const container = getClientContainer()
+  const instrumentRepo = container.resolve(TOKENS.InstrumentRepository)
+  const dimensionRepo = container.resolve(TOKENS.DimensionRepository)
 
   const [instrument, setInstrument] = useState<Instrument | null>(null)
   const [versions, setVersions] = useState<InstrumentVersion[]>([])
@@ -54,16 +63,23 @@ export default function InstrumentDetailPage() {
   }
 
   async function loadInstrument() {
-    // Cargar instrumento
-    const { data: instData } = await supabase
-      .from('instruments')
-      .select('*')
-      .eq('id', instrumentId)
-      .single()
+    // Cargar instrumento usando repo para el dato inicial
+    const instResult = await instrumentRepo.findById(instrumentId)
+    if (isOk(instResult)) {
+      // El repo retorna InstrumentWithVersion, necesitamos el objeto completo
+      // Para campos extra (ai_expertise_prompt, visibility, owner_id) que no están en el DTO,
+      // cargamos directo de Supabase
+      // TODO: Extender InstrumentRepository.findById() para incluir estos campos
+      const { data: instData } = await supabase
+        .from('instruments')
+        .select('*')
+        .eq('id', instrumentId)
+        .single()
+      if (instData) setInstrument(instData)
+    }
 
-    if (instData) setInstrument(instData)
-
-    // Cargar versiones
+    // Cargar versiones (mantener Supabase directo — el repo no expone listado completo de versiones)
+    // TODO: Agregar InstrumentRepository.findVersionsByInstrumentId()
     const { data: versionsData } = await supabase
       .from('instrument_versions')
       .select('*')
@@ -91,20 +107,25 @@ export default function InstrumentDetailPage() {
   }
 
   async function loadDimensions(versionId: string) {
-    const { data } = await supabase
-      .from('dimensions')
-      .select('*, questions(*)')
-      .eq('instrument_version_id', versionId)
-      .order('display_order', { ascending: true })
-
-    if (data) {
-      const sorted = data.map(dim => ({
+    const result = await dimensionRepo.findByInstrumentVersionId(versionId)
+    if (isOk(result)) {
+      const sorted = result.value.map(dim => ({
         ...dim,
-        questions: (dim.questions || []).sort(
-          (a: any, b: any) => a.display_order - b.display_order
-        ),
+        id: dim.id,
+        name: dim.name,
+        description: dim.description,
+        color: dim.color,
+        display_order: dim.displayOrder,
+        instrument_version_id: versionId,
+        questions: dim.questions.map(q => ({
+          ...q,
+          id: q.id,
+          text: q.text,
+          display_order: q.displayOrder,
+          dimension_id: q.dimensionId,
+        })).sort((a: any, b: any) => a.display_order - b.display_order),
       }))
-      setDimensions(sorted)
+      setDimensions(sorted as any)
     }
   }
 

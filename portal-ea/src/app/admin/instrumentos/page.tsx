@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { getClientContainer } from '@/core/client-container'
+import { TOKENS } from '@/core/types/tokens'
+import { isOk } from '@/core/errors/result'
 import { InstrumentWithVersion } from '@/types/database'
 import { showToast } from '@/components/Toast'
 import PromptModal from '@/components/PromptModal'
@@ -10,7 +13,14 @@ import Link from 'next/link'
 
 export default function InstrumentosPage() {
   const router = useRouter()
+  // Auth-only: keep createClient for supabase.auth.getUser() (migrates in Auth unit)
   const supabase = createClient()
+  const container = getClientContainer()
+  const instrumentRepo = container.resolve(TOKENS.InstrumentRepository)
+  const sessionRepo = container.resolve(TOKENS.SessionRepository)
+  const dimensionRepo = container.resolve(TOKENS.DimensionRepository)
+  const questionRepo = container.resolve(TOKENS.QuestionRepository)
+
   const [instruments, setInstruments] = useState<(InstrumentWithVersion & { session_count: number })[]>([])
   const [loading, setLoading] = useState(true)
   const [newName, setNewName] = useState('')
@@ -33,45 +43,51 @@ export default function InstrumentosPage() {
   }
 
   async function loadInstruments() {
-    const { data } = await supabase
-      .from('instruments')
-      .select('*, instrument_versions(*)')
-      .order('created_at', { ascending: false })
+    const result = await instrumentRepo.findAllWithVersions()
+    if (isOk(result)) {
+      const allInstruments = result.value
 
-    if (data) {
-      // Obtener todos los version IDs para contar sesiones en una sola query
-      const allVersionIds = data.flatMap(inst =>
-        (inst.instrument_versions || []).map((v: any) => v.id)
+      // Obtener todos los version IDs para contar sesiones
+      const allVersionIds = allInstruments.flatMap(inst =>
+        inst.versions.map(v => v.id)
       )
 
-      // Una sola query para contar sesiones por version_id
       let sessionCounts: Record<string, number> = {}
       if (allVersionIds.length > 0) {
-        const { data: sessionData } = await supabase
-          .from('sessions')
-          .select('instrument_version_id')
-          .in('instrument_version_id', allVersionIds)
-
-        if (sessionData) {
-          sessionData.forEach(s => {
-            const vid = s.instrument_version_id
-            if (vid) sessionCounts[vid] = (sessionCounts[vid] || 0) + 1
-          })
+        const countResult = await sessionRepo.countByVersionIds(allVersionIds)
+        if (isOk(countResult)) {
+          sessionCounts = countResult.value
         }
       }
 
-      const formatted = data.map(inst => {
-        const currentVersion = inst.instrument_versions?.find((v: any) => v.is_current) || undefined
-        const versionIds = (inst.instrument_versions || []).map((v: any) => v.id)
-        const sessionCount = versionIds.reduce((sum: number, vid: string) => sum + (sessionCounts[vid] || 0), 0)
+      const formatted = allInstruments.map(inst => {
+        const versionIds = inst.versions.map(v => v.id)
+        const sessionCount = versionIds.reduce((sum, vid) => sum + (sessionCounts[vid] || 0), 0)
 
         return {
           ...inst,
-          current_version: currentVersion,
+          id: inst.id,
+          name: inst.name,
+          description: inst.description,
+          created_at: inst.createdAt,
+          is_active: true, // TODO: findAllWithVersions no retorna isActive aún
+          current_version: inst.currentVersion ? {
+            id: inst.currentVersion.id,
+            instrument_id: inst.currentVersion.instrumentId,
+            version_number: inst.currentVersion.versionNumber,
+            version_tag: String(inst.currentVersion.versionNumber),
+            is_current: true,
+          } : undefined,
+          instrument_versions: inst.versions.map(v => ({
+            id: v.id,
+            instrument_id: v.instrumentId,
+            version_number: v.versionNumber,
+            is_current: inst.currentVersion?.id === v.id,
+          })),
           session_count: sessionCount,
         }
       })
-      setInstruments(formatted)
+      setInstruments(formatted as any)
     }
     setLoading(false)
   }
@@ -82,27 +98,21 @@ export default function InstrumentosPage() {
 
     setCreating(true)
 
-    // Crear instrumento
-    const { data: inst, error } = await supabase
-      .from('instruments')
-      .insert({
-        name: newName.trim(),
-        description: newDescription.trim() || null,
-        ai_expertise_prompt: newAiPrompt.trim() || null,
-      })
-      .select('id')
-      .single()
+    // Crear instrumento usando repo
+    const instResult = await instrumentRepo.create({
+      name: newName.trim(),
+      description: newDescription.trim() || null,
+      aiExpertisePrompt: newAiPrompt.trim() || null,
+    })
 
-    if (!error && inst) {
+    if (isOk(instResult)) {
       // Crear versión 1
-      await supabase
-        .from('instrument_versions')
-        .insert({
-          instrument_id: inst.id,
-          version_number: 1,
-          version_tag: '1',
-          is_current: true,
-        })
+      await instrumentRepo.createVersion({
+        instrumentId: instResult.value.id,
+        versionNumber: 1,
+        versionTag: '1',
+        isCurrent: true,
+      })
 
       setNewName('')
       setNewDescription('')
@@ -113,6 +123,7 @@ export default function InstrumentosPage() {
   }
 
   async function toggleInstrument(id: string, isActive: boolean) {
+    // TODO: InstrumentRepository no tiene update() aún — usar supabase directo
     await supabase
       .from('instruments')
       .update({ is_active: !isActive })
@@ -129,84 +140,68 @@ export default function InstrumentosPage() {
     if (!inst) return
     setDuplicateModal(null)
 
-    // Crear nuevo instrumento
-    const { data: newInst, error } = await supabase
-      .from('instruments')
-      .insert({
-        name: newName,
-        description: inst.description,
-        ai_expertise_prompt: inst.ai_expertise_prompt,
-      })
-      .select('id')
-      .single()
+    // Crear nuevo instrumento usando repo
+    const newInstResult = await instrumentRepo.create({
+      name: newName,
+      description: inst.description,
+      aiExpertisePrompt: (inst as any).ai_expertise_prompt || null,
+    })
 
-    if (error || !newInst) {
+    if (!isOk(newInstResult)) {
       showToast('error', 'Error al duplicar el instrumento')
       return
     }
 
+    const newInstId = newInstResult.value.id
+
     // Crear versión 1 con los mismos datos que la versión current del original
-    const versionData: any = {
-      instrument_id: newInst.id,
-      version_number: 1,
-      version_tag: '1',
-      is_current: true,
-    }
+    let scaleLabels: unknown = null
+    let maturityLevels: unknown = null
 
-    if (inst.current_version) {
-      // Copiar scale_labels y maturity_levels de la versión original
-      const { data: origVersion } = await supabase
-        .from('instrument_versions')
-        .select('scale_labels, maturity_levels')
-        .eq('id', inst.current_version.id)
-        .single()
-
-      if (origVersion) {
-        versionData.scale_labels = origVersion.scale_labels
-        versionData.maturity_levels = origVersion.maturity_levels
+    if ((inst as any).current_version) {
+      const detailsResult = await instrumentRepo.findVersionDetails((inst as any).current_version.id)
+      if (isOk(detailsResult)) {
+        scaleLabels = detailsResult.value.scaleLabels
+        maturityLevels = detailsResult.value.maturityLevels
       }
     }
 
-    const { data: newVersion } = await supabase
-      .from('instrument_versions')
-      .insert(versionData)
-      .select('id')
-      .single()
+    const versionResult = await instrumentRepo.createVersion({
+      instrumentId: newInstId,
+      versionNumber: 1,
+      versionTag: '1',
+      isCurrent: true,
+      scaleLabels,
+      maturityLevels,
+    })
 
-    if (!newVersion) {
+    if (!isOk(versionResult)) {
       showToast('error', 'Error al crear versión del instrumento duplicado')
       return
     }
 
+    const newVersionId = versionResult.value.id
+
     // Copiar dimensiones y preguntas de la versión current del original
-    if (inst.current_version) {
-      const { data: origDims } = await supabase
-        .from('dimensions')
-        .select('*, questions(*)')
-        .eq('instrument_version_id', inst.current_version.id)
-        .order('display_order')
+    if ((inst as any).current_version) {
+      const dimsResult = await dimensionRepo.findByInstrumentVersionId((inst as any).current_version.id)
+      if (isOk(dimsResult)) {
+        for (const dim of dimsResult.value) {
+          const newDimResult = await dimensionRepo.create({
+            name: dim.name,
+            description: dim.description,
+            color: dim.color,
+            displayOrder: dim.displayOrder,
+            instrumentVersionId: newVersionId,
+          })
 
-      if (origDims) {
-        for (const dim of origDims) {
-          const { data: newDim } = await supabase
-            .from('dimensions')
-            .insert({
-              name: dim.name,
-              description: dim.description,
-              color: dim.color,
-              display_order: dim.display_order,
-              instrument_version_id: newVersion.id,
-            })
-            .select('id')
-            .single()
-
-          if (newDim && dim.questions) {
-            const questions = (dim.questions as any[]).map(q => ({
-              dimension_id: newDim.id,
+          if (isOk(newDimResult) && dim.questions && dim.questions.length > 0) {
+            const questions = dim.questions.map(q => ({
+              dimensionId: newDimResult.value.id,
               text: q.text,
-              display_order: q.display_order,
+              displayOrder: q.displayOrder,
             }))
-            await supabase.from('questions').insert(questions)
+            await questionRepo.createBatch(questions)
           }
         }
       }

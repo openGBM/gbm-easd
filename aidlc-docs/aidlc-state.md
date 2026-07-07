@@ -49,3 +49,32 @@
 - [x] Application Design actualizado: componentes analytics + funciones puras (2026-06-11)
 - [x] Manual del administrador actualizado: PDF, tendencias, historial (2026-06-11)
 - [x] Diagrama UML de componentes (2026-06-11)
+
+## Abstracción Arquitectónica v3.1 Progress
+- [x] INCEPTION - Workspace Detection (2026-07-04)
+- [x] INCEPTION - Requirements Analysis (2026-07-04)
+- [x] INCEPTION - Workflow Planning (2026-07-04)
+- [x] INCEPTION - Application Design (2026-07-04)
+- [x] INCEPTION - Units Generation (2026-07-04)
+- [x] CONSTRUCTION - Functional Design (per-unit) — Unit 1 DONE (2026-07-04)
+- [x] CONSTRUCTION - NFR Requirements — Unit 1 DONE (2026-07-04)
+- [x] CONSTRUCTION - NFR Design — Unit 1 DONE (2026-07-04)
+- [x] CONSTRUCTION - Infrastructure Design (2026-07-04)
+- [x] CONSTRUCTION - Code Generation — Unit 1 DONE (2026-07-04)
+- [x] CONSTRUCTION - Code Generation — Unit 2 DONE (2026-07-04)
+- [x] CONSTRUCTION - Code Generation — Unit 3 parcial (2026-07-04)
+- [x] CONSTRUCTION - Code Generation — Unit 4 infra (2026-07-04)
+- [x] CONSTRUCTION - Code Generation — Unit 3.5 (Application Services) (2026-07-04)
+- [x] CONSTRUCTION - Code Generation — Unit 4.5 parcial (Consumer Migration) (2026-07-04)
+- [x] CONSTRUCTION - Code Generation — Unit 5 (Auth Abstraction) (2026-07-04)
+- [x] CONSTRUCTION - Code Generation — Unit 6 (AI Abstraction) (2026-07-04)
+- [x] CONSTRUCTION - Code Generation — Unit 7 (Observability) (2026-07-04)
+- [x] CONSTRUCTION - Code Generation — Unit 8 (AWS Stubs + Diagrams) (2026-07-04)
+- [ ] CONSTRUCTION - Build and Test
+
+## Extension Configuration (v3.1)
+| Extension | Enabled | Decided At |
+|---|---|---|
+| Security Baseline | Yes | Requirements Analysis |
+| Resiliency Baseline | Yes | Requirements Analysis |
+| Property-Based Testing | Yes (Full) | Requirements Analysis |
