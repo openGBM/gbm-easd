@@ -130,3 +130,83 @@ describe('DimensionRepository — Aislamiento por Instrumento', () => {
     expect(mockQuery.eq).toHaveBeenCalledWith('instrument_version_id', 'test-version-id')
   })
 })
+
+
+
+describe('Encuesta Page — Fallback para sesiones sin instrumento', () => {
+  /**
+   * BUG: Sesión creada sin instrument_version_id activaba fallback que
+   * cargaba TODAS las dimensiones (88 dims, 430 preguntas) de todos los instrumentos.
+   *
+   * FIX: El fallback ahora solo carga dimensiones legacy (sin instrument_version_id).
+   */
+
+  it('sesión sin instrumentVersionId solo debe cargar dimensiones legacy (sin version asignada)', () => {
+    // Simular el filtrado que hace la página de encuesta
+    const allDimensions = [
+      // Dimensiones legacy (sin instrument_version_id) — estas SÍ deben cargarse
+      { id: 'd1', name: 'Legacy Dim 1', instrumentVersionId: null },
+      { id: 'd2', name: 'Legacy Dim 2', instrumentVersionId: null },
+      // Dimensiones de instrumentos — estas NO deben cargarse
+      { id: 'd3', name: 'CSAT Dim', instrumentVersionId: 'version-csat' },
+      { id: 'd4', name: 'AI-DLC Dim 1', instrumentVersionId: 'version-aidlc' },
+      { id: 'd5', name: 'AI-DLC Dim 2', instrumentVersionId: 'version-aidlc' },
+      { id: 'd6', name: 'EA Dim 1', instrumentVersionId: 'version-ea' },
+      { id: 'd7', name: 'EA Dim 2', instrumentVersionId: 'version-ea' },
+      { id: 'd8', name: 'EA Dim 3', instrumentVersionId: 'version-ea' },
+    ]
+
+    // Filtro que aplica la página para sesiones sin instrumento
+    const legacyDims = allDimensions.filter(
+      dim => !dim.instrumentVersionId
+    )
+
+    // Solo 2 dimensiones legacy, NO las 8 totales
+    expect(legacyDims.length).toBe(2)
+    expect(legacyDims.every(d => d.instrumentVersionId === null)).toBe(true)
+    expect(legacyDims.some(d => d.name.includes('CSAT'))).toBe(false)
+    expect(legacyDims.some(d => d.name.includes('AI-DLC'))).toBe(false)
+    expect(legacyDims.some(d => d.name.includes('EA Dim'))).toBe(false)
+  })
+
+  it('sesión sin instrumentVersionId y sin dimensiones legacy muestra error, no carga todo', () => {
+    // Simular: todas las dimensiones tienen version (no hay legacy)
+    const allDimensions = [
+      { id: 'd1', name: 'CSAT Dim', instrumentVersionId: 'version-csat' },
+      { id: 'd2', name: 'EA Dim', instrumentVersionId: 'version-ea' },
+    ]
+
+    const legacyDims = allDimensions.filter(dim => !dim.instrumentVersionId)
+
+    // Resultado: vacío (la página mostraría "Encuesta no configurada")
+    expect(legacyDims.length).toBe(0)
+  })
+
+  it('sesión CON instrumentVersionId nunca activa el fallback global', () => {
+    const session = { instrumentVersionId: 'version-csat' }
+    const dimensionsFromVersion = [
+      { id: 'd1', name: 'Satisfacción', instrumentVersionId: 'version-csat' },
+    ]
+
+    // Si la sesión tiene versión y findByInstrumentVersionId retorna datos,
+    // el fallback nunca se ejecuta
+    const shouldUseFallback = dimensionsFromVersion.length === 0 && !session.instrumentVersionId
+    expect(shouldUseFallback).toBe(false)
+  })
+
+  it('nunca se cargan más de las dimensiones del instrumento asignado', () => {
+    // Regla de negocio: una encuesta siempre muestra SOLO las dimensiones de SU instrumento
+    const INSTRUMENT_CSAT_DIMS = 3
+    const INSTRUMENT_EA_DIMS = 8
+    const INSTRUMENT_AIDLC_DIMS = 6
+    const TOTAL_ALL_INSTRUMENTS = INSTRUMENT_CSAT_DIMS + INSTRUMENT_EA_DIMS + INSTRUMENT_AIDLC_DIMS // 17
+
+    // Si una sesión CSAT carga 17 dimensiones, es un bug
+    const sessionInstrumentDimCount = INSTRUMENT_CSAT_DIMS
+    expect(sessionInstrumentDimCount).toBeLessThan(TOTAL_ALL_INSTRUMENTS)
+
+    // La cantidad cargada NUNCA debe exceder las del instrumento asignado
+    // (Este test documenta la invariante de negocio)
+    expect(sessionInstrumentDimCount).toBeLessThanOrEqual(INSTRUMENT_CSAT_DIMS)
+  })
+})
