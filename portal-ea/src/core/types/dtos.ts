@@ -163,6 +163,7 @@ export interface Respondent {
   email: string
   completed: boolean
   createdAt: string
+  completedAt: string | null
 }
 
 export interface Response {

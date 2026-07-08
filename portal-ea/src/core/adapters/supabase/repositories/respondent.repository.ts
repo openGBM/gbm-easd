@@ -151,6 +151,7 @@ export class SupabaseRespondentRepository implements RespondentRepository {
       email: row.email as string,
       completed: row.completed as boolean,
       createdAt: row.created_at as string,
+      completedAt: (row.completed_at as string) || null,
     }
   }
 }

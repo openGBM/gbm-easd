@@ -90,7 +90,7 @@ export default function SessionDetailPage() {
         completed: r.completed,
         created_at: r.createdAt,
         session_id: r.sessionId,
-        completed_at: (r as any).completedAt || null,
+        completed_at: r.completedAt || null,
       }))
       setRespondents(respondentData as any)
 
@@ -425,7 +425,7 @@ export default function SessionDetailPage() {
         <div className="bg-white rounded-xl shadow-sm border p-5">
           <p className="text-sm text-gray-500 mb-1">Tiempo Promedio de Respuesta</p>
           <p className="text-3xl font-bold text-purple-600">
-            {sessionStats.avgTimeMinutes > 0 ? `${sessionStats.avgTimeMinutes} min` : '—'}
+            {sessionStats.avgTimeMinutes > 0 ? `${sessionStats.avgTimeMinutes} min` : 'Sin datos'}
           </p>
         </div>
       </div>
