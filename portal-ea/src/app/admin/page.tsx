@@ -253,7 +253,7 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-xl shadow-sm border p-5">
           <p className="text-sm text-gray-500 mb-1">Tiempo Promedio de Respuesta</p>
           <p className="text-3xl font-bold text-purple-600">
-            {stats.avgTimeMinutes > 0 ? `${stats.avgTimeMinutes} min` : '—'}
+            {stats.avgTimeMinutes > 0 ? `${stats.avgTimeMinutes} min` : 'Sin datos'}
           </p>
         </div>
         {multiInstrumentEnabled && (
