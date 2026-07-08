@@ -94,12 +94,13 @@ export class SupabaseDimensionRepository implements DimensionRepository {
       description: row.description as string,
       displayOrder: row.display_order as number,
       color: row.color as string,
+      instrumentVersionId: (row.instrument_version_id as string) || null,
       questions: questions.map((q): Question => ({
         id: q.id as string,
         dimensionId: q.dimension_id as string,
         text: q.text as string,
         displayOrder: q.display_order as number,
       })),
-    }
+    } as DimensionWithQuestions
   }
 }

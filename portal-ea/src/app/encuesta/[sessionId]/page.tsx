@@ -128,11 +128,16 @@ export default async function EncuestaPage({ params }: Props) {
   }
 
   // Fallback: si no hay dimensiones para la versión Y la sesión no tiene versión (legacy v1.x)
-  // Solo cargar todas si la sesión es legacy (sin instrument_version_id)
+  // Solo cargar dimensiones legacy (sin instrument_version_id asignado)
   if (dimensionsData.length === 0 && !session.instrumentVersionId) {
     const allDimsResult = await dimensionRepo.findWithQuestions()
     if (isOk(allDimsResult)) {
-      dimensionsData = allDimsResult.value.map(dim => ({
+      // Filtrar solo dimensiones que NO tienen instrument_version_id (legacy)
+      // Esto evita cargar las 400+ dimensiones de todos los instrumentos
+      const legacyDims = allDimsResult.value.filter((dim: any) =>
+        !dim.instrumentVersionId && !dim.instrument_version_id
+      )
+      dimensionsData = legacyDims.map(dim => ({
         ...dim,
         id: dim.id,
         name: dim.name,
@@ -148,6 +153,18 @@ export default async function EncuestaPage({ params }: Props) {
         })),
       })) as any
     }
+  }
+
+  // Si aún no hay dimensiones, la sesión no tiene datos configurados
+  if (dimensionsData.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-yellow-600 mb-2">Encuesta no configurada</h1>
+          <p className="text-gray-600">Esta sesión no tiene un instrumento con preguntas asignadas. Contacta al administrador.</p>
+        </div>
+      </div>
+    )
   }
 
   // Ordenar preguntas dentro de cada dimensión
