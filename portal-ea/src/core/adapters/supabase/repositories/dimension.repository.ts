@@ -43,9 +43,9 @@ export class SupabaseDimensionRepository implements DimensionRepository {
       .from('dimensions')
       .select(`
         *,
-        questions!inner(*)
+        questions(*)
       `)
-      .eq('questions.instrument_version_id', versionId)
+      .eq('instrument_version_id', versionId)
       .order('display_order', { ascending: true })
       .order('display_order', { ascending: true, referencedTable: 'questions' })
 

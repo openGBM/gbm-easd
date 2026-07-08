@@ -127,8 +127,9 @@ export default async function EncuestaPage({ params }: Props) {
     }
   }
 
-  // Fallback: si no hay dimensiones para la versión, cargar todas
-  if (dimensionsData.length === 0) {
+  // Fallback: si no hay dimensiones para la versión Y la sesión no tiene versión (legacy v1.x)
+  // Solo cargar todas si la sesión es legacy (sin instrument_version_id)
+  if (dimensionsData.length === 0 && !session.instrumentVersionId) {
     const allDimsResult = await dimensionRepo.findWithQuestions()
     if (isOk(allDimsResult)) {
       dimensionsData = allDimsResult.value.map(dim => ({
