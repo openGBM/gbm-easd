@@ -186,6 +186,9 @@ export interface Question {
   dimensionId: string
   text: string
   displayOrder: number
+  type?: string // 'likert' | 'boolean' | 'text' — default 'likert'
+  isRequired?: boolean // default true
+  contributesToScore?: boolean // default true
 }
 
 export interface DimensionWithQuestions extends Dimension {

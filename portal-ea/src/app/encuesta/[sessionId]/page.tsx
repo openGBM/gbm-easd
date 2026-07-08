@@ -114,6 +114,9 @@ export default async function EncuestaPage({ params }: Props) {
           text: q.text,
           display_order: q.displayOrder,
           dimension_id: q.dimensionId,
+          type: q.type || 'likert',
+          is_required: q.isRequired !== false,
+          contributes_to_score: q.contributesToScore !== false,
         })),
       })) as any
     }
@@ -150,6 +153,9 @@ export default async function EncuestaPage({ params }: Props) {
           text: q.text,
           display_order: q.displayOrder,
           dimension_id: q.dimensionId,
+          type: q.type || 'likert',
+          is_required: q.isRequired !== false,
+          contributes_to_score: q.contributesToScore !== false,
         })),
       })) as any
     }

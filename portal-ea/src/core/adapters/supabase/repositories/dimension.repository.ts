@@ -100,6 +100,9 @@ export class SupabaseDimensionRepository implements DimensionRepository {
         dimensionId: q.dimension_id as string,
         text: q.text as string,
         displayOrder: q.display_order as number,
+        type: (q.type as string) || 'likert',
+        isRequired: q.is_required !== false,
+        contributesToScore: q.contributes_to_score !== false,
       })),
     } as DimensionWithQuestions
   }
