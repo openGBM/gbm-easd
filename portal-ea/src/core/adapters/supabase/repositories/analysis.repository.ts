@@ -13,7 +13,7 @@ export class SupabaseAnalysisRepository implements AnalysisRepository {
       .from('session_analyses')
       .select('*')
       .eq('session_id', sessionId)
-      .order('created_at', { ascending: false })
+      .order('generated_at', { ascending: false })
 
     if (error) {
       return ok([])
@@ -47,7 +47,7 @@ export class SupabaseAnalysisRepository implements AnalysisRepository {
       .from('session_analyses')
       .select('*')
       .eq('session_id', sessionId)
-      .order('created_at', { ascending: false })
+      .order('generated_at', { ascending: false })
       .limit(1)
       .single()
 
