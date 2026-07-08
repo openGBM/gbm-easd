@@ -196,8 +196,9 @@ gbm-easd/
 - [x] v2.1 — Administración de usuarios y roles (super_admin, admin, editor)
 - [x] v2.2 — Catálogo de instrumentos, templates, viewer links, RLS por tenant
 - [x] v3.0 — Enforcement de límites por tenant, dashboard de consumo por área
-- [ ] v4.0 — SSO corporativo (SAML, OAuth)
-- [ ] v5.0 — Multi-tenant completo (organizaciones aisladas, billing)
+- [x] v3.1 — Abstracción arquitectónica (Hexagonal Architecture, Ports & Adapters)
+- [ ] v4.0 — Multi-tenant completo (organizaciones aisladas, billing/metering)
+- [ ] v5.0 — SSO corporativo (SAML, OAuth)
 
 ## Licencia
 

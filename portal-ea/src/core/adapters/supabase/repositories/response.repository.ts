@@ -45,7 +45,7 @@ export class SupabaseResponseRepository implements ResponseRepository {
       respondent_id: respondentId,
       question_id: r.questionId,
       value: r.value,
-      ...(r.textValue !== undefined && { text_value: r.textValue }),
+      ...(r.textValue != null && { text_value: r.textValue }),
     }))
 
     const { error } = await this.client

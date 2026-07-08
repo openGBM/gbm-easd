@@ -73,6 +73,7 @@ export default function AdminDashboard() {
           id: inst.activeVersion.id,
           instrument_id: inst.activeVersion.instrumentId,
           version_number: inst.activeVersion.versionNumber,
+          version_tag: String(inst.activeVersion.versionNumber),
           is_current: true,
         } : undefined,
       })) as any
@@ -252,7 +253,7 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-xl shadow-sm border p-5">
           <p className="text-sm text-gray-500 mb-1">Tiempo Promedio de Respuesta</p>
           <p className="text-3xl font-bold text-purple-600">
-            {stats.avgTimeMinutes > 0 ? `${stats.avgTimeMinutes} min` : '—'}
+            {stats.avgTimeMinutes > 0 ? `${stats.avgTimeMinutes} min` : 'Sin datos'}
           </p>
         </div>
         {multiInstrumentEnabled && (

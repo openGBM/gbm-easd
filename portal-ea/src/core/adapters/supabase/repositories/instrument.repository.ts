@@ -20,7 +20,7 @@ export class SupabaseInstrumentRepository implements InstrumentRepository {
       return ok([])
     }
 
-    return ok((data || []).map(this.mapToInstrumentWithVersion))
+    return ok((data || []).map((row) => this.mapToInstrumentWithVersion(row)))
   }
 
   async findById(id: string): Promise<Result<InstrumentWithVersion, NotFoundError>> {
@@ -131,7 +131,7 @@ export class SupabaseInstrumentRepository implements InstrumentRepository {
       .order('name')
 
     if (!data) return ok([])
-    return ok(data.map(this.mapToInstrumentWithVersion))
+    return ok(data.map((row) => this.mapToInstrumentWithVersion(row)))
   }
 
   async findAllWithVersions(): Promise<Result<InstrumentWithAllVersions[], DomainError>> {
@@ -143,8 +143,8 @@ export class SupabaseInstrumentRepository implements InstrumentRepository {
     if (!data) return ok([])
 
     return ok(data.map((row: any) => {
-      const versions = (row.instrument_versions || []).map(this.mapToVersion)
-      const currentVersion = versions.find((v: any) => v.isActive) || null
+      const versions = (row.instrument_versions || []).map((v: any) => this.mapToVersion(v))
+      const currentVersion = versions.find((v: any) => v.isCurrent) || null
       return {
         id: row.id as string,
         name: row.name as string,
@@ -184,7 +184,8 @@ export class SupabaseInstrumentRepository implements InstrumentRepository {
 
   private mapToInstrumentWithVersion(row: Record<string, unknown>): InstrumentWithVersion {
     const versions = (row.instrument_versions as Record<string, unknown>[]) || []
-    const activeVersion = versions.find((v) => v.is_active === true) || null
+    // La tabla usa 'is_current' (no 'is_active') para la versión activa
+    const activeVersion = versions.find((v) => v.is_current === true) || null
 
     return {
       id: row.id as string,
@@ -200,7 +201,8 @@ export class SupabaseInstrumentRepository implements InstrumentRepository {
       id: row.id as string,
       instrumentId: row.instrument_id as string,
       versionNumber: row.version_number as number,
-      isActive: row.is_active as boolean,
+      isActive: (row.is_current as boolean) || false,
+      isCurrent: (row.is_current as boolean) || false,
     }
   }
 }

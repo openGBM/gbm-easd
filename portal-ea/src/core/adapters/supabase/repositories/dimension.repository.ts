@@ -43,9 +43,9 @@ export class SupabaseDimensionRepository implements DimensionRepository {
       .from('dimensions')
       .select(`
         *,
-        questions!inner(*)
+        questions(*)
       `)
-      .eq('questions.instrument_version_id', versionId)
+      .eq('instrument_version_id', versionId)
       .order('display_order', { ascending: true })
       .order('display_order', { ascending: true, referencedTable: 'questions' })
 
@@ -94,12 +94,16 @@ export class SupabaseDimensionRepository implements DimensionRepository {
       description: row.description as string,
       displayOrder: row.display_order as number,
       color: row.color as string,
+      instrumentVersionId: (row.instrument_version_id as string) || null,
       questions: questions.map((q): Question => ({
         id: q.id as string,
         dimensionId: q.dimension_id as string,
         text: q.text as string,
         displayOrder: q.display_order as number,
+        type: (q.type as string) || 'likert',
+        isRequired: q.is_required !== false,
+        contributesToScore: q.contributes_to_score !== false,
       })),
-    }
+    } as DimensionWithQuestions
   }
 }

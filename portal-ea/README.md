@@ -291,14 +291,14 @@ La aplicación estará disponible en [http://localhost:3000](http://localhost:30
 
 ### Corto plazo (próxima iteración)
 
-- **SSO corporativo** (SAML, OAuth) — Login empresarial para clientes grandes.
+- **Multi-tenant completo** — Organizaciones aisladas, billing/metering avanzado por tenant.
 - **Notificaciones por correo** — Admin recibe aviso al completar un encuestado; encuestado recibe enlace a sus resultados.
 - **Exportar análisis IA a PDF** — Descargar el análisis interpretativo como PDF con branding GBM.
 
 ### Mediano plazo
 
+- SSO corporativo (SAML, OAuth) — Login empresarial para clientes grandes
 - Multi-idioma (inglés, portugués)
-- Billing/metering avanzado por tenant
 
 ### Largo plazo (postergado)
 
