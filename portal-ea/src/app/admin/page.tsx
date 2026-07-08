@@ -73,6 +73,7 @@ export default function AdminDashboard() {
           id: inst.activeVersion.id,
           instrument_id: inst.activeVersion.instrumentId,
           version_number: inst.activeVersion.versionNumber,
+          version_tag: String(inst.activeVersion.versionNumber),
           is_current: true,
         } : undefined,
       })) as any
