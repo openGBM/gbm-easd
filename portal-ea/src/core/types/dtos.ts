@@ -216,6 +216,7 @@ export interface InstrumentVersion {
   instrumentId: string
   versionNumber: number
   isActive: boolean
+  isCurrent?: boolean
 }
 
 export interface InstrumentVersionWithDetails {
