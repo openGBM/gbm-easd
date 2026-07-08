@@ -20,7 +20,7 @@ export class SupabaseInstrumentRepository implements InstrumentRepository {
       return ok([])
     }
 
-    return ok((data || []).map(this.mapToInstrumentWithVersion))
+    return ok((data || []).map((row) => this.mapToInstrumentWithVersion(row)))
   }
 
   async findById(id: string): Promise<Result<InstrumentWithVersion, NotFoundError>> {
@@ -131,7 +131,7 @@ export class SupabaseInstrumentRepository implements InstrumentRepository {
       .order('name')
 
     if (!data) return ok([])
-    return ok(data.map(this.mapToInstrumentWithVersion))
+    return ok(data.map((row) => this.mapToInstrumentWithVersion(row)))
   }
 
   async findAllWithVersions(): Promise<Result<InstrumentWithAllVersions[], DomainError>> {
@@ -143,7 +143,7 @@ export class SupabaseInstrumentRepository implements InstrumentRepository {
     if (!data) return ok([])
 
     return ok(data.map((row: any) => {
-      const versions = (row.instrument_versions || []).map(this.mapToVersion)
+      const versions = (row.instrument_versions || []).map((v: any) => this.mapToVersion(v))
       const currentVersion = versions.find((v: any) => v.isCurrent) || null
       return {
         id: row.id as string,
