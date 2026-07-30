@@ -185,7 +185,7 @@ export default function SurveyForm({
           if (textVal && textVal.trim()) {
             responsesArray.push({
               questionId: q.id,
-              value: 0,  // Sentinel para texto (no se usa en cálculos, contributes_to_score=false)
+              value: null,  // NULL para texto (no contribuye al score)
               textValue: textVal.trim(),
             })
           }
@@ -202,32 +202,15 @@ export default function SurveyForm({
       })
     })
 
-    // Guardar respuestas: separar numéricas de texto para robustez
-    // (Si la columna text_value no existe en BD, las numéricas no fallan)
-    const numericResponses = responsesArray.filter(r => r.textValue === null || r.textValue === undefined)
-    const textResponsesToSave = responsesArray.filter(r => r.textValue != null)
-
-    // 1. Guardar respuestas numéricas (sin text_value)
-    if (numericResponses.length > 0) {
-      const numericDTOs = numericResponses.map(r => ({ questionId: r.questionId, value: r.value, textValue: undefined }))
-      const upsertResult = await responseRepo.upsertBatch(respondentId!, numericDTOs)
+    // Guardar todas las respuestas en un solo batch
+    if (responsesArray.length > 0) {
+      const dtos = responsesArray.map(r => ({ questionId: r.questionId, value: r.value, textValue: r.textValue }))
+      const upsertResult = await responseRepo.upsertBatch(respondentId!, dtos)
       if (!isOk(upsertResult)) {
-        console.error('Error guardando respuestas numéricas:', upsertResult.error)
+        console.error('Error guardando respuestas:', upsertResult.error)
         setError('Error al guardar respuestas. Intenta de nuevo.')
         setStep('survey')
         return
-      }
-    }
-
-    // 2. Guardar respuestas de texto (con text_value, con fallback)
-    if (textResponsesToSave.length > 0) {
-      const textDTOs = textResponsesToSave.map(r => ({ questionId: r.questionId, value: r.value, textValue: r.textValue }))
-      const textResult = await responseRepo.upsertBatch(respondentId!, textDTOs)
-      if (!isOk(textResult)) {
-        // Fallback: guardar solo value=0 sin text_value (por si la columna no existe)
-        console.warn('text_value falló, guardando solo value=0:', textResult.error)
-        const fallbackDTOs = textResponsesToSave.map(r => ({ questionId: r.questionId, value: r.value, textValue: undefined }))
-        await responseRepo.upsertBatch(respondentId!, fallbackDTOs)
       }
     }
 

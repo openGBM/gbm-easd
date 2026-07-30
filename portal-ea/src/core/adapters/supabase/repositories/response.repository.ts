@@ -171,9 +171,9 @@ export class SupabaseResponseRepository implements ResponseRepository {
       const question = row.questions as Record<string, unknown>
       const dimension = question.dimensions as Record<string, unknown>
       const contributesToScore = question.contributes_to_score !== false
-      const value = row.value as number
+      const value = row.value as number | null
 
-      if (!contributesToScore || value === 0) continue
+      if (!contributesToScore || value == null || value === 0) continue
 
       const dimName = dimension.name as string
       if (!dimensionMap.has(dimName)) {
@@ -183,7 +183,7 @@ export class SupabaseResponseRepository implements ResponseRepository {
           values: [],
         })
       }
-      dimensionMap.get(dimName)!.values.push(value)
+      dimensionMap.get(dimName)!.values.push(value as number)
     }
 
     return Array.from(dimensionMap.values()).map(({ name, color, values }) => ({
