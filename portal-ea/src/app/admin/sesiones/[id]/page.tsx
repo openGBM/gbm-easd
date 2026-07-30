@@ -32,6 +32,7 @@ export default function SessionDetailPage() {
   const [respondents, setRespondents] = useState<Respondent[]>([])
   const [selectedRespondent, setSelectedRespondent] = useState<string | null>(null)
   const [chartData, setChartData] = useState<{ dimension: string; value: number }[]>([])
+  const [textResponses, setTextResponses] = useState<{ question: string; dimension: string; text: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'individual' | 'consolidated'>('individual')
   const [deletingSession, setDeletingSession] = useState(false)
@@ -131,6 +132,21 @@ export default function SessionDetailPage() {
     } else {
       setChartData([])
     }
+
+    // Cargar respuestas de texto
+    const rawResult = await responseRepo.findByRespondentId(respondentId)
+    if (isOk(rawResult)) {
+      const textItems = rawResult.value
+        .filter((r: any) => r.textValue && r.textValue.trim() !== '')
+        .map((r: any) => ({
+          question: r.question?.text || '',
+          dimension: r.dimension?.name || '',
+          text: r.textValue,
+        }))
+      setTextResponses(textItems)
+    } else {
+      setTextResponses([])
+    }
   }
 
   async function deleteRespondent(respondentId: string) {
@@ -218,6 +234,7 @@ export default function SessionDetailPage() {
       respondentResponses.forEach((r: any) => {
         const dimName = r.dimension?.name
         if (!dimName) return
+        if (r.value == null || r.value === 0) return
         if (!dimScores[dimName]) dimScores[dimName] = { total: 0, count: 0 }
         dimScores[dimName].total += r.value
         dimScores[dimName].count += 1
@@ -230,7 +247,7 @@ export default function SessionDetailPage() {
       })
 
       // Total general
-      const totalValues = respondentResponses.map((r: any) => r.value).filter((v: any) => v != null)
+      const totalValues = respondentResponses.map((r: any) => r.value).filter((v: any) => v != null && v !== 0)
       row['Promedio General'] = totalValues.length > 0
         ? Math.round((totalValues.reduce((a: number, b: number) => a + b, 0) / totalValues.length) * 10) / 10
         : 0
@@ -256,6 +273,7 @@ export default function SessionDetailPage() {
           'Dimensión': r.dimension?.name || '',
           'Pregunta': r.question?.text || '',
           'Valor': r.value,
+          'Respuesta Texto': r.textValue || '',
         })
       })
     }
@@ -356,6 +374,7 @@ export default function SessionDetailPage() {
   async function loadConsolidated() {
     setViewMode('consolidated')
     setSelectedRespondent(null)
+    setTextResponses([])
 
     // Obtener scores consolidados de la sesión usando el repo
     const scoresResult = await responseRepo.getAggregatedBySession(sessionId)
@@ -526,6 +545,22 @@ export default function SessionDetailPage() {
                   <h2 className="text-lg font-bold mb-4 text-center">Resumen</h2>
                   <ResultsTable data={chartData} mode="average" maturityLevels={maturityLevels} />
                 </div>
+
+                {/* Respuestas de texto */}
+                {viewMode === 'individual' && textResponses.length > 0 && (
+                  <div className="bg-white rounded-xl shadow-sm border p-6 mt-6">
+                    <h2 className="text-lg font-bold mb-4">Respuestas Abiertas</h2>
+                    <div className="space-y-3">
+                      {textResponses.map((item, idx) => (
+                        <div key={idx} className="bg-gray-50 rounded-lg border p-4">
+                          <p className="text-xs text-gray-400 mb-1">{item.dimension}</p>
+                          <p className="text-sm text-gray-700 font-medium mb-2">{item.question}</p>
+                          <p className="text-sm text-gray-900 bg-white rounded p-3 italic">&ldquo;{item.text}&rdquo;</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ) : (

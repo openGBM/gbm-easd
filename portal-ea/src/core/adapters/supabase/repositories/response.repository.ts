@@ -13,8 +13,9 @@ export class SupabaseResponseRepository implements ResponseRepository {
       .from('responses')
       .select(`
         *,
-        questions!inner(id, dimension_id, text, display_order),
-        questions!inner(dimensions!inner(id, name, description, display_order, color))
+        questions!inner(id, dimension_id, text, display_order, type,
+          dimensions!inner(id, name, description, display_order, color)
+        )
       `)
       .eq('respondent_id', respondentId)
 
@@ -29,7 +30,7 @@ export class SupabaseResponseRepository implements ResponseRepository {
       .select(`
         *,
         respondents!inner(session_id),
-        questions!inner(id, dimension_id, text, display_order,
+        questions!inner(id, dimension_id, text, display_order, type,
           dimensions!inner(id, name, description, display_order, color)
         )
       `)
@@ -119,7 +120,7 @@ export class SupabaseResponseRepository implements ResponseRepository {
       .from('responses')
       .select(`
         *,
-        questions!inner(id, dimension_id, text, display_order,
+        questions!inner(id, dimension_id, text, display_order, type,
           dimensions!inner(id, name, description, display_order, color)
         )
       `)
@@ -178,13 +179,15 @@ export class SupabaseResponseRepository implements ResponseRepository {
       id: row.id as string,
       respondentId: row.respondent_id as string,
       questionId: row.question_id as string,
-      value: row.value as number,
+      value: row.value as number | null,
+      textValue: (row.text_value as string) || null,
       createdAt: row.created_at as string,
       question: {
         id: question.id as string,
         dimensionId: question.dimension_id as string,
         text: question.text as string,
         displayOrder: question.display_order as number,
+        type: (question.type as string) || undefined,
       },
       dimension: {
         id: dimension.id as string,
