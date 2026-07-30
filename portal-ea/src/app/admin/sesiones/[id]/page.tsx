@@ -134,16 +134,13 @@ export default function SessionDetailPage() {
     }
 
     // Cargar respuestas de texto
-    const rawResult = await responseRepo.findByRespondentId(respondentId)
-    if (isOk(rawResult)) {
-      const textItems = rawResult.value
-        .filter((r: any) => r.textValue && r.textValue.trim() !== '')
-        .map((r: any) => ({
-          question: r.question?.text || '',
-          dimension: r.dimension?.name || '',
-          text: r.textValue,
-        }))
-      setTextResponses(textItems)
+    const textResult = await responseRepo.findTextResponsesByRespondentId(respondentId)
+    if (isOk(textResult)) {
+      setTextResponses(textResult.value.map(item => ({
+        question: item.questionText,
+        dimension: item.dimensionName,
+        text: item.textValue,
+      })))
     } else {
       setTextResponses([])
     }

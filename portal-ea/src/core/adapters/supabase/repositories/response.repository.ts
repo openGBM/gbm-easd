@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { ResponseRepository } from '../../../ports/repositories/response.repository'
+import type { ResponseRepository, TextResponseItem } from '../../../ports/repositories/response.repository'
 import type { ResponseWithQuestion, CreateResponseDTO, DimensionScore, RawResponse } from '../../../types/dtos'
 import type { Result } from '../../../errors/result'
 import { ok, err } from '../../../errors/result'
@@ -39,6 +39,29 @@ export class SupabaseResponseRepository implements ResponseRepository {
     if (!data) return ok([])
 
     return ok(data.map(this.mapToResponseWithQuestion))
+  }
+
+  async findTextResponsesByRespondentId(respondentId: string): Promise<Result<TextResponseItem[], DomainError>> {
+    const { data } = await this.client
+      .from('responses')
+      .select(`
+        text_value,
+        questions(text, dimensions(name))
+      `)
+      .eq('respondent_id', respondentId)
+      .not('text_value', 'is', null)
+
+    if (!data) return ok([])
+
+    return ok(
+      data
+        .filter((r: any) => r.text_value && r.text_value.trim() !== '')
+        .map((r: any) => ({
+          questionText: r.questions?.text || '',
+          dimensionName: r.questions?.dimensions?.name || '',
+          textValue: r.text_value,
+        }))
+    )
   }
 
   async upsertBatch(respondentId: string, responses: CreateResponseDTO[]): Promise<Result<void, DomainError>> {
