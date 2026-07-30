@@ -105,7 +105,7 @@ export class SurveyService {
 
     const numeric: Record<string, number> = {}
     for (const response of responsesResult.value) {
-      if (response.value !== 0) {
+      if (response.value != null && response.value !== 0) {
         numeric[response.questionId] = response.value
       }
     }

@@ -2,9 +2,16 @@ import type { Result } from '../../errors'
 import type { DomainError } from '../../errors'
 import type { ResponseWithQuestion, CreateResponseDTO, DimensionScore, RawResponse } from '../../types/dtos'
 
+export interface TextResponseItem {
+  questionText: string
+  dimensionName: string
+  textValue: string
+}
+
 export interface ResponseRepository {
   findByRespondentId(respondentId: string): Promise<Result<ResponseWithQuestion[], DomainError>>
   findBySessionId(sessionId: string): Promise<Result<ResponseWithQuestion[], DomainError>>
+  findTextResponsesByRespondentId(respondentId: string): Promise<Result<TextResponseItem[], DomainError>>
   upsertBatch(respondentId: string, responses: CreateResponseDTO[]): Promise<Result<void, DomainError>>
   getAggregatedBySession(sessionId: string): Promise<Result<DimensionScore[], DomainError>>
   getAggregatedByRespondent(respondentId: string): Promise<Result<DimensionScore[], DomainError>>

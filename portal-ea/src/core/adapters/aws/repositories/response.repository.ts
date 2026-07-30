@@ -1,5 +1,5 @@
 // TODO: Replace with actual AWS SDK implementation
-import type { ResponseRepository } from '../../../ports/repositories/response.repository'
+import type { ResponseRepository, TextResponseItem } from '../../../ports/repositories/response.repository'
 import type { ResponseWithQuestion, CreateResponseDTO, DimensionScore, RawResponse } from '../../../types/dtos'
 import type { Result } from '../../../errors/result'
 import type { DomainError } from '../../../errors/domain-errors'
@@ -12,6 +12,10 @@ export class AwsResponseRepository implements ResponseRepository {
   }
 
   findBySessionId(_sessionId: string): Promise<Result<ResponseWithQuestion[], DomainError>> {
+    return Promise.resolve(err(new ServiceUnavailableError('AWS adapter no implementado')))
+  }
+
+  findTextResponsesByRespondentId(_respondentId: string): Promise<Result<TextResponseItem[], DomainError>> {
     return Promise.resolve(err(new ServiceUnavailableError('AWS adapter no implementado')))
   }
 

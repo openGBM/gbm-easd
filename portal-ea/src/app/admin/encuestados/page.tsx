@@ -185,6 +185,8 @@ export default function EncuestadosPage() {
       responses.forEach((r: any) => {
         const dim = r.dimension
         if (!dim) return
+        // Saltar respuestas de texto o sin valor numérico (no contribuyen al score)
+        if (r.value == null || r.value === 0) return
         const key = dim.name
         if (!dimScores[key]) {
           dimScores[key] = { total: 0, count: 0, name: dim.name, order: dim.displayOrder, color: dim.color || null }

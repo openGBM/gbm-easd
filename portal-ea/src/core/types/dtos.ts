@@ -170,7 +170,8 @@ export interface Response {
   id: string
   respondentId: string
   questionId: string
-  value: number
+  value: number | null
+  textValue: string | null
   createdAt: string
 }
 
